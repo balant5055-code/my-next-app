@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* ===============================
+   THEME TOKENS (Tailwind v4)
+   =============================== */
+@theme {
+  /* colors */
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+
+  /* brand orange (overrides bg-orange-500) */
+  --color-orange-500: #b9322e;
+
+  /* fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ===============================
+   FONTS
+   =============================== */
+@font-face {
+  font-family: "Tangerine-Bold";
+  src: url("../public/fonts/tan/Tangerine-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Oswald-Regular";
+  src: url("../public/fonts/oswald/Oswald-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Oswald-Medium";
+  src: url("../public/fonts/oswald/Oswald-Medium.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("../public/fonts/Poppins-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Inter_18pt-Regular";
+  src: url("../public/fonts/Inter_18pt-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Inter_18pt-Medium";
+  src: url("../public/fonts/Inter_18pt-Medium.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Inter_18pt-SemiBold";
+  src: url("../public/fonts/Inter_18pt-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Poppins-Bold";
+  src: url("../public/fonts/Poppins-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "CabinetGrotesk-Extrabold";
+  src: url("../public/fonts/Cabinet/CabinetGrotesk-Extrabold.ttf")
+    format("truetype");
+}
+
+@font-face {
+  font-family: "Sora-Bold";
+  src: url("../public/fonts/sora/Sora-Bold.ttf") format("truetype");
+}
+
+/* ===============================
+   GLOBAL TYPOGRAPHY
+   =============================== */
+h1,
+h2 {
+  font-family: "Oswald-Medium";
+  letter-spacing: 1px;
+}
+.tan {
+  font-family: "Tangerine-Bold";
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: "Inter_18pt-Medium";
+  font-size: 16px;
+}
+
+/* ===============================
+   ANIMATIONS
+   =============================== */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* ===============================
+   FORM STYLES
+   =============================== */
+.input-style {
+  width: 100%;
+  background: #f3f6fb;
+  border: 1px solid #e5e9f2;
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.input-style::placeholder {
+  color: #9aa4b2;
+}
+
+.input-style:focus {
+  background: #ffffff;
+  border-color: var(--color-orange-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+
+/* ===============================
+   TITLE DECORATION
+   =============================== */
+.border-title {
+  background: url(https://wedesignthemes.com/html/fitness/images/title-pattern.png)
+    repeat-x scroll 0 5px transparent;
+  display: block;
+}
+
+.border-title span {
+  background: #ffffff;
+  padding: 0 15px;
+  color: var(--color-orange-500);
+}
