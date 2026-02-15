@@ -20,15 +20,19 @@ export async function POST(req: Request) {
       eventName,
     } = body;
 
-    // 🛑 Basic validation
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (
+      !razorpay_order_id ||
+      !razorpay_payment_id ||
+      !razorpay_signature ||
+      !eventId
+    ) {
       return NextResponse.json(
-        { success: false, message: "Missing payment details" },
-        { status: 400 },
+        { success: false, message: "Missing required details" },
+        { status: 400 }
       );
     }
 
-    // 🔐 Verify Razorpay Signature
+    // 🔐 Verify Razorpay signature
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -37,52 +41,69 @@ export async function POST(req: Request) {
     if (generatedSignature !== razorpay_signature) {
       return NextResponse.json(
         { success: false, message: "Invalid signature" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // 🎟 Generate Professional Registration ID
+    // 🎟 Generate Registration ID
     const registrationId =
       "RLI-" + uuidv4().replace(/-/g, "").slice(0, 8).toUpperCase();
 
-    // 💾 Save to Firestore (Admin SDK)
+    const now = new Date();
+
+    const registrationData = {
+      registrationId,
+      eventId,
+      eventName,
+      category,
+      amount,
+
+      participant: {
+        ...formData,
+      },
+
+      payment: {
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        signature: razorpay_signature,
+        method: "RAZORPAY",
+        status: "SUCCESS",
+        amount: amount,
+      },
+
+      status: "SUCCESS",
+      createdAt: now,
+    };
+
+    // ====================================================
+    // 1️⃣ SAVE EVENT-WISE (Fast event dashboard)
+    // ====================================================
     await adminDb
       .collection("registrations")
+      .doc(eventId)
+      .collection("participants")
       .doc(registrationId)
-      .set({
-        registrationId,
-        eventId,
-        category,
-        amount,
-        eventName,
-        // 👤 Participant Info
-        participant: {
-          ...formData,
-        },
+      .set(registrationData);
 
-        // 💳 Payment Info
-        payment: {
-          orderId: razorpay_order_id,
-          paymentId: razorpay_payment_id,
-          signature: razorpay_signature,
-          method: "RAZORPAY",
-        },
+    // ====================================================
+    // 2️⃣ SAVE FLAT (Fast global search & receipt)
+    // ====================================================
+    await adminDb
+      .collection("registrations_flat")
+      .doc(registrationId)
+      .set(registrationData);
 
-        status: "SUCCESS",
-        createdAt: new Date(),
-      });
-
-    // ✅ Return success + registrationId
     return NextResponse.json({
       success: true,
       registrationId,
     });
+
   } catch (error) {
     console.error("VERIFY ERROR:", error);
 
     return NextResponse.json(
       { success: false, message: "Server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

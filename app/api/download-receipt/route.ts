@@ -16,16 +16,24 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
     }
 
-    const docSnap = await adminDb.collection("registrations").doc(id).get();
+    // 🔥 ONLY read from registrations_flat (fast & clean)
+    const docSnap = await adminDb
+      .collection("registrations_flat")
+      .doc(id)
+      .get();
 
     if (!docSnap.exists) {
       return NextResponse.json(
         { error: "Registration not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     const data = docSnap.data();
+
+    // ==============================
+    // PDF GENERATION
+    // ==============================
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
@@ -33,12 +41,11 @@ export async function GET(req: Request) {
     const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
-    // Load Font
     const fontPath = path.join(
       process.cwd(),
       "public",
       "fonts",
-      "Inter_18pt-Medium.ttf",
+      "Inter_18pt-Medium.ttf"
     );
 
     const fontBytes = fs.readFileSync(fontPath);
@@ -46,21 +53,20 @@ export async function GET(req: Request) {
 
     let y = height - 60;
 
-    // ===========================
-    // LOGO (Proper Size)
-    // ===========================
+    // ==============================
+    // LOGO
+    // ==============================
     const logoPath = path.join(
       process.cwd(),
       "public",
       "logo",
-      "raceline-in.png",
+      "raceline-in.png"
     );
 
     if (fs.existsSync(logoPath)) {
       const logoBytes = fs.readFileSync(logoPath);
       const logoImage = await pdfDoc.embedPng(logoBytes);
-
-      const scaled = logoImage.scale(0.35); // 👈 smaller, proportional
+      const scaled = logoImage.scale(0.35);
 
       page.drawImage(logoImage, {
         x: 50,
@@ -70,7 +76,6 @@ export async function GET(req: Request) {
       });
     }
 
-    // Brand Name
     page.drawText("RACELINE INDIA", {
       x: width - 220,
       y: y - 5,
@@ -81,7 +86,6 @@ export async function GET(req: Request) {
 
     y -= 60;
 
-    // Divider
     page.drawLine({
       start: { x: 50, y },
       end: { x: width - 50, y },
@@ -91,7 +95,6 @@ export async function GET(req: Request) {
 
     y -= 40;
 
-    // Title
     page.drawText("REGISTRATION RECEIPT", {
       x: 50,
       y,
@@ -102,8 +105,7 @@ export async function GET(req: Request) {
 
     y -= 40;
 
-    // Helper
-    const drawRow = (label: string, value: string) => {
+    const drawRow = (label: string, value: string | undefined) => {
       page.drawText(label, {
         x: 50,
         y,
@@ -112,7 +114,7 @@ export async function GET(req: Request) {
         color: rgb(0.5, 0.5, 0.5),
       });
 
-      page.drawText(value, {
+      page.drawText(value || "-", {
         x: 250,
         y,
         size: 12,
@@ -124,15 +126,13 @@ export async function GET(req: Request) {
     };
 
     const fullName =
-      data?.firstName && data?.lastName
-        ? `${data.firstName} ${data.lastName}`
-        : data?.participant?.firstName && data?.participant?.lastName
-          ? `${data.participant.firstName} ${data.participant.lastName}`
-          : "Participant";
+      data?.participant?.firstName && data?.participant?.lastName
+        ? `${data.participant.firstName} ${data.participant.lastName}`
+        : "Participant";
 
-    // ===========================
+    // ==============================
     // PARTICIPANT DETAILS
-    // ===========================
+    // ==============================
     page.drawText("Participant Details", {
       x: 50,
       y,
@@ -144,14 +144,14 @@ export async function GET(req: Request) {
     y -= 20;
 
     drawRow("Name", fullName);
-    drawRow("Event", data?.eventName || "Event");
-    drawRow("Category", data?.category || "-");
+    drawRow("Event", data?.eventName);
+    drawRow("Category", data?.category);
 
     y -= 20;
 
-    // ===========================
+    // ==============================
     // PAYMENT DETAILS
-    // ===========================
+    // ==============================
     page.drawText("Payment Details", {
       x: 50,
       y,
@@ -163,10 +163,10 @@ export async function GET(req: Request) {
     y -= 20;
 
     drawRow("Registration ID", id);
-    drawRow("Payment ID", data?.payment?.paymentId || "-");
-    drawRow("Order ID", data?.payment?.orderId || "-");
+    drawRow("Payment ID", data?.payment?.paymentId);
+    drawRow("Order ID", data?.payment?.orderId);
     drawRow("Amount Paid", `₹ ${data?.amount}`);
-    drawRow("Status", "SUCCESS");
+    drawRow("Status", data?.payment?.status || "SUCCESS");
 
     y -= 40;
 
@@ -187,7 +187,7 @@ export async function GET(req: Request) {
         size: 11,
         font,
         color: rgb(0.4, 0.4, 0.4),
-      },
+      }
     );
 
     const pdfBytes = await pdfDoc.save();

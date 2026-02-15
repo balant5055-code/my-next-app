@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AnimatedInput from "@/components/ui/AnimatedInput";
+
 import {
   TagIcon,
   LinkIcon,
@@ -13,16 +14,13 @@ import {
   BuildingOfficeIcon,
   MapIcon,
   ClockIcon,
-  PlayIcon,
   UserIcon,
   EnvelopeIcon,
   PhoneIcon,
-  LifebuoyIcon,
-  UsersIcon,
-  FlagIcon,
-  DocumentTextIcon,
-  HeartIcon,
   GlobeAltIcon,
+  PhotoIcon,
+  CurrencyRupeeIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 
 export default function EditEventPage() {
@@ -30,40 +28,21 @@ export default function EditEventPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  const [event, setEvent] = useState<any>({
-    name: "",
-    slug: "",
-    date: "",
-    city: "",
-    venue: "",
-    mapLink: "",
-    gateOpen: "",
-    raceStart: "",
-    description: "",
+  const RED_ICON = "h-5 w-5 text-red-600";
 
-    organizerName: "",
-    organizerEmail: "",
-    organizerPhone: "",
-    supportEmail: "",
+  const INDIAN_STATES = [
+    "Tamil Nadu",
+    "Kerala",
+    "Karnataka",
+    "Andhra Pradesh",
+    "Telangana",
+    "Maharashtra",
+    "Delhi",
+  ];
 
-    registrationStart: "",
-    registrationEnd: "",
-    maxParticipants: "",
+  const [event, setEvent] = useState<any>(null);
 
-    whatsapp: "",
-    facebook: "",
-    instagram: "",
-    youtube: "",
-
-    terms: "",
-    refundPolicy: "",
-    medicalNote: "",
-
-    registrationStatus: "open",
-    categories: [],
-  });
-
-  /* ---------- FETCH ---------- */
+  /* ---------------- FETCH EVENT ---------------- */
   useEffect(() => {
     const fetchEvent = async () => {
       const ref = doc(db, "events", id as string);
@@ -75,30 +54,69 @@ export default function EditEventPage() {
       }
 
       const data = snap.data();
+
       setEvent({
-        ...event,
         ...data,
-        registrationStatus:
-          data.registrationStatus || data["registrationStatus "] || "open",
+        categories: data.categories || [],
+        rules: data.rules || {
+          stateRules: {
+            allowAllIndia: true,
+            allowedStates: [],
+          },
+        },
       });
 
       setLoading(false);
     };
 
     fetchEvent();
-    // eslint-disable-next-line
-  }, [id]);
+  }, [id, router]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  if (loading || !event) return <p>Loading...</p>;
+
+  /* ---------------- BASIC CHANGE HANDLER ---------------- */
+  const handleChange = (e: any) => {
     setEvent({ ...event, [e.target.name]: e.target.value });
   };
 
+  /* ---------------- CATEGORY HANDLER ---------------- */
+  const handleCategoryChange = (index: number, field: string, value: string) => {
+    const updated = [...event.categories];
+    updated[index][field] = value;
+    setEvent({ ...event, categories: updated });
+  };
+
+  const addCategory = () => {
+    setEvent({
+      ...event,
+      categories: [
+        ...event.categories,
+        {
+          title: "",
+          distance: "",
+          price: "",
+          minAge: "",
+          maxAge: "",
+          maxSeats: "",
+        },
+      ],
+    });
+  };
+
+  const removeCategory = (index: number) => {
+    const updated = event.categories.filter(
+      (_: any, i: number) => i !== index
+    );
+    setEvent({ ...event, categories: updated });
+  };
+
+  /* ---------------- SAVE ---------------- */
   const handleUpdate = async () => {
     const ref = doc(db, "events", id as string);
+
     const clean = { ...event };
-    delete clean["registrationStatus "];
+    delete clean.createdAt;
+    delete clean.createdBy;
 
     await updateDoc(ref, {
       ...clean,
@@ -108,158 +126,131 @@ export default function EditEventPage() {
     router.push("/admin/events");
   };
 
-  if (loading) return <p className="text-gray-500">Loading…</p>;
-
   return (
     <div className="max-w-6xl space-y-12">
-      <h1 className="text-3xl font-bold text-gray-900">
-        Edit Event
-      </h1>
+      <h1 className="text-3xl font-bold">Edit Event</h1>
 
-      {/* BASIC */}
-      <Section title="Basic Event Details">
-        <Grid>
-          <Field label="Event Name" icon={TagIcon}>
-            <AnimatedInput name="name" value={event.name} onChange={handleChange} />
-          </Field>
+      {/* ---------------- BASIC DETAILS ---------------- */}
+      <Section title="Basic Details">
+        <AnimatedInput name="name" value={event.name} onChange={handleChange} icon={<TagIcon className={RED_ICON} />} />
+        <AnimatedInput name="slug" value={event.slug} onChange={handleChange} icon={<LinkIcon className={RED_ICON} />} />
+        <AnimatedInput type="date" name="date" value={event.date} onChange={handleChange} icon={<CalendarDaysIcon className={RED_ICON} />} />
+        <AnimatedInput name="city" value={event.city} onChange={handleChange} icon={<MapPinIcon className={RED_ICON} />} />
+        <AnimatedInput name="venue" value={event.venue} onChange={handleChange} icon={<BuildingOfficeIcon className={RED_ICON} />} />
+        <AnimatedInput name="mapLink" value={event.mapLink} onChange={handleChange} icon={<MapIcon className={RED_ICON} />} />
+        <AnimatedInput type="time" name="gateOpen" value={event.gateOpen} onChange={handleChange} icon={<ClockIcon className={RED_ICON} />} />
+        <AnimatedInput type="time" name="raceStart" value={event.raceStart} onChange={handleChange} icon={<ClockIcon className={RED_ICON} />} />
+        <AnimatedInput name="bannerURL" value={event.bannerURL} onChange={handleChange} icon={<PhotoIcon className={RED_ICON} />} />
 
-          <Field label="URL Slug" icon={LinkIcon}>
-            <AnimatedInput name="slug" value={event.slug} onChange={handleChange} />
-          </Field>
-
-          <Field label="Event Date" icon={CalendarDaysIcon}>
-            <AnimatedInput type="date" name="date" value={event.date} onChange={handleChange} />
-          </Field>
-
-          <Field label="City" icon={MapPinIcon}>
-            <AnimatedInput name="city" value={event.city} onChange={handleChange} />
-          </Field>
-
-          <Field label="Venue / Address" icon={BuildingOfficeIcon}>
-            <AnimatedInput name="venue" value={event.venue} onChange={handleChange} />
-          </Field>
-
-          <Field label="Google Maps Link" icon={MapIcon}>
-            <AnimatedInput name="mapLink" value={event.mapLink} onChange={handleChange} />
-          </Field>
-
-          <Field label="Gate Open Time" icon={ClockIcon}>
-            <AnimatedInput type="time" name="gateOpen" value={event.gateOpen} onChange={handleChange} />
-          </Field>
-
-          <Field label="Race Start Time" icon={PlayIcon}>
-            <AnimatedInput type="time" name="raceStart" value={event.raceStart} onChange={handleChange} />
-          </Field>
-        </Grid>
-
-        <Textarea label="Event Description" icon={DocumentTextIcon}>
-          <textarea
-            name="description"
-            value={event.description}
-            onChange={handleChange}
-            rows={4}
-            className="input-style"
-          />
-        </Textarea>
+        {event.bannerURL && (
+          <img src={event.bannerURL} className="h-48 rounded-xl mt-4 object-cover" />
+        )}
       </Section>
 
-      {/* ORGANIZER */}
-      <Section title="Organizer Details">
-        <Grid>
-          <Field label="Organizer Name" icon={UserIcon}>
-            <AnimatedInput name="organizerName" value={event.organizerName} onChange={handleChange} />
-          </Field>
-
-          <Field label="Organizer Email" icon={EnvelopeIcon}>
-            <AnimatedInput name="organizerEmail" value={event.organizerEmail} onChange={handleChange} />
-          </Field>
-
-          <Field label="Organizer Phone" icon={PhoneIcon}>
-            <AnimatedInput name="organizerPhone" value={event.organizerPhone} onChange={handleChange} />
-          </Field>
-
-          <Field label="Support Email" icon={LifebuoyIcon}>
-            <AnimatedInput name="supportEmail" value={event.supportEmail} onChange={handleChange} />
-          </Field>
-        </Grid>
+      {/* ---------------- ORGANIZER ---------------- */}
+      <Section title="Organizer">
+        <AnimatedInput name="organizerName" value={event.organizerName} onChange={handleChange} icon={<UserIcon className={RED_ICON} />} />
+        <AnimatedInput name="organizerEmail" value={event.organizerEmail} onChange={handleChange} icon={<EnvelopeIcon className={RED_ICON} />} />
+        <AnimatedInput name="organizerPhone" value={event.organizerPhone} onChange={handleChange} icon={<PhoneIcon className={RED_ICON} />} />
+        <AnimatedInput name="supportEmail" value={event.supportEmail} onChange={handleChange} icon={<EnvelopeIcon className={RED_ICON} />} />
       </Section>
 
-      {/* REGISTRATION */}
-      <Section title="Registration Settings">
-        <Grid>
-          <Field label="Registration Start" icon={CalendarDaysIcon}>
-            <AnimatedInput type="date" name="registrationStart" value={event.registrationStart} onChange={handleChange} />
-          </Field>
-
-          <Field label="Registration End" icon={CalendarDaysIcon}>
-            <AnimatedInput type="date" name="registrationEnd" value={event.registrationEnd} onChange={handleChange} />
-          </Field>
-
-          <Field label="Max Participants" icon={UsersIcon}>
-            <AnimatedInput name="maxParticipants" value={event.maxParticipants} onChange={handleChange} />
-          </Field>
-        </Grid>
+      {/* ---------------- SOCIAL LINKS ---------------- */}
+      <Section title="Social Links">
+        <AnimatedInput name="whatsapp" value={event.whatsapp} onChange={handleChange} icon={<GlobeAltIcon className={RED_ICON} />} />
+        <AnimatedInput name="facebook" value={event.facebook} onChange={handleChange} icon={<GlobeAltIcon className={RED_ICON} />} />
+        <AnimatedInput name="instagram" value={event.instagram} onChange={handleChange} icon={<GlobeAltIcon className={RED_ICON} />} />
+        <AnimatedInput name="youtube" value={event.youtube} onChange={handleChange} icon={<GlobeAltIcon className={RED_ICON} />} />
       </Section>
 
-      {/* POLICIES */}
-      <Section title="Policies & Safety">
-        <Textarea label="Terms & Conditions" icon={DocumentTextIcon}>
-          <textarea name="terms" value={event.terms} onChange={handleChange} className="input-style" />
-        </Textarea>
+      {/* ---------------- CATEGORIES ---------------- */}
+      <Section title="Categories">
+        {event.categories.map((cat: any, i: number) => (
+          <div key={i} className="border rounded-xl p-4 space-y-2 bg-gray-50">
+            <AnimatedInput name={`title-${i}`} value={cat.title} onChange={(e) => handleCategoryChange(i, "title", e.target.value)} icon={<TagIcon className={RED_ICON} />} />
+            <AnimatedInput name={`distance-${i}`} value={cat.distance} onChange={(e) => handleCategoryChange(i, "distance", e.target.value)} icon={<MapPinIcon className={RED_ICON} />} />
+            <AnimatedInput name={`price-${i}`} value={cat.price} onChange={(e) => handleCategoryChange(i, "price", e.target.value)} icon={<CurrencyRupeeIcon className={RED_ICON} />} />
+            <AnimatedInput name={`minAge-${i}`} value={cat.minAge} onChange={(e) => handleCategoryChange(i, "minAge", e.target.value)} icon={<UserIcon className={RED_ICON} />} />
+            <AnimatedInput name={`maxAge-${i}`} value={cat.maxAge} onChange={(e) => handleCategoryChange(i, "maxAge", e.target.value)} icon={<UserIcon className={RED_ICON} />} />
+            <AnimatedInput name={`maxSeats-${i}`} value={cat.maxSeats} onChange={(e) => handleCategoryChange(i, "maxSeats", e.target.value)} icon={<UsersIcon className={RED_ICON} />} />
 
-        <Textarea label="Refund Policy" icon={DocumentTextIcon}>
-          <textarea name="refundPolicy" value={event.refundPolicy} onChange={handleChange} className="input-style" />
-        </Textarea>
+            <button onClick={() => removeCategory(i)} className="text-red-600 text-sm">
+              Remove Category
+            </button>
+          </div>
+        ))}
 
-        <Textarea label="Medical / Safety Note" icon={HeartIcon}>
-          <textarea name="medicalNote" value={event.medicalNote} onChange={handleChange} className="input-style" />
-        </Textarea>
-      </Section>
-
-      {/* SAVE */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleUpdate}
-          className="rounded-full bg-red-600 px-10 py-3
-                     text-white font-semibold shadow-lg
-                     hover:bg-red-700 hover:shadow-xl transition"
-        >
-          Update Event
+        <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded">
+          Add Category
         </button>
-      </div>
+      </Section>
+
+      {/* ---------------- STATE RULES ---------------- */}
+      <Section title="State Rules">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={event.rules.stateRules.allowAllIndia}
+            onChange={(e) =>
+              setEvent({
+                ...event,
+                rules: {
+                  ...event.rules,
+                  stateRules: {
+                    ...event.rules.stateRules,
+                    allowAllIndia: e.target.checked,
+                  },
+                },
+              })
+            }
+          />
+          Allow All India
+        </label>
+
+        {!event.rules.stateRules.allowAllIndia && (
+          <select
+            multiple
+            value={event.rules.stateRules.allowedStates}
+            onChange={(e) => {
+              const selected = Array.from(
+                e.target.selectedOptions,
+                (option) => option.value
+              );
+              setEvent({
+                ...event,
+                rules: {
+                  ...event.rules,
+                  stateRules: {
+                    ...event.rules.stateRules,
+                    allowedStates: selected,
+                  },
+                },
+              });
+            }}
+            className="border rounded-lg p-2 h-40"
+          >
+            {INDIAN_STATES.map((state) => (
+              <option key={state} value={state}>
+                {state}
+              </option>
+            ))}
+          </select>
+        )}
+      </Section>
+
+      <button
+        onClick={handleUpdate}
+        className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold"
+      >
+        Update Event
+      </button>
     </div>
   );
 }
 
-/* ---------- UI HELPERS ---------- */
-
 const Section = ({ title, children }: any) => (
-  <section className="bg-white rounded-3xl p-8 shadow-sm space-y-6">
-    <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+  <section className="bg-white rounded-3xl p-8 shadow space-y-6">
+    <h2 className="text-lg font-semibold">{title}</h2>
     {children}
   </section>
-);
-
-const Grid = ({ children }: any) => (
-  <div className="grid md:grid-cols-2 gap-6">{children}</div>
-);
-
-const Field = ({ label, icon: Icon, children }: any) => (
-  <div className="space-y-1">
-    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-      <Icon className="h-4 w-4 text-red-600" />
-      {label}
-    </label>
-    {children}
-  </div>
-);
-
-const Textarea = ({ label, icon: Icon, children }: any) => (
-  <div className="space-y-1">
-    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-      <Icon className="h-4 w-4 text-red-600" />
-      {label}
-    </label>
-    {children}
-  </div>
 );

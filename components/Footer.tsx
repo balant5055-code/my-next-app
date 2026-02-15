@@ -1,5 +1,5 @@
 "use client";
-
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowRightIcon,
@@ -9,6 +9,11 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Footer() {
+    const pathname = usePathname();
+    if (pathname.startsWith("/admin")) {
+      return null;
+    }
+  
   const [pos, setPos] = useState({ x: 50, y: 50 });
 
   return (

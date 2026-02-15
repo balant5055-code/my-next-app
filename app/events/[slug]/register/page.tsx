@@ -9,6 +9,8 @@ import { MapPinIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import AnimatedRadioGroup from "@/components/ui/AnimatedRadioGroup";
+import DateOfBirthInput from "@/components/ui/DateOfBirthInput";
+
 import {
   UserIcon,
   PhoneIcon,
@@ -42,6 +44,12 @@ interface EventData {
   city: string;
   bannerURL: string;
   categories: Category[];
+  rules?: {
+    stateRules?: {
+      allowAllIndia: boolean;
+      allowedStates: string[];
+    };
+  };
 }
 
 export default function RegisterPage() {
@@ -71,41 +79,136 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    // 🔹 Required Fields
     if (!form.firstName) newErrors.firstName = "First name is required";
     if (!form.lastName) newErrors.lastName = "Last name is required";
-    if (!form.dob) newErrors.dob = "Date of birth is required";
     if (!form.gender) newErrors.gender = "Please select gender";
     if (!form.bloodGroup) newErrors.bloodGroup = "Please select blood group";
     if (!form.bibName) newErrors.bibName = "Bib name is required";
     if (!form.tshirtSize) newErrors.tshirtSize = "Please select T-shirt size";
-
     if (!form.address) newErrors.address = "Address is required";
-    if (!form.state) newErrors.state = "State is required";
+    //if (!form.state) newErrors.state = "State is required";
     if (!form.pincode) newErrors.pincode = "Pincode is required";
-
     if (!form.phone) newErrors.phone = "WhatsApp number is required";
+    if (!form.agree) newErrors.agree = "You must accept terms";
 
-    // EMAIL (only if not skipped)
-    if (!emailOptional && !form.email) {
-      newErrors.email = "Email is required";
+    // 🔥 STATE VALIDATION (FINAL CORRECT VERSION)
+
+    if (!form.state) {
+      newErrors.state = "State is required";
+    } else if (
+      event?.rules?.stateRules &&
+      event.rules.stateRules.allowAllIndia === false &&
+      event.rules.stateRules.allowedStates?.length > 0 &&
+      !event.rules.stateRules.allowedStates.includes(form.state)
+    ) {
+      newErrors.state = `Registration is allowed only for: ${event.rules.stateRules.allowedStates.join(", ")}`;
     }
 
-    // EMERGENCY (only if not skipped)
-    if (!skipEmergencyName && !form.emergencyName) {
-      newErrors.emergencyName = "Emergency contact name is required";
-    }
+    // 🔥 DOB VALIDATION (FINAL SAFE VERSION)
 
-    if (!skipEmergencyNumber && !form.emergencyNumber) {
-      newErrors.emergencyNumber = "Emergency contact number is required";
-    }
+    if (!form.dob) {
+      newErrors.dob = "Please select Date of Birth.";
+    } else if (cat && event) {
+      const dobParts = form.dob.split("-");
+      const eventParts = event.date.split("-");
 
-    if (!form.agree) {
-      newErrors.agree = "You must agree to terms and conditions";
+      if (dobParts.length !== 3 || eventParts.length !== 3) {
+        newErrors.dob = "Invalid date selected.";
+      } else {
+        const birthYear = Number(dobParts[0]);
+        const birthMonth = Number(dobParts[1]);
+        const birthDay = Number(dobParts[2]);
+
+        const eventYear = Number(eventParts[0]);
+        const eventMonth = Number(eventParts[1]);
+        const eventDay = Number(eventParts[2]);
+
+        if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) {
+          newErrors.dob = "Invalid date selected.";
+        } else {
+          const minAge = Number(cat.minAge);
+          const maxAge = Number(cat.maxAge);
+
+          // 🔥 Age calculation based on EVENT DATE
+          let age = eventYear - birthYear;
+
+          if (
+            eventMonth < birthMonth ||
+            (eventMonth === birthMonth && eventDay < birthDay)
+          ) {
+            age--;
+          }
+
+          // 🔥 MIN AGE CHECK
+          if (!isNaN(minAge) && age < minAge) {
+            const eligibleYear = eventYear - minAge;
+            const eligibleDate = `${eventDay
+              .toString()
+              .padStart(2, "0")}/${eventMonth
+              .toString()
+              .padStart(2, "0")}/${eligibleYear}`;
+
+            newErrors.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${eligibleDate}.`;
+          }
+
+          // 🔥 MAX AGE CHECK
+          if (!isNaN(maxAge) && age > maxAge) {
+            newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years.`;
+          }
+        }
+      }
     }
 
     setErrors(newErrors);
 
-    return Object.keys(newErrors).length === 0;
+    // 🔥 Scroll to first error automatically
+    if (Object.keys(newErrors).length > 0) {
+      scrollToError(newErrors);
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateDOB = (dobValue: string) => {
+    // Only validate if value exists
+    if (!dobValue) return "";
+
+    if (!cat || !event) return "";
+
+    const birthDate = new Date(dobValue);
+    const eventDate = new Date(event.date);
+
+    const minAge = Number(cat.minAge);
+    const maxAge = Number(cat.maxAge);
+
+    if (!isNaN(minAge)) {
+      const minEligibleDOB = new Date(
+        eventDate.getFullYear() - minAge,
+        eventDate.getMonth(),
+        eventDate.getDate(),
+      );
+
+      if (birthDate > minEligibleDOB) {
+        const formattedDate = minEligibleDOB.toLocaleDateString("en-GB");
+        return `To register for ${cat.title}, your Date of Birth must be on or before ${formattedDate}.`;
+      }
+    }
+
+    if (!isNaN(maxAge)) {
+      const maxEligibleDOB = new Date(
+        eventDate.getFullYear() - maxAge,
+        eventDate.getMonth(),
+        eventDate.getDate(),
+      );
+
+      if (birthDate < maxEligibleDOB) {
+        return `Maximum eligible age for ${cat.title} is ${maxAge} years as on event date.`;
+      }
+    }
+
+    return "";
   };
 
   const [form, setForm] = useState({
@@ -176,6 +279,11 @@ export default function RegisterPage() {
 
     fetchEvent();
   }, [slug]);
+  useEffect(() => {
+    if (form.dob) {
+      validateDOBWithCategory(form.dob);
+    }
+  }, [selectedCat]);
 
   // ✅ FIX: CLICK-OUTSIDE HANDLER (NEW)
   useEffect(() => {
@@ -204,6 +312,66 @@ export default function RegisterPage() {
       scroll: false,
     });
   };
+  const getMinEligibleDOB = (eventDate: string, minAge: number) => {
+    const eventDateObj = new Date(eventDate);
+    const eligibleDate = new Date(
+      eventDateObj.getFullYear() - minAge,
+      eventDateObj.getMonth(),
+      eventDateObj.getDate(),
+    );
+
+    return eligibleDate;
+  };
+
+  const validateDOBWithCategory = (dob: string) => {
+    if (!dob) return;
+
+    if (!cat) {
+      console.log("Category not selected yet");
+      return;
+    }
+
+    const today = new Date();
+    const birthDate = new Date(dob);
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    const minAge = Number(cat.minAge);
+    const maxAge = Number(cat.maxAge);
+
+    console.log("Calculated Age:", age);
+
+    if (!isNaN(minAge) && age < minAge) {
+      setErrors((prev) => ({
+        ...prev,
+        dob: `Minimum age for ${cat.title} is ${minAge} years.`,
+      }));
+      return;
+    }
+
+    if (!isNaN(maxAge) && age > maxAge) {
+      setErrors((prev) => ({
+        ...prev,
+        dob: `Maximum age for ${cat.title} is ${maxAge} years.`,
+      }));
+      return;
+    }
+
+    // Clear error if valid
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated.dob;
+      return updated;
+    });
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -219,46 +387,105 @@ export default function RegisterPage() {
       [name]: fieldValue,
     }));
 
+    if (name === "dob") {
+      const input = e.target as HTMLInputElement;
+      const rawValue = input.value;
+      const dateObj = input.valueAsDate;
+
+      setErrors((prev) => {
+        const updated = { ...prev };
+
+        // Case 1: User cleared field
+        if (!rawValue) {
+          updated.dob = "Please select Date of Birth.";
+          return updated;
+        }
+
+        // Case 2: Invalid date typed manually
+        if (!dateObj) {
+          updated.dob = "Invalid date selected.";
+          return updated;
+        }
+
+        // Case 3: Age validation
+        if (cat && event) {
+          const [birthYear, birthMonth, birthDay] = rawValue
+            .split("-")
+            .map(Number);
+          const [eventYear, eventMonth, eventDay] = event.date
+            .split("-")
+            .map(Number);
+
+          const minAge = Number(cat.minAge);
+          const maxAge = Number(cat.maxAge);
+
+          let age = eventYear - birthYear;
+
+          if (
+            eventMonth < birthMonth ||
+            (eventMonth === birthMonth && eventDay < birthDay)
+          ) {
+            age--;
+          }
+
+          if (!isNaN(minAge) && age < minAge) {
+            updated.dob = `Minimum age for ${cat.title} is ${minAge} years.`;
+            return updated;
+          }
+
+          if (!isNaN(maxAge) && age > maxAge) {
+            updated.dob = `Maximum age for ${cat.title} is ${maxAge} years.`;
+            return updated;
+          }
+
+          delete updated.dob;
+        }
+
+        return updated;
+      });
+    }
+
     setErrors((prev) => {
       const updated = { ...prev };
 
-      // ✅ REQUIRED FIELD REVALIDATION
-      if (
-        fieldValue === "" &&
-        [
-          "firstName",
-          "lastName",
-          "dob",
-          "gender",
-          "bloodGroup",
-          "bibName",
-          "tshirtSize",
-          "address",
-          "state",
-          "pincode",
-          "phone",
-        ].includes(name)
-      ) {
-        updated[name] = "This field is required";
-      } else {
-        delete updated[name];
+      // Required field validation (EXCEPT state)
+      const requiredFields = [
+        "firstName",
+        "lastName",
+        "gender",
+        "bloodGroup",
+        "bibName",
+        "tshirtSize",
+        "address",
+        "pincode",
+        "phone",
+      ];
+
+      if (requiredFields.includes(name)) {
+        if (!fieldValue) {
+          updated[name] = "This field is required";
+        } else {
+          delete updated[name];
+        }
       }
 
-      // ✅ EMAIL (only if not skipped)
-      if (name === "email" && !emailOptional && !fieldValue) {
-        updated.email = "Email is required";
-      }
+      console.log(event);
 
-      // ✅ EMERGENCY NAME
-      if (name === "emergencyName" && !skipEmergencyName && !fieldValue) {
-        updated.emergencyName = "Emergency contact name is required";
+      // 🔥 STATE VALIDATION (ONLY HERE)
+      if (name === "state") {
+        if (!fieldValue) {
+          updated.state = "State is required";
+        } else if (
+          event?.rules?.stateRules &&
+          event.rules.stateRules.allowAllIndia === false &&
+          event.rules.stateRules.allowedStates?.length > 0 &&
+          !event.rules.stateRules.allowedStates.includes(fieldValue)
+        ) {
+          updated.state = `Registration is allowed only for: ${event.rules.stateRules.allowedStates.join(", ")}`;
+        } else {
+          delete updated.state;
+        }
       }
-
-      // ✅ EMERGENCY NUMBER
-      if (name === "emergencyNumber" && !skipEmergencyNumber && !fieldValue) {
-        updated.emergencyNumber = "Emergency contact number is required";
-      }
-
       return updated;
     });
 
@@ -269,29 +496,6 @@ export default function RegisterPage() {
     if (!error) return null;
 
     return <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>;
-  };
-
-  const isFormValid = () => {
-    return (
-      form.firstName &&
-      form.lastName &&
-      form.dob &&
-      form.gender &&
-      form.bloodGroup &&
-      form.bibName &&
-      form.tshirtSize &&
-      form.address &&
-      form.state &&
-      form.pincode &&
-      form.phone &&
-      // EMAIL (required ONLY if not skipped)
-      (emailOptional || form.email) &&
-      // EMERGENCY NAME (required ONLY if not skipped)
-      (skipEmergencyName || form.emergencyName) &&
-      // EMERGENCY NUMBER (required ONLY if not skipped)
-      (skipEmergencyNumber || form.emergencyNumber) &&
-      form.agree
-    );
   };
 
   const cat = event?.categories.find((c) => c.title === selectedCat) || null;
@@ -309,10 +513,32 @@ export default function RegisterPage() {
       document.body.appendChild(script);
     });
   };
+
+  const scrollToError = (errorsObj: Record<string, string>) => {
+    const firstErrorKey = Object.keys(errorsObj)[0];
+
+    if (!firstErrorKey) return;
+
+    const element = document.querySelector(
+      `[name="${firstErrorKey}"]`,
+    ) as HTMLElement | null;
+
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      element.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1️⃣ Validate form
+    setFormError("");
+
+    // 1️⃣ Validate basic required fields
     const isValid = validateForm();
     if (!isValid) {
       setFormError("Please fix the highlighted errors.");
@@ -330,18 +556,21 @@ export default function RegisterPage() {
       setFormError("Please select a category.");
       return;
     }
+
+    // ✅ If everything valid → start processing
     setIsProcessing(true);
 
     try {
-      // ✅ Load Razorpay SDK safely
+      // 5️⃣ Load Razorpay SDK
       const sdkLoaded = await loadRazorpay();
 
       if (!sdkLoaded || !(window as any).Razorpay) {
-        alert("Razorpay SDK failed to load.");
+        setFormError("Razorpay SDK failed to load.");
+        setIsProcessing(false);
         return;
       }
 
-      // 4️⃣ Create order from backend
+      // 6️⃣ Create order
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: {
@@ -358,7 +587,7 @@ export default function RegisterPage() {
 
       const order = await res.json();
 
-      // 5️⃣ Configure Razorpay options
+      // 7️⃣ Razorpay options
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -385,22 +614,26 @@ export default function RegisterPage() {
                 amount: Number(cat.price),
               }),
             });
+
             const verifyData = await verifyRes.json();
+
             if (verifyData.success) {
               window.location.href =
                 `/payment/success?` +
-                `name=${encodeURIComponent(form.firstName + " " + form.lastName)}&` +
+                `name=${encodeURIComponent(
+                  form.firstName + " " + form.lastName,
+                )}&` +
                 `orderId=${response.razorpay_order_id}&` +
                 `paymentId=${response.razorpay_payment_id}&` +
                 `event=${encodeURIComponent(event.name)}&` +
                 `regId=${verifyData.registrationId}`;
             } else {
-              alert("Verification failed. Please contact support.");
+              setFormError("Verification failed. Please contact support.");
               setIsProcessing(false);
             }
           } catch (error) {
             console.error(error);
-            alert("Verification error.");
+            setFormError("Verification error.");
             setIsProcessing(false);
           }
         },
@@ -422,17 +655,15 @@ export default function RegisterPage() {
         },
       };
 
-      // ✅ Open Razorpay modal safely
       const rzp = new (window as any).Razorpay(options);
 
       setTimeout(() => {
         rzp.open();
       }, 100);
     } catch (error) {
-      setIsProcessing(false);
-
       console.error(error);
       setFormError("Payment initialization failed.");
+      setIsProcessing(false);
     }
   };
 
@@ -836,13 +1067,14 @@ export default function RegisterPage() {
                   Date of Birth <span className="text-red-500">*</span>
                 </label>
 
-                <AnimatedInput
-                  type="date"
+                <DateOfBirthInput
                   name="dob"
+                  value={form.dob}
                   required
                   onChange={handleChange}
-                  icon={<CalendarIcon className="h-5 w-5" />}
                 />
+
+                <FieldError error={errors.dob} />
               </div>
               <div className="space-y-1 px-5">
                 <label className="block text-sm font-medium text-gray-700">
@@ -888,7 +1120,8 @@ export default function RegisterPage() {
 
               <div className="space-y-1 px-5">
                 <label className="block text-sm font-medium text-gray-700">
-                  Name on Bib <span className="text-red-500">*</span>
+                  Name to appear on Race Bib{" "}
+                  <span className="text-red-500">*</span>
                 </label>
 
                 <AnimatedInput

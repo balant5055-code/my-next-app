@@ -38,7 +38,10 @@ import {
   UserPlusIcon,
   TrashIcon,
   PlusIcon,
-  PhotoIcon,UserGroupIcon, InformationCircleIcon, Squares2X2Icon
+  PhotoIcon,
+  UserGroupIcon,
+  InformationCircleIcon,
+  Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 interface Category {
   title: string;
@@ -57,8 +60,6 @@ export default function CreateEventPage() {
 
   /* -------- VALIDATION STATE -------- */
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-
 
   const [event, setEvent] = useState({
     name: "",
@@ -215,6 +216,20 @@ export default function CreateEventPage() {
     );
   };
 
+  const defaultRules = {
+    ageRules: [],
+
+    stateRules: {
+      allowAllIndia: true,
+      allowedStates: [],
+      extraChargeOutsideState: 0,
+    },
+
+    pricingRules: {},
+
+    alertMessages: [],
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -249,7 +264,8 @@ export default function CreateEventPage() {
       const eventData = {
         ...event,
         categories,
-        bannerURL: placeholderBanner, // 👈 we use this instead of upload
+        bannerURL: placeholderBanner,
+        rules: defaultRules, // 👈 ADD THIS LINE
         createdAt: new Date().toISOString(),
         createdBy: auth.currentUser?.uid || null,
         status: "upcoming",
@@ -289,48 +305,45 @@ export default function CreateEventPage() {
       </h1>
 
       {/* TABS */}
-    <div className="mb-8 rounded-2xl bg-gray-100 p-2 shadow-inner">
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-    
-    <button
-      type="button"
-      onClick={() => setActiveTab("basic")}
-      className={`${tabClass("basic")} flex items-center justify-center gap-2`}
-    >
-      <InformationCircleIcon className="h-5 w-5" />
-      <span>Basic</span>
-    </button>
+      <div className="mb-8 rounded-2xl bg-gray-100 p-2 shadow-inner">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("basic")}
+            className={`${tabClass("basic")} flex items-center justify-center gap-2`}
+          >
+            <InformationCircleIcon className="h-5 w-5" />
+            <span>Basic</span>
+          </button>
 
-    <button
-      type="button"
-      onClick={() => setActiveTab("organizer")}
-      className={`${tabClass("organizer")} flex items-center justify-center gap-2`}
-    >
-      <UserGroupIcon className="h-5 w-5" />
-      <span>Organizer</span>
-    </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("organizer")}
+            className={`${tabClass("organizer")} flex items-center justify-center gap-2`}
+          >
+            <UserGroupIcon className="h-5 w-5" />
+            <span>Organizer</span>
+          </button>
 
-    <button
-      type="button"
-      onClick={() => setActiveTab("categories")}
-      className={`${tabClass("categories")} flex items-center justify-center gap-2`}
-    >
-      <Squares2X2Icon className="h-5 w-5" />
-      <span>Categories</span>
-    </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("categories")}
+            className={`${tabClass("categories")} flex items-center justify-center gap-2`}
+          >
+            <Squares2X2Icon className="h-5 w-5" />
+            <span>Categories</span>
+          </button>
 
-    <button
-      type="button"
-      onClick={() => setActiveTab("media")}
-      className={`${tabClass("media")} flex items-center justify-center gap-2`}
-    >
-      <PhotoIcon className="h-5 w-5" />
-      <span>Media</span>
-    </button>
-
-  </div>
-</div>
-
+          <button
+            type="button"
+            onClick={() => setActiveTab("media")}
+            className={`${tabClass("media")} flex items-center justify-center gap-2`}
+          >
+            <PhotoIcon className="h-5 w-5" />
+            <span>Media</span>
+          </button>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* ========== BASIC TAB ========== */}
@@ -495,46 +508,45 @@ export default function CreateEventPage() {
                 />
               </div>
               {/* REGISTRATION STATUS */}
-<div className="space-y-2 px-5">
-  <label className="block text-sm font-medium text-gray-700">
-    Registration Status <span className="text-red-500">*</span>
-  </label>
+              <div className="space-y-2 px-5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Registration Status <span className="text-red-500">*</span>
+                </label>
 
-  <div className="flex gap-4">
-    {/* OPEN */}
-    <label className="flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-2 hover:border-red-400 transition">
-      <input
-        type="radio"
-        name="registrationStatus"
-        value="open"
-        checked={event.registrationStatus === "open"}
-        onChange={handleEventChange}
-        className="h-4 w-4 accent-red-600 focus:ring-red-500"
-      />
-      <span className="text-sm font-medium text-gray-700">
-        Open
-      </span>
-    </label>
+                <div className="flex gap-4">
+                  {/* OPEN */}
+                  <label className="flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-2 hover:border-red-400 transition">
+                    <input
+                      type="radio"
+                      name="registrationStatus"
+                      value="open"
+                      checked={event.registrationStatus === "open"}
+                      onChange={handleEventChange}
+                      className="h-4 w-4 accent-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Open
+                    </span>
+                  </label>
 
-    {/* CLOSED */}
-    <label className="flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-2 hover:border-gray-400 transition">
-      <input
-        type="radio"
-        name="registrationStatus"
-        value="closed"
-        checked={event.registrationStatus === "closed"}
-        onChange={handleEventChange}
-        className="h-4 w-4 accent-red-600 focus:ring-red-500"
-      />
-      <span className="text-sm font-medium text-gray-700">
-        Closed
-      </span>
-    </label>
-  </div>
+                  {/* CLOSED */}
+                  <label className="flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-2 hover:border-gray-400 transition">
+                    <input
+                      type="radio"
+                      name="registrationStatus"
+                      value="closed"
+                      checked={event.registrationStatus === "closed"}
+                      onChange={handleEventChange}
+                      className="h-4 w-4 accent-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Closed
+                    </span>
+                  </label>
+                </div>
 
-  <FieldError error={errors.registrationStatus} />
-</div>
-
+                <FieldError error={errors.registrationStatus} />
+              </div>
             </div>
 
             <h2 className="text-lg font-semibold mt-6">
