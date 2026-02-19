@@ -20,7 +20,7 @@ export default function AnimatedRadioGroup({
       {options.map((option) => (
         <label
           key={option}
-          className={`flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-3
+          className={`flex items-center gap-2 cursor-pointer border px-4 py-3
             text-sm font-medium transition-all
             ${
               value === option

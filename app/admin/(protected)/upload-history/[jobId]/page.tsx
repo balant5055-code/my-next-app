@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { secureFetch } from "@/lib/secureFetch";
 
 export default function UploadFailureDetails() {
   const params = useParams();
@@ -12,9 +13,7 @@ export default function UploadFailureDetails() {
 
   useEffect(() => {
     const fetchFailures = async () => {
-      const res = await fetch(
-        `/api/upload-failures?jobId=${jobId}`
-      );
+      const res = await secureFetch(`/api/upload-failures?jobId=${jobId}`);
       const result = await res.json();
 
       if (result.success) {
@@ -59,12 +58,8 @@ export default function UploadFailureDetails() {
                 <td className="px-6 py-4">
                   {f.rowData?.firstName} {f.rowData?.lastName}
                 </td>
-                <td className="px-6 py-4">
-                  {f.rowData?.phone}
-                </td>
-                <td className="px-6 py-4 text-red-600">
-                  {f.reason}
-                </td>
+                <td className="px-6 py-4">{f.rowData?.phone}</td>
+                <td className="px-6 py-4 text-red-600">{f.reason}</td>
               </tr>
             ))}
           </tbody>

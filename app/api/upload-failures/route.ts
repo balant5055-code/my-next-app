@@ -9,16 +9,13 @@ export async function GET(req: Request) {
     const jobId = searchParams.get("jobId");
 
     if (!jobId) {
-      return NextResponse.json(
-        { error: "Missing jobId" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing jobId" }, { status: 400 });
     }
 
-const snap = await adminDb
-  .collection("upload_failures")
-  .where("jobId", "==", jobId)
-  .get();
+    const snap = await adminDb
+      .collection("upload_failures")
+      .where("jobId", "==", jobId)
+      .get();
 
     const failures = snap.docs.map((doc) => ({
       id: doc.id,
@@ -29,12 +26,11 @@ const snap = await adminDb
       success: true,
       data: failures,
     });
-
   } catch (error) {
     console.error("FAILURE FETCH ERROR:", error);
     return NextResponse.json(
       { success: false, error: "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

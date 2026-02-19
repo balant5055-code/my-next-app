@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
-import { deleteDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { motion } from "framer-motion";
 
+import { motion } from "framer-motion";
+import { secureFetch } from "@/lib/secureFetch";
 import {
   useReactTable,
   getCoreRowModel,
@@ -57,7 +56,7 @@ export default function AdminDashboard() {
     const fetchEvents = async () => {
       setLoading(true);
 
-      const res = await fetch(
+      const res = await secureFetch(
         `/api/events?pageSize=${pageSize}&pageIndex=${pageIndex}`,
       );
 
@@ -74,7 +73,18 @@ export default function AdminDashboard() {
   /* ---------- DELETE ---------- */
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
-    await deleteDoc(doc(db, "events", id));
+
+    const res = await secureFetch("/api/admin/delete-event", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!res.ok) {
+      alert("Delete failed");
+      return;
+    }
+
     setEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
@@ -147,19 +157,15 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex gap-3">
-          <Link
-            href="/admin/create-event"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-white font-semibold shadow-lg hover:scale-[1.03] transition"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Create Event
-          </Link>
-
           <button
-            onClick={() => {
-              document.cookie = "admin-auth=; Max-Age=0; path=/";
-              auth.signOut();
-              router.push("/admin/login");
+            onClick={async () => {
+              await secureFetch("/api/admin/logout", {
+                method: "POST",
+              });
+
+              await auth.signOut();
+
+              router.replace("/admin/login");
             }}
             className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white font-semibold shadow-md hover:bg-red-700 transition"
           >
@@ -198,167 +204,6 @@ export default function AdminDashboard() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-        {/* CONTROLS */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold">All Events</h2>
-
-          <div className="flex gap-3">
-            <div className="relative">
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                placeholder="Search event..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm transition"
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="rounded-xl border px-3 py-2 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[500px] overflow-y-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider sticky top-0 z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      onClick={header.column.getToggleSortingHandler()}
-                      className="px-6 py-4 text-left font-semibold cursor-pointer select-none hover:text-blue-600 transition"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                      {{
-                        asc: " ▲",
-                        desc: " ▼",
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </th>
-                  ))}
-                  <th className="px-6 py-4 text-left font-semibold">Actions</th>
-                </tr>
-              ))}
-            </thead>
-
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-gray-500">
-                    Loading events...
-                  </td>
-                </tr>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50 transition">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </td>
-                    ))}
-
-                    <td className="px-6 py-4 space-x-3">
-                      <Link
-                        href={`/admin/events/${row.original.id}/edit`}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Edit
-                      </Link>
-
-                      <Link
-                        href={`/admin/events/${row.original.id}/bulk-upload`}
-                        className="text-purple-600 hover:text-purple-800 font-medium"
-                      >
-                        Bulk Upload
-                      </Link>
-
-                      <button
-                        onClick={() => handleDelete(row.original.id)}
-                        className="text-red-600 hover:text-red-800 font-medium"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          <div className="text-sm text-gray-500 mt-4 px-4">
-            Showing{" "}
-            <span className="font-medium">{pageIndex * pageSize + 1}</span> to{" "}
-            <span className="font-medium">
-              {Math.min((pageIndex + 1) * pageSize, total)}
-            </span>{" "}
-            of <span className="font-medium">{total}</span> events
-          </div>
-
-          {/* PAGINATION */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-6 mb-6 px-4">
-            {/* Rows per page */}
-            <div className="flex items-center gap-2 text-sm">
-              <span>Rows per page:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPageIndex(0);
-                }}
-                className="border rounded px-2 py-1"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-
-            {/* Page Numbers */}
-            <div className="flex items-center gap-2">
-              <button
-                disabled={pageIndex === 0}
-                onClick={() => setPageIndex((prev) => prev - 1)}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Prev
-              </button>
-
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPageIndex(i)}
-                  className={`px-3 py-1 rounded border ${
-                    pageIndex === i ? "bg-blue-600 text-white" : "bg-white"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
-              <button
-                disabled={pageIndex + 1 >= totalPages}
-                onClick={() => setPageIndex((prev) => prev + 1)}
-                className="px-3 py-1 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

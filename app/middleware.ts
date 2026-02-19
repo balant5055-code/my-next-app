@@ -10,9 +10,7 @@ export function middleware(request: NextRequest) {
 
   // If accessing admin without login → redirect
   if (isAdminRoute && !isLoginPage && !authCookie) {
-    return NextResponse.redirect(
-      new URL("/admin/login", request.url)
-    );
+    return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
   return NextResponse.next();

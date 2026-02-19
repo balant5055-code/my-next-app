@@ -15,28 +15,31 @@ import {
 
 interface Category {
   title: string;
-  price: string;
-  minAge: string;
-  maxAge: string;
+  price: number;
+  minAge: number;
+  maxAge: number;
   distance: string;
 }
 
 interface EventData {
-  id: string; // doc id only
+  id: string;
   name: string;
   slug: string;
-  date: string;
+  date: Date | null;
   gateOpen: string;
   raceStart: string;
   venue: string;
   city: string;
   mapLink: string;
-  registrationStart: string;
-  registrationEnd: string;
-  maxParticipants: string;
+  maxParticipants: number;
   description: string;
   bannerURL: string;
   categories: Category[];
+  registration?: {
+    start?: Date;
+    end?: Date;
+    status?: string;
+  };
 }
 
 /* ================= PAGE ================= */
@@ -57,12 +60,48 @@ export default function EventPage() {
 
         if (!snap.empty) {
           const docSnap = snap.docs[0];
-          const data = docSnap.data() as Omit<EventData, "id">;
+          const raw = docSnap.data();
 
-          setEvent({
+          const formattedEvent: EventData = {
             id: docSnap.id,
-            ...data,
-          });
+
+            name: raw.name,
+            slug: raw.slug,
+            gateOpen: raw.gateOpen,
+            raceStart: raw.raceStart,
+            venue: raw.venue,
+            city: raw.city,
+            mapLink: raw.mapLink,
+            description: raw.description,
+            bannerURL: raw.bannerURL,
+            maxParticipants: raw.maxParticipants ?? 0,
+
+            categories: raw.categories ?? [],
+
+            date: raw.date?.toDate
+              ? raw.date.toDate()
+              : raw.date?.seconds
+                ? new Date(raw.date.seconds * 1000)
+                : null,
+
+            registration: {
+              start: raw.registration?.start?.toDate
+                ? raw.registration.start.toDate()
+                : raw.registration?.start?.seconds
+                  ? new Date(raw.registration.start.seconds * 1000)
+                  : undefined,
+
+              end: raw.registration?.end?.toDate
+                ? raw.registration.end.toDate()
+                : raw.registration?.end?.seconds
+                  ? new Date(raw.registration.end.seconds * 1000)
+                  : undefined,
+
+              status: raw.registration?.status,
+            },
+          };
+
+          setEvent(formattedEvent);
         }
       } catch (err) {
         console.error("Error loading event", err);
@@ -100,11 +139,16 @@ export default function EventPage() {
     <main className="bg-[#0B1220] text-slate-100">
       {/* ================= HERO ================= */}
       <section className="relative h-[85vh]">
-        <img
-          src={event.bannerURL}
-          alt={event.name}
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
-        />
+        {event.bannerURL?.trim() ? (
+          <img
+            src={event.bannerURL}
+            alt={event.name}
+            className="absolute inset-0 w-full h-full object-cover opacity-60"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 to-purple-800 opacity-70" />
+        )}
+
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B1220] via-[#0B1220]/70 to-transparent" />
 
         {/* TOP BAR */}
@@ -132,7 +176,7 @@ export default function EventPage() {
               {/* DATE */}
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
                 <CalendarDaysIcon className="h-5 w-5 text-orange-400" />
-                {event.date}
+                {event.date?.toLocaleDateString("en-IN")}
               </span>
 
               {/* LOCATION */}
@@ -150,10 +194,22 @@ export default function EventPage() {
         <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
           <Info label="Gate Opens" value={event.gateOpen} />
           <Info label="Race Starts" value={event.raceStart} />
-          <Info label="Registration Ends" value={event.registrationEnd} />
+          <Info
+            label="Registration Ends"
+            value={
+              event.registration?.end
+                ? event.registration.end.toLocaleDateString("en-IN")
+                : "-"
+            }
+          />
+
           <Info
             label="Participants"
-            value={event.maxParticipants || "Unlimited"}
+            value={
+              event.maxParticipants
+                ? String(event.maxParticipants)
+                : "Unlimited"
+            }
           />
         </div>
       </section>

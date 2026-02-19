@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/release-expired-locks",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

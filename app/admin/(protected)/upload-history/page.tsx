@@ -18,6 +18,7 @@ type UploadJob = {
   status: string;
   startedAt: string;
 };
+import { secureFetch } from "@/lib/secureFetch";
 
 export default function UploadHistoryPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function UploadHistoryPage() {
       sortOrder,
     });
 
-    const res = await fetch(`/api/upload-history?${params}`);
+    const res = await secureFetch(`/api/upload-history?${params}`);
     const result = await res.json();
 
     if (result.success) {
@@ -60,83 +61,82 @@ export default function UploadHistoryPage() {
   }, [page, search, status, sortField, sortOrder]);
 
   const columns: ColumnDef<UploadJob>[] = [
-  {
-    header: "Event",
-   accessorFn: (row) => row.eventName,
+    {
+      header: "Event",
+      accessorFn: (row) => row.eventName,
 
-    id: "eventName",
-  },
-  {
-    header: "Total",
-    accessorFn: (row) => row.totalRows,
-    id: "totalRows",
-  },
-  {
-    header: "Success",
-    accessorFn: (row) => row.successCount,
-    id: "successCount",
-    cell: (info) => (
-      <span className="text-green-600 font-semibold">
-        {info.getValue<number>()}
-      </span>
-    ),
-  },
-  {
-    header: "Failed",
-    accessorFn: (row) => row.failedCount,
-    id: "failedCount",
-    cell: (info) => (
-      <span className="text-red-600 font-semibold">
-        {info.getValue<number>()}
-      </span>
-    ),
-  },
-  {
-    header: "Status",
-    accessorFn: (row) => row.status,
-    id: "status",
-    cell: (info) => (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          info.getValue() === "completed"
-            ? "bg-green-100 text-green-700"
-            : info.getValue() === "processing"
-            ? "bg-yellow-100 text-yellow-700"
-            : "bg-red-100 text-red-700"
-        }`}
-      >
-        {info.getValue<string>()}
-      </span>
-    ),
-  },
-  {
-    header: "Uploaded At",
-    accessorFn: (row) => row.startedAt,
-    id: "startedAt",
-    cell: (info) =>
-      info.getValue()
-        ? new Date(info.getValue<string>()).toLocaleString()
-        : "-",
-  },
-  {
-    header: "Actions",
-    id: "actions",
-    cell: ({ row }) =>
-      row.original.failedCount > 0 ? (
-        <button
-          onClick={() =>
-            router.push(`/admin/upload-history/${row.original.id}`)
-          }
-          className="text-red-600 hover:underline"
-        >
-          View Failures
-        </button>
-      ) : (
-        <span className="text-gray-400 text-xs">No Failures</span>
+      id: "eventName",
+    },
+    {
+      header: "Total",
+      accessorFn: (row) => row.totalRows,
+      id: "totalRows",
+    },
+    {
+      header: "Success",
+      accessorFn: (row) => row.successCount,
+      id: "successCount",
+      cell: (info) => (
+        <span className="text-green-600 font-semibold">
+          {info.getValue<number>()}
+        </span>
       ),
-  },
-];
-
+    },
+    {
+      header: "Failed",
+      accessorFn: (row) => row.failedCount,
+      id: "failedCount",
+      cell: (info) => (
+        <span className="text-red-600 font-semibold">
+          {info.getValue<number>()}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      accessorFn: (row) => row.status,
+      id: "status",
+      cell: (info) => (
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            info.getValue() === "completed"
+              ? "bg-green-100 text-green-700"
+              : info.getValue() === "processing"
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-red-100 text-red-700"
+          }`}
+        >
+          {info.getValue<string>()}
+        </span>
+      ),
+    },
+    {
+      header: "Uploaded At",
+      accessorFn: (row) => row.startedAt,
+      id: "startedAt",
+      cell: (info) =>
+        info.getValue()
+          ? new Date(info.getValue<string>()).toLocaleString()
+          : "-",
+    },
+    {
+      header: "Actions",
+      id: "actions",
+      cell: ({ row }) =>
+        row.original.failedCount > 0 ? (
+          <button
+            onClick={() =>
+              router.push(`/admin/upload-history/${row.original.id}`)
+            }
+            className="text-red-600 hover:underline"
+          >
+            View Failures
+          </button>
+        ) : (
+          <span className="text-gray-400 text-xs">No Failures</span>
+        ),
+    },
+  ];
 
   const table = useReactTable({
     data,
@@ -146,15 +146,10 @@ export default function UploadHistoryPage() {
 
   return (
     <div className="space-y-8">
-
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Upload History
-        </h1>
-        <p className="text-gray-500">
-          Monitor all bulk Excel uploads
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">Upload History</h1>
+        <p className="text-gray-500">Monitor all bulk Excel uploads</p>
       </div>
 
       {/* CONTROLS */}
@@ -201,14 +196,12 @@ export default function UploadHistoryPage() {
                     onClick={() => {
                       const field = header.column.id;
                       setSortField(field);
-                      setSortOrder(
-                        sortOrder === "asc" ? "desc" : "asc"
-                      );
+                      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
                     }}
                   >
                     {flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
 
                     {sortField === header.column.id && (
@@ -246,9 +239,10 @@ export default function UploadHistoryPage() {
                 <tr key={row.id} className="border-t">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-6 py-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-
-           
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -274,7 +268,6 @@ export default function UploadHistoryPage() {
           </button>
         ))}
       </div>
-
     </div>
   );
 }

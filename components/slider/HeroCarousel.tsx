@@ -74,8 +74,8 @@ export default function HeroSliderMatrixDirectional() {
   };
 
   return (
-   <section
-  className="
+    <section
+      className="
     relative
     min-h-[480px]          /* mobile height */
     md:min-h-[620px]       /* tablet+ same as before */
@@ -83,8 +83,7 @@ export default function HeroSliderMatrixDirectional() {
     bg-black
     perspective-[1200px]
   "
->
-
+    >
       {slides.map((slide, index) => {
         const isActive = index === active;
 
@@ -111,7 +110,6 @@ export default function HeroSliderMatrixDirectional() {
 
             {/* CONTENT */}
             <div className="relative z-20 h-full flex items-start pt-[100px] md:pt-[140px]">
-
               <div className="mx-auto w-full max-w-7xl px-6 text-white pb-[140px]">
                 <div className="max-w-[880px]">
                   <div
@@ -146,22 +144,22 @@ export default function HeroSliderMatrixDirectional() {
 
       {/* ARROWS */}
       <button
-  onClick={prev}
-  className="absolute left-4 top-1/2 z-30 -translate-y-1/2
+        onClick={prev}
+        className="absolute left-4 top-1/2 z-30 -translate-y-1/2
              rounded-full bg-white/20 p-4 text-white hover:bg-white/40
              hidden md:flex"
->
-  ‹
-</button>
+      >
+        ‹
+      </button>
 
-     <button
-  onClick={next}
-  className="absolute right-4 top-1/2 z-30 -translate-y-1/2
+      <button
+        onClick={next}
+        className="absolute right-4 top-1/2 z-30 -translate-y-1/2
              rounded-full bg-white/20 p-4 text-white hover:bg-white/40
              hidden md:flex"
->
-  ›
-</button>
+      >
+        ›
+      </button>
 
       {/* TILES */}
       {/* TILES */}

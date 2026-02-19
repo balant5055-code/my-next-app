@@ -17,11 +17,13 @@ type EventType = {
   id: string;
   name?: string;
   city?: string;
-  date?: string;
+  date?: Date | null; // ✅ FIXED
   image?: string;
   slug?: string;
-  registrationStatus?: any;
   venue?: string;
+  registration?: {
+    status?: string;
+  };
 };
 
 const ITEMS_PER_PAGE = 6;
@@ -41,16 +43,25 @@ export default function EventsPage() {
     }
     const fetchEvents = async () => {
       const snap = await getDocs(collection(db, "events"));
-      const list = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<EventType, "id">),
-      }));
+      const list = snap.docs.map((doc) => {
+        const data = doc.data();
+
+        return {
+          id: doc.id,
+          ...data,
+          date: data.date?.toDate
+            ? data.date.toDate()
+            : data.date?.seconds
+              ? new Date(data.date.seconds * 1000)
+              : data.date || null,
+        };
+      });
 
       const sorted = list
         .filter((e) => e.date)
         .sort((a, b) => {
-          const da = new Date(a.date as string).getTime();
-          const db = new Date(b.date as string).getTime();
+          const da = a.date instanceof Date ? a.date.getTime() : 0;
+          const db = b.date instanceof Date ? b.date.getTime() : 0;
           return da - db;
         });
 
@@ -59,22 +70,22 @@ export default function EventsPage() {
 
     fetchEvents();
   }, [page]);
-const getDaysToGo = (date?: string) => {
-  if (!date) return null;
+  const getDaysToGo = (date?: Date | null) => {
+    if (!date) return null;
+    const eventDate = date instanceof Date ? date : new Date(date);
 
-  const eventDate = new Date(date);
-  const today = new Date();
+    const today = new Date();
 
-  // remove time part for clean day diff
-  today.setHours(0, 0, 0, 0);
+    // remove time part for clean day diff
+    today.setHours(0, 0, 0, 0);
 
-  const diffTime = eventDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays > 0) return `${diffDays} Days to Go`;
-  if (diffDays === 0) return "Event is Today 🎉";
-  return "Event Completed";
-};
+    if (diffDays > 0) return `${diffDays} Days to Go`;
+    if (diffDays === 0) return "Event is Today 🎉";
+    return "Event Completed";
+  };
 
   const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
   const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -102,13 +113,7 @@ const getDaysToGo = (date?: string) => {
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {currentEvents.map((event, index) => {
-          const raw = event.registrationStatus;
-          const isOpen =
-            raw === undefined ||
-            raw === true ||
-            raw === 1 ||
-            raw === "1" ||
-            (typeof raw === "string" && raw.toLowerCase().trim() === "open");
+          const isOpen = event.registration?.status === "open";
 
           return (
             <motion.div
@@ -124,7 +129,6 @@ const getDaysToGo = (date?: string) => {
               >
                 {/* IMAGE */}
                 <div className="relative h-52 overflow-hidden">
-                  
                   <img
                     src={
                       event.image ||
@@ -133,19 +137,19 @@ const getDaysToGo = (date?: string) => {
                     alt={event.name || "Event"}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-{/* DAYS TO GO BADGE */}
-{event.date && (
-  <motion.div
-    initial={{ scale: 0.9, opacity: 0 }}
-    whileInView={{ scale: 1, opacity: 1 }}
-    viewport={{ once: true }}
-    className="absolute bottom-4 left-4 rounded-full bg-white/90 backdrop-blur-sm 
+                  {/* DAYS TO GO BADGE */}
+                  {event.date && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true }}
+                      className="absolute bottom-4 left-4 rounded-full bg-white/90 backdrop-blur-sm 
                px-4 py-1.5 text-xs font-semibold text-gray-900 shadow-md
                border border-gray-200"
-  >
-    ⏳ {getDaysToGo(event.date)}
-  </motion.div>
-)}
+                    >
+                      ⏳ {getDaysToGo(event.date)}
+                    </motion.div>
+                  )}
 
                   {/* STATUS BADGE */}
                   <motion.div
@@ -166,19 +170,22 @@ const getDaysToGo = (date?: string) => {
                   </motion.div>
 
                   {/* DATE BADGE */}
+                  {/* DATE BADGE */}
                   <div className="absolute top-4 left-4 rounded-lg bg-red-600 px-3 py-2 text-center text-white shadow-md">
                     <p className="text-lg font-bold leading-none">
-                      {event.date ? new Date(event.date).getDate() : "--"}
+                      {event.date instanceof Date ? event.date.getDate() : "--"}
                     </p>
+
                     <p className="text-[11px] uppercase">
-                      {event.date
-                        ? new Date(event.date).toLocaleString("en-US", {
-                            month: "short",
-                          })
+                      {event.date instanceof Date
+                        ? event.date.toLocaleString("en-US", { month: "short" })
                         : "TBA"}
                     </p>
+
                     <p className="text-[10px] opacity-90">
-                      {event.date ? new Date(event.date).getFullYear() : ""}
+                      {event.date instanceof Date
+                        ? event.date.getFullYear()
+                        : ""}
                     </p>
                   </div>
                 </div>

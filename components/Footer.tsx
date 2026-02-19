@@ -9,11 +9,11 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Footer() {
-    const pathname = usePathname();
-    if (pathname.startsWith("/admin")) {
-      return null;
-    }
-  
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
   const [pos, setPos] = useState({ x: 50, y: 50 });
 
   return (
@@ -53,8 +53,8 @@ export default function Footer() {
           <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="max-w-3xl">
               <h2 className="text-2xl md:text-3xl font-bold text-white">
-                Powering{" "}
-                <span className="text-red-500">Events</span> That People Remember
+                Powering <span className="text-red-500">Events</span> That
+                People Remember
               </h2>
               <p className="mt-3 text-sm md:text-base text-gray-300">
                 From marathons and sports meets to conferences and cultural
@@ -98,7 +98,7 @@ export default function Footer() {
                   >
                     {item}
                   </li>
-                )
+                ),
               )}
             </ul>
           </div>

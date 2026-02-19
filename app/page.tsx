@@ -10,33 +10,23 @@ import HappyParticipants from "@/components/HappyParticipants";
 export default function Home() {
   return (
     <>
-     <article>
-    
+      <article>
         <HeroCarousel />
 
+        <EventsPage />
 
-  
-          <EventsPage />
-        
         <OurProcess />
-  
 
-  
         <UseCases />
-   
- 
-        <HowItWorks />
-  
-   
-        <OrganizerBenefits />
-   
 
-  
+        <HowItWorks />
+
+        <OrganizerBenefits />
+
         <ParticipantExperience />
-      <HappyParticipants />
-       <StrongCTA />
-       </article>
-    
+        <HappyParticipants />
+        <StrongCTA />
+      </article>
     </>
   );
 }

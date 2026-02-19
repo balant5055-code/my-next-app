@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { secureFetch } from "@/lib/secureFetch";
 
 export default function BulkUploadPage() {
   const params = useParams();
@@ -36,7 +37,7 @@ export default function BulkUploadPage() {
       formData.append("file", file);
       formData.append("eventId", eventId);
 
-      const res = await fetch("/api/upload-offline", {
+      const res = await secureFetch("/api/upload-offline", {
         method: "POST",
         body: formData,
       });
@@ -75,9 +76,7 @@ export default function BulkUploadPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-bold">
-        Bulk Upload Participants
-      </h1>
+      <h1 className="text-2xl font-bold">Bulk Upload Participants</h1>
 
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
         {/* FILE INPUT */}
@@ -121,12 +120,8 @@ export default function BulkUploadPage() {
           <div className="bg-gray-50 p-4 rounded-lg mt-4 border">
             <p className="font-semibold">Upload Summary</p>
             <p>Total: {result.total}</p>
-            <p className="text-green-600">
-              Uploaded: {result.uploaded}
-            </p>
-            <p className="text-red-600">
-              Failed: {result.failed}
-            </p>
+            <p className="text-green-600">Uploaded: {result.uploaded}</p>
+            <p className="text-red-600">Failed: {result.failed}</p>
           </div>
         )}
       </div>

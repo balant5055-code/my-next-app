@@ -18,17 +18,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Eventure Team" }],
 };
 
-export default function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-gray-50 text-gray-900">
         {/* ===== SEMANTIC HEADER ===== */}
         <header>
-            <TopBar/>
+          <TopBar />
           <Navbar />
         </header>
 

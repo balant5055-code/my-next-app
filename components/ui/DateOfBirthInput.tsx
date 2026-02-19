@@ -53,11 +53,11 @@ export default function DateOfBirthInput({
         className="
           w-full block   /* 🔥 VERY IMPORTANT */
           border border-gray-300 bg-white py-3
-          pl-12 pr-4 text-sm rounded-md transition
+          pl-12 pr-4 text-sm  transition
           focus:border-orange-500 focus:outline-none
           focus:ring-2 focus:ring-orange-200
         "
-        calendarClassName="shadow-xl border border-gray-200 rounded-xl"
+        calendarClassName="shadow-xl border border-gray-200 "
       />
     </div>
   );

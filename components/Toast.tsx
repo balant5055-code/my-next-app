@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
+import {
+  XMarkIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/24/outline";
 
 type ToastType = "success" | "error" | "info" | null;
 

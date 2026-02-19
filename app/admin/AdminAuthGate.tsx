@@ -15,7 +15,6 @@ export default function AdminAuthGate({
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // ✅ Allow login page WITHOUT auth
     if (pathname === "/admin/login") {
       setChecking(false);
       return;
@@ -23,7 +22,7 @@ export default function AdminAuthGate({
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace("/admin/login"); // ⛔ no history flicker
+        router.replace("/admin/login");
       } else {
         setChecking(false);
       }
@@ -32,7 +31,6 @@ export default function AdminAuthGate({
     return () => unsubscribe();
   }, [router, pathname]);
 
-  // 🚫 Block render while checking auth
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F3F6FB]">

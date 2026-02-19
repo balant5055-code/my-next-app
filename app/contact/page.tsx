@@ -15,13 +15,11 @@ import {
 export default function Contact() {
   return (
     <section className="relative overflow-hidden py-24 px-4 bg-gradient-to-br from-orange-50 via-white to-orange-100">
-
       {/* background glow */}
       <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-orange-200/30 blur-3xl" />
       <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-orange-300/30 blur-3xl" />
 
       <div className="relative max-w-6xl mx-auto grid md:grid-cols-2 gap-16">
-
         {/* LEFT — CONTACT FORM */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -59,12 +57,9 @@ export default function Contact() {
           viewport={{ once: true }}
           className="flex flex-col justify-center"
         >
-          <h3 className="text-3xl font-bold mb-8">
-            Connect With Us
-          </h3>
+          <h3 className="text-3xl font-bold mb-8">Connect With Us</h3>
 
           <div className="space-y-5">
-
             <ContactCard
               icon={<MapPinIcon />}
               title="Office Address"
@@ -106,7 +101,6 @@ export default function Contact() {
               value="Your Channel"
               color="bg-red-600"
             />
-
           </div>
         </motion.div>
       </div>
@@ -116,18 +110,10 @@ export default function Contact() {
 
 /* ---------- SMALL COMPONENTS ---------- */
 
-function Input({
-  label,
-  placeholder,
-}: {
-  label: string;
-  placeholder: string;
-}) {
+function Input({ label, placeholder }: { label: string; placeholder: string }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">
-        {label}
-      </label>
+      <label className="block text-sm font-medium mb-1">{label}</label>
       <input
         type="text"
         placeholder={placeholder}
@@ -148,9 +134,7 @@ function Textarea({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">
-        {label}
-      </label>
+      <label className="block text-sm font-medium mb-1">{label}</label>
       <textarea
         rows={5}
         placeholder={placeholder}

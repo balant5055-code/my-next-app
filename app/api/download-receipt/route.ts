@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     if (!docSnap.exists) {
       return NextResponse.json(
         { error: "Registration not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
       process.cwd(),
       "public",
       "fonts",
-      "Inter_18pt-Medium.ttf"
+      "Inter_18pt-Medium.ttf",
     );
 
     const fontBytes = fs.readFileSync(fontPath);
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
       process.cwd(),
       "public",
       "logo",
-      "raceline-in.png"
+      "raceline-in.png",
     );
 
     if (fs.existsSync(logoPath)) {
@@ -187,7 +187,7 @@ export async function GET(req: Request) {
         size: 11,
         font,
         color: rgb(0.4, 0.4, 0.4),
-      }
+      },
     );
 
     const pdfBytes = await pdfDoc.save();

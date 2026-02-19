@@ -12,32 +12,28 @@ const steps = [
   {
     step: "01",
     title: "Create Your Event",
-    description:
-      "Set up your event, categories, fees, and custom forms.",
+    description: "Set up your event, categories, fees, and custom forms.",
     icon: CalendarDaysIcon,
     color: "from-orange-400 to-orange-600",
   },
   {
     step: "02",
     title: "Open Registrations",
-    description:
-      "Participants register and pay online in minutes.",
+    description: "Participants register and pay online in minutes.",
     icon: CreditCardIcon,
     color: "from-blue-400 to-blue-600",
   },
   {
     step: "03",
     title: "Manage with Ease",
-    description:
-      "Track registrations, communicate instantly, export data.",
+    description: "Track registrations, communicate instantly, export data.",
     icon: ChartBarIcon,
     color: "from-green-400 to-green-600",
   },
   {
     step: "04",
     title: "Celebrate & Share",
-    description:
-      "Publish photos, results, and certificates post-event.",
+    description: "Publish photos, results, and certificates post-event.",
     icon: SparklesIcon,
     color: "from-purple-400 to-purple-600",
   },
@@ -47,8 +43,6 @@ export default function HowItWorks() {
   return (
     <section className="bg-white ">
       <div className="max-w-7xl mx-auto px-4 mt-20">
-       
-
         {/* Title */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -61,7 +55,7 @@ export default function HowItWorks() {
             <span>How It Works — Simple for Everyone</span>
           </h2>
           <p className="mt-3 text-2xl md:text-3xl lg:text-4xl text-gray-600 max-w-2xl mx-auto tan">
-           A simple, guided flow from event creation to celebration.
+            A simple, guided flow from event creation to celebration.
           </p>
         </motion.div>
 

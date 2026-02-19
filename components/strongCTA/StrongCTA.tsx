@@ -48,7 +48,8 @@ export default function StrongCTA() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto"
         >
-          Share your number and our team will contact you to help you get started.
+          Share your number and our team will contact you to help you get
+          started.
         </motion.p>
 
         {/* FORM */}

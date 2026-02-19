@@ -11,6 +11,7 @@ import {
   LockClosedIcon,
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
+import { secureFetch } from "@/lib/secureFetch";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -20,22 +21,32 @@ export default function AdminLogin() {
   const [toastType, setToastType] = useState<
     "success" | "error" | "info" | null
   >(null);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       const hiddenEmail = `${userId}@event.local`;
-      await signInWithEmailAndPassword(auth, hiddenEmail, password);
-document.cookie = "admin-auth=true; path=/";
 
-      setToastMessage("Login successful! Redirecting to dashboard…");
-      setToastType("success");
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        hiddenEmail,
+        password,
+      );
 
-      setTimeout(() => {
-        router.push("/admin/dashboard");
-      }, 1200);
-    } catch {
+      const token = await userCredential.user.getIdToken();
+
+      const response = await secureFetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Session creation failed");
+      }
+
+      router.replace("/admin/dashboard");
+    } catch (error) {
       setToastMessage("Invalid User ID or Password");
       setToastType("error");
     }
@@ -56,12 +67,8 @@ document.cookie = "admin-auth=true; path=/";
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
         {/* HEADER */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Admin Login
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Secure access to your dashboard
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
+          <p className="text-gray-500 mt-1">Secure access to your dashboard</p>
         </div>
 
         {/* FORM */}
@@ -103,7 +110,7 @@ document.cookie = "admin-auth=true; path=/";
           <button
             type="submit"
             className="group mt-4 w-full inline-flex items-center justify-center gap-2
-                       rounded-full bg-red-600 px-6 py-3
+                       rounded-full bg-orange-600 hover:bg-orange-700 px-6 py-3
                        text-white font-semibold
                        shadow-md hover:bg-red-700 hover:shadow-lg
                        transition"

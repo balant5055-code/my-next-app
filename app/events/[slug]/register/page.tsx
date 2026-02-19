@@ -10,6 +10,8 @@ import AnimatedInput from "@/components/ui/AnimatedInput";
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import AnimatedRadioGroup from "@/components/ui/AnimatedRadioGroup";
 import DateOfBirthInput from "@/components/ui/DateOfBirthInput";
+import PopupModal from "@/components/ui/PopupModal";
+import { secureFetch } from "@/lib/secureFetch";
 
 import {
   UserIcon,
@@ -25,21 +27,22 @@ import {
   TagIcon,
   ArrowRightIcon,
 } from "@heroicons/react/24/outline";
-
 interface Category {
+  id: string;
   title: string;
-  price: string;
-  minAge: string;
-  maxAge: string;
+  price: number;
+  minAge: number;
+  maxAge: number;
   distance: string;
-  maxSeats: string;
+  maxSeats: number;
+  bookedSeats?: number;
 }
 
 interface EventData {
   id: string;
   name: string;
   slug: string;
-  date: string;
+  date: Date | null;
   venue: string;
   city: string;
   bannerURL: string;
@@ -70,6 +73,15 @@ export default function RegisterPage() {
   const [runnerSearch, setRunnerSearch] = useState("");
   const [formError, setFormError] = useState("");
   const searchParams = useSearchParams();
+  const [popup, setPopup] = useState<{
+    open: boolean;
+    message: string;
+    type: "error" | "success";
+  }>({
+    open: false,
+    message: "",
+    type: "error",
+  });
 
   const categoryFromURL = searchParams.get("category");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -107,55 +119,48 @@ export default function RegisterPage() {
 
     // 🔥 DOB VALIDATION (FINAL SAFE VERSION)
 
+    // 🔥 DOB VALIDATION (FINAL CORRECT VERSION)
+
     if (!form.dob) {
       newErrors.dob = "Please select Date of Birth.";
-    } else if (cat && event) {
-      const dobParts = form.dob.split("-");
-      const eventParts = event.date.split("-");
+    } else if (cat && event?.date) {
+      const normalizeDate = (date: Date) =>
+        new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-      if (dobParts.length !== 3 || eventParts.length !== 3) {
+      const birthDate = normalizeDate(new Date(form.dob));
+
+      if (isNaN(birthDate.getTime())) {
         newErrors.dob = "Invalid date selected.";
       } else {
-        const birthYear = Number(dobParts[0]);
-        const birthMonth = Number(dobParts[1]);
-        const birthDay = Number(dobParts[2]);
+        const eventDate = normalizeDate(event.date);
 
-        const eventYear = Number(eventParts[0]);
-        const eventMonth = Number(eventParts[1]);
-        const eventDay = Number(eventParts[2]);
+        const minAge = Number(cat.minAge);
+        const maxAge = Number(cat.maxAge);
 
-        if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) {
-          newErrors.dob = "Invalid date selected.";
-        } else {
-          const minAge = Number(cat.minAge);
-          const maxAge = Number(cat.maxAge);
+        const minEligibleDOB = normalizeDate(
+          new Date(
+            eventDate.getFullYear() - minAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          ),
+        );
 
-          // 🔥 Age calculation based on EVENT DATE
-          let age = eventYear - birthYear;
+        const maxEligibleDOB = normalizeDate(
+          new Date(
+            eventDate.getFullYear() - maxAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          ),
+        );
 
-          if (
-            eventMonth < birthMonth ||
-            (eventMonth === birthMonth && eventDay < birthDay)
-          ) {
-            age--;
-          }
+        // 🔥 TOO YOUNG
+        if (!isNaN(minAge) && birthDate > minEligibleDOB) {
+          newErrors.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minEligibleDOB.toLocaleDateString("en-GB")}.`;
+        }
 
-          // 🔥 MIN AGE CHECK
-          if (!isNaN(minAge) && age < minAge) {
-            const eligibleYear = eventYear - minAge;
-            const eligibleDate = `${eventDay
-              .toString()
-              .padStart(2, "0")}/${eventMonth
-              .toString()
-              .padStart(2, "0")}/${eligibleYear}`;
-
-            newErrors.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${eligibleDate}.`;
-          }
-
-          // 🔥 MAX AGE CHECK
-          if (!isNaN(maxAge) && age > maxAge) {
-            newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years.`;
-          }
+        // 🔥 TOO OLD
+        else if (!isNaN(maxAge) && birthDate < maxEligibleDOB) {
+          newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
         }
       }
     }
@@ -178,7 +183,9 @@ export default function RegisterPage() {
     if (!cat || !event) return "";
 
     const birthDate = new Date(dobValue);
-    const eventDate = new Date(event.date);
+    if (!event?.date) return;
+
+    const eventDate = event.date;
 
     const minAge = Number(cat.minAge);
     const maxAge = Number(cat.maxAge);
@@ -230,7 +237,23 @@ export default function RegisterPage() {
     runnerClub: "",
     runnerClubOther: "",
     agree: false,
+    bibNumber: null,
   });
+  useEffect(() => {
+    if (form.dob) {
+      // Manually trigger DOB validation when category changes
+      const fakeEvent = {
+        target: {
+          name: "dob",
+          value: form.dob,
+          type: "date",
+          checked: false,
+        },
+      } as any;
+
+      handleChange(fakeEvent);
+    }
+  }, [selectedCat]);
 
   useEffect(() => {
     if (emergencyOptional) {
@@ -253,7 +276,6 @@ export default function RegisterPage() {
       setSelectedCat(event.categories[0].title);
     }
   }, [event, categoryFromURL]);
-
   useEffect(() => {
     if (!slug) return;
 
@@ -262,28 +284,34 @@ export default function RegisterPage() {
       const snap = await getDocs(q);
 
       if (!snap.empty) {
-        const doc = snap.docs[0];
-        const data = doc.data() as Omit<EventData, "id">;
+        const docSnap = snap.docs[0];
+        const raw = docSnap.data();
 
-        setEvent({
-          id: doc.id,
-          ...data,
-        });
+        const formattedEvent: EventData = {
+          id: docSnap.id,
+          name: raw.name,
+          slug: raw.slug,
+          venue: raw.venue,
+          city: raw.city,
+          bannerURL: raw.bannerURL,
+          categories: raw.categories ?? [],
+          rules: raw.rules,
 
-        if (data.categories?.length) {
-          setSelectedCat(data.categories[0].title);
-        }
+          date: raw.date?.toDate
+            ? raw.date.toDate()
+            : raw.date?.seconds
+              ? new Date(raw.date.seconds * 1000)
+              : null,
+        };
+
+        setEvent(formattedEvent);
       }
+
       setLoading(false);
     };
 
     fetchEvent();
   }, [slug]);
-  useEffect(() => {
-    if (form.dob) {
-      validateDOBWithCategory(form.dob);
-    }
-  }, [selectedCat]);
 
   // ✅ FIX: CLICK-OUTSIDE HANDLER (NEW)
   useEffect(() => {
@@ -323,56 +351,6 @@ export default function RegisterPage() {
     return eligibleDate;
   };
 
-  const validateDOBWithCategory = (dob: string) => {
-    if (!dob) return;
-
-    if (!cat) {
-      console.log("Category not selected yet");
-      return;
-    }
-
-    const today = new Date();
-    const birthDate = new Date(dob);
-
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
-    const minAge = Number(cat.minAge);
-    const maxAge = Number(cat.maxAge);
-
-    console.log("Calculated Age:", age);
-
-    if (!isNaN(minAge) && age < minAge) {
-      setErrors((prev) => ({
-        ...prev,
-        dob: `Minimum age for ${cat.title} is ${minAge} years.`,
-      }));
-      return;
-    }
-
-    if (!isNaN(maxAge) && age > maxAge) {
-      setErrors((prev) => ({
-        ...prev,
-        dob: `Maximum age for ${cat.title} is ${maxAge} years.`,
-      }));
-      return;
-    }
-
-    // Clear error if valid
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated.dob;
-      return updated;
-    });
-  };
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -388,59 +366,62 @@ export default function RegisterPage() {
     }));
 
     if (name === "dob") {
-      const input = e.target as HTMLInputElement;
-      const rawValue = input.value;
-      const dateObj = input.valueAsDate;
+      const rawValue = value;
 
       setErrors((prev) => {
         const updated = { ...prev };
 
-        // Case 1: User cleared field
         if (!rawValue) {
           updated.dob = "Please select Date of Birth.";
           return updated;
         }
 
-        // Case 2: Invalid date typed manually
-        if (!dateObj) {
+        if (!cat || !event?.date) return updated;
+
+        const normalizeDate = (date: Date) =>
+          new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+        const birthDate = normalizeDate(new Date(rawValue));
+
+        if (isNaN(birthDate.getTime())) {
           updated.dob = "Invalid date selected.";
           return updated;
         }
 
-        // Case 3: Age validation
-        if (cat && event) {
-          const [birthYear, birthMonth, birthDay] = rawValue
-            .split("-")
-            .map(Number);
-          const [eventYear, eventMonth, eventDay] = event.date
-            .split("-")
-            .map(Number);
+        const eventDate = normalizeDate(event.date);
 
-          const minAge = Number(cat.minAge);
-          const maxAge = Number(cat.maxAge);
+        const minAge = Number(cat.minAge);
+        const maxAge = Number(cat.maxAge);
 
-          let age = eventYear - birthYear;
+        const minEligibleDOB = normalizeDate(
+          new Date(
+            eventDate.getFullYear() - minAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          ),
+        );
 
-          if (
-            eventMonth < birthMonth ||
-            (eventMonth === birthMonth && eventDay < birthDay)
-          ) {
-            age--;
-          }
+        const maxEligibleDOB = normalizeDate(
+          new Date(
+            eventDate.getFullYear() - maxAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          ),
+        );
 
-          if (!isNaN(minAge) && age < minAge) {
-            updated.dob = `Minimum age for ${cat.title} is ${minAge} years.`;
-            return updated;
-          }
-
-          if (!isNaN(maxAge) && age > maxAge) {
-            updated.dob = `Maximum age for ${cat.title} is ${maxAge} years.`;
-            return updated;
-          }
-
-          delete updated.dob;
+        // 🔥 TOO YOUNG
+        if (!isNaN(minAge) && birthDate > minEligibleDOB) {
+          updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minEligibleDOB.toLocaleDateString("en-GB")}.`;
+          return updated;
         }
 
+        // 🔥 TOO OLD
+        if (!isNaN(maxAge) && birthDate < maxEligibleDOB) {
+          updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
+          return updated;
+        }
+
+        delete updated.dob;
         return updated;
       });
     }
@@ -577,12 +558,23 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount: Number(cat.price),
+          eventId: event.id,
+          categoryId: cat.id,
+          participant: form,
         }),
       });
-
       if (!res.ok) {
-        throw new Error("Order creation failed");
+        const errData = await res.json();
+        setIsProcessing(false);
+
+        setPopup({
+          open: true,
+          message:
+            errData.error || "Unable to process registration at the moment.",
+          type: "error",
+        });
+
+        return;
       }
 
       const order = await res.json();
@@ -590,15 +582,15 @@ export default function RegisterPage() {
       // 7️⃣ Razorpay options
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: order.amount,
+        amount: order.order.amount,
         currency: "INR",
         name: event.name,
         description: `${cat.title} Registration`,
-        order_id: order.id,
+        order_id: order.order.id,
 
         handler: async function (response: any) {
           try {
-            const verifyRes = await fetch("/api/verify-payment", {
+            const verifyRes = await secureFetch("/api/verify-payment", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -607,28 +599,19 @@ export default function RegisterPage() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                formData: form,
+
                 eventId: event.id,
-                eventName: event.name,
-                category: cat.title,
-                amount: Number(cat.price),
+                categoryId: cat.id,
+                formData: form,
               }),
             });
 
             const verifyData = await verifyRes.json();
 
             if (verifyData.success) {
-              window.location.href =
-                `/payment/success?` +
-                `name=${encodeURIComponent(
-                  form.firstName + " " + form.lastName,
-                )}&` +
-                `orderId=${response.razorpay_order_id}&` +
-                `paymentId=${response.razorpay_payment_id}&` +
-                `event=${encodeURIComponent(event.name)}&` +
-                `regId=${verifyData.registrationId}`;
+              window.location.href = `/payment/success?regId=${verifyData.registrationId}`;
             } else {
-              setFormError("Verification failed. Please contact support.");
+              setFormError(verifyData.message || "Verification failed.");
               setIsProcessing(false);
             }
           } catch (error) {
@@ -691,6 +674,12 @@ export default function RegisterPage() {
 
   return (
     <main className="bg-[#F3F6FB] min-h-screen py-10">
+      <PopupModal
+        open={popup.open}
+        message={popup.message}
+        type={popup.type}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
       {showTerms && (
         <div
           className="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
@@ -864,7 +853,13 @@ export default function RegisterPage() {
               </span>
               <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
                 <CalendarDaysIcon className="w-4 h-4 text-[var(--color-orange-500)]" />
-                {event.date}
+                {event.date
+                  ? event.date.toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "TBA"}
               </span>
             </div>
           </div>

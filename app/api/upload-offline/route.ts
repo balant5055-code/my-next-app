@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     if (!file || !eventId) {
       return NextResponse.json(
         { error: "Missing file or eventId" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -28,23 +28,23 @@ export async function POST(req: Request) {
     if (!rows.length) {
       return NextResponse.json(
         { error: "Excel file is empty" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-// Get event name first
-const eventSnap = await adminDb.collection("events").doc(eventId).get();
-const eventName = eventSnap.data()?.name || "Unknown Event";
+    // Get event name first
+    const eventSnap = await adminDb.collection("events").doc(eventId).get();
+    const eventName = eventSnap.data()?.name || "Unknown Event";
 
-const jobRef = await adminDb.collection("upload_history").add({
-  eventId,
-  eventName,   // 🔥 ADD THIS
-  totalRows: rows.length,
-  successCount: 0,
-  failedCount: 0,
-  status: "processing",
-  startedAt: new Date(),
-});
+    const jobRef = await adminDb.collection("upload_history").add({
+      eventId,
+      eventName, // 🔥 ADD THIS
+      totalRows: rows.length,
+      successCount: 0,
+      failedCount: 0,
+      status: "processing",
+      startedAt: new Date(),
+    });
     jobId = jobRef.id;
 
     let successCount = 0;
@@ -100,17 +100,10 @@ const jobRef = await adminDb.collection("upload_history").add({
           createdAt: new Date(),
         };
 
-        const eventRef = adminDb
-          .collection("registrations")
-          .doc(eventId)
-          .collection("participants")
-          .doc(registrationId);
-
         const flatRef = adminDb
           .collection("registrations_flat")
           .doc(registrationId);
 
-        batch.set(eventRef, registrationData);
         batch.set(flatRef, registrationData);
 
         operations += 2;
@@ -121,7 +114,6 @@ const jobRef = await adminDb.collection("upload_history").add({
           batch = adminDb.batch();
           operations = 0;
         }
-
       } catch (err: any) {
         failedCount++;
 
@@ -156,21 +148,23 @@ const jobRef = await adminDb.collection("upload_history").add({
       total: rows.length,
       jobId,
     });
-
   } catch (error: any) {
     console.error("UPLOAD ERROR:", error);
 
     if (jobId) {
-      await adminDb.collection("upload_history").doc(jobId).update({
-        status: "failed",
-        error: error?.message || "Unknown error",
-        completedAt: new Date(),
-      });
+      await adminDb
+        .collection("upload_history")
+        .doc(jobId)
+        .update({
+          status: "failed",
+          error: error?.message || "Unknown error",
+          completedAt: new Date(),
+        });
     }
 
     return NextResponse.json(
       { error: "Server error during upload" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
