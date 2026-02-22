@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   ArrowRightCircleIcon,
 } from "@heroicons/react/24/outline";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 interface Props {
   data: {
@@ -81,9 +82,9 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
             />
           </div>
 
-          {errors.registrationStart && (
+          {errors["registration.start"] && (
             <p className="text-xs text-rose-400 mt-1">
-              {errors.registrationStart}
+              {errors["registration.start"]}
             </p>
           )}
         </div>
@@ -123,9 +124,9 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
             />
           </div>
 
-          {errors.registrationEnd && (
+          {errors["registration.end"] && (
             <p className="text-xs text-rose-400 mt-1">
-              {errors.registrationEnd}
+              {errors["registration.end"]}
             </p>
           )}
         </div>
@@ -142,12 +143,9 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
             <label className="text-sm text-slate-300 mb-2">
               Event Description
             </label>
-            <textarea
+            <RichTextEditor
               value={data.description || ""}
-              onChange={(e) => onChange("description", e.target.value)}
-              rows={5}
-              placeholder="Explain event highlights, race format, inclusions..."
-              className="w-full px-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"
+              onChange={(value) => onChange("description", value)}
             />
           </div>
 

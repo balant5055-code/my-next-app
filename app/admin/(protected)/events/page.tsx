@@ -223,7 +223,7 @@ export default function AllEventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1220] antialiased text-slate-100 ">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1220] antialiased text-slate-100 p-4 md:p-8">
       {/* Header */}
       <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
         <div className="flex items-start gap-4">

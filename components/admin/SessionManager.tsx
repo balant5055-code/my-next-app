@@ -10,6 +10,7 @@ const LOGOUT_TIME = 25 * 60 * 1000; // 900000 ms
 
 // Warning 5 minutes before logout
 const WARNING_TIME = 15 * 60 * 1000; // 600000 ms
+/* ---------------- AUTO SYNC TOKEN TO COOKIE ---------------- */
 
 export default function SessionManager() {
   const router = useRouter();
@@ -24,7 +25,18 @@ export default function SessionManager() {
     if (warningTimer.current) clearTimeout(warningTimer.current);
     if (logoutTimer.current) clearTimeout(logoutTimer.current);
   };
+  useEffect(() => {
+    const unsubscribe = auth.onIdTokenChanged(async (user) => {
+      if (user) {
+        const token = await user.getIdToken();
+        document.cookie = `admin_token=${token}; path=/; max-age=${
+          60 * 60
+        }; SameSite=Lax`;
+      }
+    });
 
+    return () => unsubscribe();
+  }, []);
   /* ---------------- START TIMERS ---------------- */
   const startTimers = () => {
     clearTimers();
@@ -46,9 +58,15 @@ export default function SessionManager() {
   };
 
   /* ---------------- EXTEND SESSION ---------------- */
+  /* ---------------- EXTEND SESSION ---------------- */
   const extendSession = async () => {
     if (auth.currentUser) {
-      await auth.currentUser.getIdToken(true); // refresh token
+      const freshToken = await auth.currentUser.getIdToken(true);
+
+      // 🔥 Update cookie with fresh token
+      document.cookie = `admin_token=${freshToken}; path=/; max-age=${
+        60 * 60
+      }; SameSite=Lax`;
     }
 
     setShowWarning(false);

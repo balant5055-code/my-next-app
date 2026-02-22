@@ -34,42 +34,36 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventType[]>([]);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    if (headingRef.current) {
-      headingRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
+ useEffect(() => {
+  const fetchEvents = async () => {
+    const snap = await getDocs(collection(db, "events"));
+    const list = snap.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate
+          ? data.date.toDate()
+          : data.date?.seconds
+          ? new Date(data.date.seconds * 1000)
+          : data.date || null,
+      };
+    });
+
+    const sorted = list
+      .filter((e) => e.date)
+      .sort((a, b) => {
+        const da = a.date instanceof Date ? a.date.getTime() : 0;
+        const db = b.date instanceof Date ? b.date.getTime() : 0;
+        return da - db;
       });
-    }
-    const fetchEvents = async () => {
-      const snap = await getDocs(collection(db, "events"));
-      const list = snap.docs.map((doc) => {
-        const data = doc.data();
 
-        return {
-          id: doc.id,
-          ...data,
-          date: data.date?.toDate
-            ? data.date.toDate()
-            : data.date?.seconds
-              ? new Date(data.date.seconds * 1000)
-              : data.date || null,
-        };
-      });
+    setEvents(sorted);
+  };
 
-      const sorted = list
-        .filter((e) => e.date)
-        .sort((a, b) => {
-          const da = a.date instanceof Date ? a.date.getTime() : 0;
-          const db = b.date instanceof Date ? b.date.getTime() : 0;
-          return da - db;
-        });
-
-      setEvents(sorted);
-    };
-
-    fetchEvents();
-  }, [page]);
+  fetchEvents();
+}, []);
   const getDaysToGo = (date?: Date | null) => {
     if (!date) return null;
     const eventDate = date instanceof Date ? date : new Date(date);

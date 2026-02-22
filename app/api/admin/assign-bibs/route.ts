@@ -25,8 +25,6 @@ export async function POST(req: NextRequest) {
     const snapshot = await adminDb
       .collection("registrations_flat")
       .where("eventId", "==", eventId)
-      .orderBy("categoryId")
-      .orderBy("createdAt")
       .get();
 
     let currentBib = 1000; // starting number

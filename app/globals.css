@@ -1,19 +1,7 @@
 @import "tailwindcss";
-
-/* ===============================
-   THEME TOKENS (Tailwind v4)
-   =============================== */
-@theme {
-  /* colors */
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-
-  /* brand orange (overrides bg-orange-500) */
-  --color-orange-500: #b9322e;
-
-  /* fonts */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@custom-variant dark (&:where(.dark, .dark *));
+:root {
+  --color-orange-500: #c1342d;
 }
 
 /* ===============================
@@ -146,4 +134,46 @@ body {
   background: #ffffff;
   padding: 0 15px;
   color: var(--color-orange-500);
+}
+html {
+  scroll-behavior: smooth;
+}
+* {
+  -webkit-overflow-scrolling: touch;
+}
+/* Vertical Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #0f172a;
+}
+@keyframes lightSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.animate-lightSweep {
+  animation: lightSweep 6s linear infinite;
 }

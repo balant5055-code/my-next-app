@@ -3,6 +3,8 @@ import Footer from "@/components/Footer";
 import "./globals.css";
 import type { Metadata } from "next";
 import TopBar from "@/components/topBar/TopBar";
+import { LoadingProvider } from "@/context/LoadingContext";
+import GlobalLoader from "@/components/ui/GlobalLoader";
 export const metadata: Metadata = {
   title: "Eventure — Event Registration & Timing Platform",
   description:
@@ -20,21 +22,26 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-50 text-gray-900">
-        {/* ===== SEMANTIC HEADER ===== */}
-        <header>
-          <TopBar />
-          <Navbar />
-        </header>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white text-gray-900 dark:bg-[#0b1220] dark:text-white transition-colors duration-300">
+        <LoadingProvider>
+          {/* 🌍 GLOBAL LOADER (must be here) */}
+          <GlobalLoader />
 
-        {/* ===== MAIN CONTENT AREA ===== */}
-        <main id="main-content" role="main">
-          {children}
-        </main>
+          {/* ===== SEMANTIC HEADER ===== */}
+          <header>
+            <TopBar />
+            <Navbar />
+          </header>
 
-        {/* ===== SEMANTIC FOOTER ===== */}
-        <Footer />
+          {/* ===== MAIN CONTENT AREA ===== */}
+          <main id="main-content" role="main">
+            {children}
+          </main>
+
+          {/* ===== SEMANTIC FOOTER ===== */}
+          <Footer />
+        </LoadingProvider>
       </body>
     </html>
   );

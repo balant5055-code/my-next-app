@@ -186,7 +186,6 @@ export async function POST(req: NextRequest) {
         status: "open",
       },
 
-      // 🔥 Auto-calc if not provided
       maxParticipants:
         Number(body.maxParticipants) > 0
           ? Number(body.maxParticipants)
@@ -206,8 +205,32 @@ export async function POST(req: NextRequest) {
       status: "upcoming",
 
       /* ===============================
-         🛡 AUDIT SYSTEM
-      =============================== */
+     📊 METRICS INITIALIZATION
+  =============================== */
+
+      metrics: {
+        totalParticipants: 0,
+        confirmedCount: 0,
+        bibAssignedCount: 0,
+        totalRevenue: 0,
+        checkedInCount: 0,
+        occupancyRate: 0,
+        lastRecalculatedAt: Timestamp.now(),
+      },
+
+      /* ===============================
+     🔐 BIB LOCK INITIALIZATION
+  =============================== */
+
+      bibGenerationLock: {
+        locked: false,
+        lockedAt: null,
+        lockedBy: null,
+      },
+
+      /* ===============================
+     🛡 AUDIT SYSTEM
+  =============================== */
 
       auditLogs: [
         {
@@ -221,7 +244,6 @@ export async function POST(req: NextRequest) {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
-
     /* ===============================
        💾 7️⃣ SAVE EVENT
     =============================== */

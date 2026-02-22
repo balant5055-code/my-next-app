@@ -560,7 +560,11 @@ export default function RegisterPage() {
         body: JSON.stringify({
           eventId: event.id,
           categoryId: cat.id,
-          participant: form,
+          participant: {
+            ...form,
+            selectedCategory: cat.title,
+            distance: cat.distance,
+          },
         }),
       });
       if (!res.ok) {
@@ -602,7 +606,11 @@ export default function RegisterPage() {
 
                 eventId: event.id,
                 categoryId: cat.id,
-                formData: form,
+                formData: {
+                  ...form,
+                  selectedCategory: cat.title,
+                  distance: cat.distance,
+                },
               }),
             });
 

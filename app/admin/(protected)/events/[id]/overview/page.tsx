@@ -70,24 +70,57 @@ interface EventData {
     revenue: number;
   }[];
 }
+const formatSafeDate = (value: any) => {
+  if (!value) return "Date not set";
 
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+  // Firestore Timestamp object
+  if (typeof value === "object" && value.seconds) {
+    return new Date(value.seconds * 1000).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  // If already string
+  if (typeof value === "string") {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return "Invalid date";
+
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  return "Invalid date";
+};
+
+type CardColor = "emerald" | "indigo" | "pink";
+
+type KpiCard = {
+  title: string;
+  value: number | string;
+  subtitle: string;
+  color: CardColor;
+};
+
+const colorMap: Record<CardColor, { glow: string; text: string }> = {
+  emerald: {
+    glow: "bg-emerald-500/10",
+    text: "text-emerald-400",
+  },
+  indigo: {
+    glow: "bg-indigo-500/10",
+    text: "text-indigo-400",
+  },
+  pink: {
+    glow: "bg-pink-500/10",
+    text: "text-pink-400",
+  },
+};
 export default function EventOverviewPage() {
-  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(
-    null,
-  );
-
   const params = useParams();
   const eventId = params?.id as string;
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -155,7 +188,11 @@ export default function EventOverviewPage() {
   }, [eventId]);
 
   if (loading) {
-    return <div className="p-10 text-slate-400">Loading event overview...</div>;
+    return (
+      <div className="p-10 text-gray-500 dark:text-slate-400">
+        Loading event overview...
+      </div>
+    );
   }
 
   if (!eventData) {
@@ -213,7 +250,14 @@ export default function EventOverviewPage() {
   };
 
   return (
-    <div className="min-h-screen text-slate-100">
+    <div
+      className="
+  min-h-screen
+  text-gray-900
+  dark:text-slate-100
+  transition-colors duration-300
+"
+    >
       <Breadcrumb
         items={[
           { label: "Dashboard", href: "/admin/dashboard" },
@@ -225,7 +269,14 @@ export default function EventOverviewPage() {
 
       <div className="space-y-10">
         {/* ================= ENTERPRISE EVENT HEADER ================= */}
-        <section className="relative rounded-2xl overflow-hidden border border-slate-700 bg-[#0f172a]">
+        <section
+          className="
+  relative rounded-2xl overflow-hidden
+  border border-gray-200 dark:border-slate-700
+  bg-white dark:bg-[#0f172a]
+  transition-colors duration-300
+"
+        >
           {/* Banner */}
           <div
             className="absolute inset-0 bg-cover bg-center opacity-20"
@@ -238,7 +289,7 @@ export default function EventOverviewPage() {
               <div className="space-y-4">
                 {/* TITLE */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-bold text-white tracking-tight">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                     {eventData.name}
                   </h1>
 
@@ -246,17 +297,21 @@ export default function EventOverviewPage() {
                     {eventData.eventType}
                   </span>
 
-                  <span className="px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-600">
+                  <span
+                    className=" px-3 py-1 text-xs rounded-full
+  bg-gray-100 dark:bg-slate-800
+  text-gray-700 dark:text-slate-300
+  border border-gray-200 dark:border-slate-600
+  transition-colors duration-300"
+                  >
                     {eventData.slug}
                   </span>
                 </div>
 
                 {/* BASIC META */}
-                <div className="flex flex-wrap gap-6 text-sm text-slate-400">
+                <div className="flex flex-wrap gap-6 text-sm text-gray-500 dark:text-slate-400">
                   <span>📍 {eventData.city}</span>
-                  <span>
-                    📅 {new Date(eventData.date).toLocaleDateString("en-IN")}
-                  </span>
+                  <span>📅 {formatSafeDate(eventData.date)}</span>
                   <span>🏁 Start: {eventData.raceStart}</span>
                 </div>
               </div>
@@ -264,34 +319,73 @@ export default function EventOverviewPage() {
 
             {/* ================= SECOND ROW: INTELLIGENCE STRIP ================= */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 text-sm">
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Status</p>
-                <p className="text-white d capitalize">{eventData.status}</p>
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Status
+                </p>
+                <p className="text-gray-900 dark:text-white d capitalize">
+                  {eventData.status}
+                </p>
               </div>
 
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Participants</p>
-                <p className="text-white d">
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Participants
+                </p>
+                <p className="text-gray-900 dark:text-white d">
                   {eventData.metrics.totalParticipants} /{" "}
                   {eventData.maxParticipants}
                 </p>
               </div>
 
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Revenue</p>
-                <p className="text-white d">
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Revenue
+                </p>
+                <p className="text-gray-900 dark:text-white d">
                   ₹ {eventData.metrics.totalRevenue?.toLocaleString()}
                 </p>
               </div>
 
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Organizer</p>
-                <p className="text-white d">{eventData.organizer?.name}</p>
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Organizer
+                </p>
+                <p className="text-gray-900 dark:text-white d">
+                  {eventData.organizer?.name}
+                </p>
               </div>
 
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Registration</p>
-                <p className="text-white d">
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Registration
+                </p>
+                <p className="text-gray-900 dark:text-white d">
                   {eventData.registration?.start?.seconds
                     ? new Date(
                         eventData.registration.start.seconds * 1000,
@@ -306,9 +400,16 @@ export default function EventOverviewPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700">
-                <p className="text-slate-400 text-xs uppercase">Created</p>
-                <p className="text-white d">
+              <div
+                className="bg-gray-50 dark:bg-slate-800/60
+rounded-xl p-4
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300"
+              >
+                <p className="text-gray-500 dark:text-slate-400 text-xs uppercase">
+                  Created
+                </p>
+                <p className="text-gray-900 dark:text-white d">
                   {eventData.createdAt
                     ? new Date(
                         eventData.createdAt.seconds * 1000,
@@ -321,67 +422,87 @@ export default function EventOverviewPage() {
         </section>
 
         {/* ================= EXECUTIVE KPI INTELLIGENCE ================= */}
+        {/* ================= EXECUTIVE KPI INTELLIGENCE ================= */}
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {/* ================= KPI CARD WRAPPER STYLE ================= */}
-          {[
-            {
-              title: "Total Participants",
-              value: totalParticipants || 0,
-              subtitle: "Active registrations",
-              color: "emerald",
-            },
-            {
-              title: "Total Revenue",
-              value: `₹ ${totalRevenue?.toLocaleString() || 0}`,
-              subtitle: "Gross earnings",
-              color: "indigo",
-            },
-            {
-              title: "Revenue / Participant",
-              value: `₹ ${
-                eventData.metrics.totalParticipants
-                  ? Math.round(revenuePerParticipant)
-                  : 0
-              }`,
-              subtitle: "Average ticket value",
-              color: "pink",
-            },
-          ].map((card, index) => (
-            <div
-              key={index}
-              className="relative flex flex-col justify-between bg-[#1e293b] border border-slate-700 rounded-2xl p-6 min-h-[160px] hover:border-slate-600 transition-all duration-300"
-            >
-              {/* Soft Glow */}
+          {(() => {
+            const kpiCards: KpiCard[] = [
+              {
+                title: "Total Participants",
+                value: totalParticipants || 0,
+                subtitle: "Active registrations",
+                color: "emerald",
+              },
+              {
+                title: "Total Revenue",
+                value: `₹ ${totalRevenue?.toLocaleString() || 0}`,
+                subtitle: "Gross earnings",
+                color: "indigo",
+              },
+              {
+                title: "Revenue / Participant",
+                value: `₹ ${
+                  eventData.metrics.totalParticipants
+                    ? Math.round(revenuePerParticipant)
+                    : 0
+                }`,
+                subtitle: "Average ticket value",
+                color: "pink",
+              },
+            ];
+
+            return kpiCards.map((card, index) => (
               <div
-                className={`absolute -top-10 -right-10 w-28 h-28 bg-${card.color}-500/10 rounded-full blur-3xl`}
-              ></div>
+                key={index}
+                className="
+          relative flex flex-col justify-between
+          bg-white dark:bg-[#1e293b]
+          border border-gray-200 dark:border-slate-700
+          rounded-2xl p-6 min-h-[160px]
+          hover:border-gray-300 dark:hover:border-slate-600
+          transition-all duration-300
+        "
+              >
+                {/* Soft Glow */}
+                <div
+                  className={`absolute -top-10 -right-10 w-28 h-28 ${colorMap[card.color].glow} rounded-full blur-3xl`}
+                />
 
-              <div className="space-y-2">
-                <p className="text-xs text-slate-400 uppercase tracking-wide">
-                  {card.title}
-                </p>
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                    {card.title}
+                  </p>
 
-                <p className="text-3xl font-bold text-white tracking-tight">
-                  {card.value}
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+                    {card.value}
+                  </p>
+                </div>
+
+                <p className={`text-xs mt-4 ${colorMap[card.color].text}`}>
+                  {card.subtitle}
                 </p>
               </div>
-
-              <p className={`text-xs mt-4 text-${card.color}-400`}>
-                {card.subtitle}
-              </p>
-            </div>
-          ))}
+            ));
+          })()}
 
           {/* ================= CATEGORY CARD ================= */}
-          <div className="relative flex flex-col justify-between bg-[#1e293b] border border-slate-700 rounded-2xl p-6 min-h-[160px] hover:border-slate-600 transition-all duration-300">
-            <div className="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/10 rounded-full blur-3xl"></div>
+          <div
+            className="
+      relative flex flex-col justify-between
+      bg-white dark:bg-[#1e293b]
+      border border-gray-200 dark:border-slate-700
+      rounded-2xl p-6 min-h-[160px]
+      hover:border-gray-300 dark:hover:border-slate-600
+      transition-all duration-300
+    "
+          >
+            <div className="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/10 rounded-full blur-3xl" />
 
             <div className="space-y-2">
-              <p className="text-xs text-slate-400 uppercase tracking-wide">
+              <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide">
                 Categories
               </p>
 
-              <p className="text-3xl font-bold text-white tracking-tight">
+              <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                 {totalCategories}
               </p>
             </div>
@@ -399,10 +520,11 @@ export default function EventOverviewPage() {
             </div>
           </div>
         </section>
-
         {/* ================= CATEGORY CONTROL ENGINE ================= */}
         <section className="space-y-6">
-          <h2 className="text-lg d text-white">Category Control Engine</h2>
+          <h2 className="text-lg d text-gray-900 dark:text-white">
+            Category Control Engine
+          </h2>
 
           <div
             className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2

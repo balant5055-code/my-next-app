@@ -78,31 +78,33 @@ export default function ParticipantExperience() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ delay: index * 0.08, duration: 0.45 }}
-              className="group relative rounded-2xl border border-gray-200 p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
+              className="group relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-8 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
             >
-              {/* Soft Accent Shape (UNCHANGED) */}
+              {/* Animated Accent Glow */}
               <div
-                className={`absolute -top-10 -right-10 h-20 w-20 rounded-full bg-gradient-to-br ${item.accent} opacity-15`}
+                className={`absolute -top-6 -right-6 md:-top-10 md:-right-10 h-24 w-24 rounded-full bg-gradient-to-br ${item.accent} opacity-10 blur-2xl transition-all duration-500 group-hover:opacity-25 group-hover:scale-125`}
               />
 
-              {/* Icon (CENTERED — UNCHANGED) */}
+              {/* Icon Container */}
               <div className="flex justify-center">
                 <div
-                  className={`relative mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent}`}
+                  className={`relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent} shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:rotate-6`}
                 >
                   <item.icon className="h-8 w-8 text-white" />
                 </div>
               </div>
 
-              {/* Accent Divider (UNCHANGED) */}
+              {/* Accent Divider */}
               <div
-                className={`mx-auto mb-5 h-[3px] w-10 rounded-full bg-gradient-to-r ${item.accent}`}
+                className={`mx-auto mb-6 h-[3px] w-10 rounded-full bg-gradient-to-r ${item.accent} transition-all duration-500 group-hover:w-16`}
               />
 
-              {/* Text (UNCHANGED) */}
+              {/* Title */}
               <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
                 {item.title}
               </h3>
+
+              {/* Description */}
               <p className="text-gray-600 text-sm leading-relaxed text-center">
                 {item.description}
               </p>

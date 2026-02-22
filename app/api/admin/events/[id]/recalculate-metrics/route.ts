@@ -8,48 +8,104 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    // 🔥 IMPORTANT: await params
-    const { id } = await context.params;
+    const { id: eventId } = await context.params;
 
-    console.log("Received ID:", id);
-
-    if (!id) {
+    if (!eventId) {
       return NextResponse.json(
-        { success: false, message: "ID missing in URL" },
+        { success: false, message: "Event ID missing" },
         { status: 400 },
       );
     }
 
+    /* ----------------------------------------------------
+       1️⃣ Get Event Document
+    ---------------------------------------------------- */
+    const eventRef = adminDb.collection("events").doc(eventId);
+    const eventSnap = await eventRef.get();
+
+    if (!eventSnap.exists) {
+      return NextResponse.json(
+        { success: false, message: "Event not found" },
+        { status: 404 },
+      );
+    }
+
+    const eventData = eventSnap.data();
+    const totalCapacity = eventData?.metrics?.totalCapacity || 0;
+
+    /* ----------------------------------------------------
+       2️⃣ Fetch All Registrations
+    ---------------------------------------------------- */
     const registrationsSnap = await adminDb
       .collection("registrations_flat")
-      .where("eventId", "==", id)
+      .where("eventId", "==", eventId)
       .get();
 
     let totalParticipants = 0;
     let totalRevenue = 0;
+    let confirmedCount = 0;
+    let bibAssignedCount = 0;
+    let checkedInCount = 0;
 
     registrationsSnap.forEach((doc) => {
       const data = doc.data();
+
       totalParticipants += 1;
       totalRevenue += Number(data.amount || 0);
+
+      if (data.status === "CONFIRMED") {
+        confirmedCount += 1;
+      }
+
+      if (data.bibNumber) {
+        bibAssignedCount += 1;
+      }
+
+      if (data.checkInStatus === true) {
+        checkedInCount += 1;
+      }
     });
 
-    await adminDb.collection("events").doc(id).update({
-      "metrics.totalParticipants": totalParticipants,
-      "metrics.totalRevenue": totalRevenue,
-      "metrics.lastRecalculatedAt": new Date(),
+    /* ----------------------------------------------------
+       3️⃣ Calculate Occupancy
+    ---------------------------------------------------- */
+    const occupancyRate =
+      totalCapacity > 0
+        ? Math.round((totalParticipants / totalCapacity) * 100)
+        : 0;
+
+    /* ----------------------------------------------------
+       4️⃣ Update Metrics
+    ---------------------------------------------------- */
+    await eventRef.update({
+      metrics: {
+        ...eventData?.metrics,
+        totalParticipants,
+        totalRevenue,
+        confirmedCount,
+        bibAssignedCount,
+        checkedInCount,
+        occupancyRate,
+        lastRecalculatedAt: new Date(),
+      },
     });
 
     return NextResponse.json({
       success: true,
-      totalParticipants,
-      totalRevenue,
+      metrics: {
+        totalParticipants,
+        totalRevenue,
+        confirmedCount,
+        bibAssignedCount,
+        checkedInCount,
+        occupancyRate,
+      },
     });
   } catch (error: any) {
     console.error("RECALCULATE ERROR:", error);
 
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, message: error.message || "Server error" },
       { status: 500 },
     );
   }

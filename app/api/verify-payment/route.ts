@@ -69,14 +69,11 @@ export async function POST(req: Request) {
     }
 
     /* =======================================================
-       🔥 4️⃣ Assign Bib + Save Registration (ONE TRANSACTION)
-    ======================================================== */
-
-    let assignedBibNumber: number | null = null;
+       🔥 4️⃣ Confirm Registration (NO BIB ASSIGNMENT)
+    ======================================================= */
 
     await adminDb.runTransaction(async (transaction) => {
       const eventRef = adminDb.collection("events").doc(pendingData.eventId);
-
       const eventSnap = await transaction.get(eventRef);
 
       if (!eventSnap.exists) {
@@ -89,6 +86,7 @@ export async function POST(req: Request) {
         throw new Error("Event name missing in database");
       }
 
+      /* ✅ Validate category still exists */
       const categories = eventData.categories;
 
       const categoryIndex = categories.findIndex(
@@ -101,20 +99,19 @@ export async function POST(req: Request) {
 
       const category = categories[categoryIndex];
 
-      if (category.nextBib > category.bibEnd) {
-        throw new Error("Bib limit exceeded");
-      }
+      /* ===============================
+   🔥 ENTERPRISE REGISTRATION MODEL
+================================= */
 
-      // 🎽 Assign Bib
-      assignedBibNumber = category.nextBib;
+      const participant = pendingData.participant;
 
-      // 🔥 Increment safely
-      categories[categoryIndex].nextBib += 1;
-
-      transaction.update(eventRef, { categories });
+      const fullName = `${participant?.firstName || ""} ${
+        participant?.lastName || ""
+      }`.trim();
 
       const registrationData = {
         registrationId: pendingData.registrationId,
+
         eventId: pendingData.eventId,
         eventName: eventData.name,
         eventDate: eventData?.date?.toDate?.() || eventData?.date || null,
@@ -122,8 +119,13 @@ export async function POST(req: Request) {
         category: category.title,
         categoryId: pendingData.categoryId,
         amount: pendingData.amount,
+
         participant: pendingData.participant,
 
+        /* 🔎 For prefix search */
+        nameLowercase: fullName.toLowerCase(),
+
+        /* 💳 Payment */
         payment: {
           orderId: razorpay_order_id,
           paymentId: razorpay_payment_id,
@@ -132,26 +134,44 @@ export async function POST(req: Request) {
           status: "SUCCESS",
         },
 
+        /* 🟢 Registration status */
         status: "CONFIRMED",
         confirmedAt: new Date(),
         createdAt: new Date(),
-        bibNumber: assignedBibNumber,
+
+        /* 🎟 BIB SYSTEM */
+        bibNumber: null,
+        bibAssignedAt: null,
+        bibAssignedBy: null,
+
+        /* 🏁 CHECK-IN SYSTEM */
+        checkedIn: false,
+        checkedInAt: null,
+        checkedInBy: null,
+
+        /* 📜 Activity Timeline */
+        activityLog: [
+          {
+            type: "REGISTRATION_CONFIRMED",
+            at: new Date(),
+          },
+        ],
       };
 
-      // 🔥 Flat save
       const flatRef = adminDb
         .collection("registrations_flat")
         .doc(pendingData.registrationId);
 
       transaction.set(flatRef, registrationData);
 
-      // ✅ Enterprise safe metrics
+      /* ✅ Update metrics (NO bibAssignedCount here) */
       transaction.set(
         eventRef,
         {
           metrics: {
             totalParticipants: FieldValue.increment(1),
             totalRevenue: FieldValue.increment(pendingData.amount),
+            confirmedCount: FieldValue.increment(1),
           },
         },
         { merge: true },
@@ -164,7 +184,6 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       registrationId: pendingData.registrationId,
-      bibNumber: assignedBibNumber,
     });
   } catch (error: any) {
     console.error("VERIFY ERROR:", error);

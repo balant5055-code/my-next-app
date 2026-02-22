@@ -5,6 +5,7 @@ import { secureFetch } from "@/lib/secureFetch";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import toast from "react-hot-toast";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { useGlobalLoading } from "@/context/LoadingContext";
 
 interface Props {
   eventId: string;
@@ -21,6 +22,7 @@ export default function EventControlCenter({
   useEffect(() => {
     setRegistrationStatus(currentRegistrationStatus);
   }, [currentRegistrationStatus]);
+  const { startLoading, stopLoading } = useGlobalLoading();
 
   const [status, setStatus] = useState(currentStatus);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function EventControlCenter({
     if (!pendingStatus) return;
 
     try {
-      setLoading(true);
+      startLoading(); // 🌍 GLOBAL LOADER START
 
       const res = await secureFetch(`/api/admin/events/${eventId}/status`, {
         method: "PATCH",
@@ -73,17 +75,20 @@ export default function EventControlCenter({
     } catch {
       toast.error("Failed to update status");
     } finally {
+      stopLoading(); // 🌍 GLOBAL LOADER STOP
       setLoading(false);
       setConfirmOpen(false);
       setPendingStatus(null);
     }
   };
+
   /* ================= REGISTRATION STATUS UPDATE ================= */
   const confirmRegistrationChange = async () => {
     if (!pendingRegistrationStatus) return;
 
     try {
-      setRegistrationLoading(true);
+      startLoading(); // 🌍 GLOBAL LOADER START
+      setRegistrationLoading(true); // local button loading
 
       const res = await secureFetch(
         `/api/admin/events/${eventId}/registration-control`,
@@ -104,6 +109,7 @@ export default function EventControlCenter({
     } catch {
       toast.error("Failed to update registration");
     } finally {
+      stopLoading(); // 🌍 GLOBAL LOADER STOP
       setRegistrationLoading(false);
       setRegistrationConfirmOpen(false);
       setPendingRegistrationStatus(null);

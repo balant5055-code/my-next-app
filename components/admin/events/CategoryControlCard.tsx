@@ -5,6 +5,8 @@ import { secureFetch } from "@/lib/secureFetch";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useEffect } from "react";
+import { useGlobalLoading } from "@/context/LoadingContext";
+
 interface Props {
   eventId: string;
   category: {
@@ -30,6 +32,8 @@ export default function CategoryControlCard({
   category,
   onRefresh,
 }: Props) {
+  const { startLoading, stopLoading } = useGlobalLoading();
+
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
@@ -87,7 +91,8 @@ export default function CategoryControlCard({
     payload: Record<string, any>,
   ) => {
     try {
-      setLoadingAction(actionName);
+      startLoading(); // ✅ GLOBAL LOADER START
+      setLoadingAction(actionName); // local button loading
 
       const res = await secureFetch(
         `/api/admin/events/${eventId}/categories/${category.id}`,
@@ -100,19 +105,17 @@ export default function CategoryControlCard({
 
       if (!res.ok) throw new Error();
 
-      await onRefresh(); // 🔥 critical for real-time refresh
-      // ✅ Close Bib Editor if we just edited it
-      if (actionName === "bibRange") {
-        setEditBibMode(false);
-      }
+      await onRefresh();
       toast.success("Category updated successfully");
     } catch (err) {
       console.error(err);
       toast.error("Failed to update category");
     } finally {
+      stopLoading(); // ✅ GLOBAL LOADER STOP
       setLoadingAction(null);
     }
   };
+
   useEffect(() => {
     setBibStartInput(category.bibStart);
     setBibEndInput(category.bibEnd);
@@ -123,12 +126,10 @@ export default function CategoryControlCard({
       className="relative
 rounded-2xl
 overflow-hidden
-border border-slate-700
-bg-gradient-to-br
-from-[#0f172a]
-via-[#1e293b]
-to-[#0b1220]
+border border-gray-200 dark:border-slate-700
+bg-white dark:bg-gradient-to-br dark:from-[#0f172a] dark:via-[#1e293b] dark:to-[#0b1220]
 shadow-xl
+transition-colors duration-300
 before:absolute before:inset-0
 before:rounded-2xl
 before:p-[1px]
@@ -140,14 +141,18 @@ before:blur-sm
 before:-z-10"
     >
       {/* ================= HEADER ================= */}
-      <div className="px-6 py-5 border-b border-slate-700 flex justify-between items-center">
+      <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
         <div>
-          <h3 className="text-white  text-lg">{category.title}</h3>
-          <p className="text-xs text-slate-400 mt-1">{category.distance}</p>
+          <h3 className="text-gray-900 dark:text-white  text-lg">
+            {category.title}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+            {category.distance}
+          </p>
         </div>
 
         <div className="text-right">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">
+          <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide">
             Seat Fill
           </p>
           <p className="text-xl font-bold text-emerald-400">
@@ -160,12 +165,18 @@ before:-z-10"
       <div className="p-6 space-y-8">
         {/* ================= SEAT FILL PROGRESS BAR ================= */}
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-slate-400">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
             <span>Seat Occupancy</span>
-            <span className=" text-white">{seatFillPercent}%</span>
+            <span className=" text-gray-900 dark:text-white">
+              {seatFillPercent}%
+            </span>
           </div>
 
-          <div className="relative h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div
+            className="relative h-3 bg-gray-50 dark:bg-slate-800/50
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300 rounded-full overflow-hidden border border-slate-700"
+          >
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${
                 isZero
@@ -217,14 +228,16 @@ before:-z-10"
             </div>
 
             {!editPriceMode ? (
-              <p className="text-white text-lg ">₹ {category.price}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 ">
+                ₹ {category.price}
+              </p>
             ) : (
               <div className="space-y-3">
                 <input
                   type="number"
                   value={priceInput}
                   onChange={(e) => setPriceInput(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
 
                 <button
@@ -238,7 +251,7 @@ before:-z-10"
                     await updateCategory("price", { price: priceInput });
                     setEditPriceMode(false);
                   }}
-                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white disabled:opacity-50 transition"
+                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-gray-900 dark:text-white disabled:opacity-50 transition"
                 >
                   {loadingAction === "price" ? "Updating..." : "Save Price"}
                 </button>
@@ -248,21 +261,23 @@ before:-z-10"
 
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
             <p className="text-xs text-slate-400 uppercase">Seats</p>
-            <p className="text-white  mt-1">
+            <p className="text-gray-900 dark:text-white  mt-1">
               {category.bookedSeats} / {category.maxSeats}
             </p>
           </div>
 
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
             <p className="text-xs text-slate-400 uppercase">Bib Range</p>
-            <p className="text-white  mt-1">
+            <p className="text-gray-900 dark:text-white  mt-1">
               {category.bibStart} - {category.bibEnd}
             </p>
           </div>
 
           <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
             <p className="text-xs text-slate-400 uppercase">Next Bib</p>
-            <p className="text-white  mt-1">{category.nextBib}</p>
+            <p className="text-gray-900 dark:text-white  mt-1">
+              {category.nextBib}
+            </p>
           </div>
         </div>
 
@@ -271,7 +286,9 @@ before:-z-10"
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-white  text-base">Bib Range Control</h4>
+              <h4 className="text-gray-900 dark:text-white  text-base">
+                Bib Range Control
+              </h4>
               <p className="text-xs text-slate-400 mt-1">
                 Manage bib allocation and sequencing for this category
               </p>
@@ -279,7 +296,9 @@ before:-z-10"
 
             <button
               onClick={() => setEditBibMode(!editBibMode)}
-              className="px-3 py-1.5 text-xs bg-slate-800 border border-slate-600 rounded-lg text-indigo-400 hover:text-indigo-300 hover:border-indigo-500 transition"
+              className="px-3 py-1.5 text-xs bg-gray-50 dark:bg-slate-800/50
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300 border border-slate-600 rounded-lg text-indigo-400 hover:text-indigo-300 hover:border-indigo-500 transition"
             >
               {editBibMode ? "Cancel Edit" : "Edit Range"}
             </button>
@@ -293,7 +312,9 @@ before:-z-10"
                 <p className="text-xs text-slate-400 uppercase tracking-wide">
                   Bib Start
                 </p>
-                <p className="text-white text-lg  mt-1">{category.bibStart}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1  mt-1">
+                  {category.bibStart}
+                </p>
               </div>
 
               {/* End */}
@@ -301,7 +322,9 @@ before:-z-10"
                 <p className="text-xs text-slate-400 uppercase tracking-wide">
                   Bib End
                 </p>
-                <p className="text-white text-lg  mt-1">{category.bibEnd}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1  mt-1">
+                  {category.bibEnd}
+                </p>
               </div>
 
               {/* Next Issued */}
@@ -336,19 +359,23 @@ before:-z-10"
                     type="number"
                     value={bibStartInput}
                     onChange={(e) => setBibStartInput(Number(e.target.value))}
-                    className="w-full mt-2 px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full mt-2 px-4 py-2.5 bg-gray-50 dark:bg-slate-800/50
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300 border border-slate-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 uppercase">
+                  <label className="text-xs text-gray-500 dark:text-slate-400 uppercase">
                     Bib End
                   </label>
                   <input
                     type="number"
                     value={bibEndInput}
                     onChange={(e) => setBibEndInput(Number(e.target.value))}
-                    className="w-full mt-2 px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full mt-2 px-4 py-2.5 bg-gray-50 dark:bg-slate-800/50
+border border-gray-200 dark:border-slate-700
+transition-colors duration-300 border border-slate-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -362,7 +389,7 @@ before:-z-10"
                       bibEnd: bibEndInput,
                     })
                   }
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white disabled:opacity-50 transition"
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-gray-900 dark:text-white disabled:opacity-50 transition"
                 >
                   {loadingAction === "bibRange"
                     ? "Updating..."
@@ -427,7 +454,7 @@ before:-z-10"
               </div>
 
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">
+                <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide">
                   Category Status
                 </p>
 
@@ -485,7 +512,7 @@ before:-z-10"
                   maxSeats: category.maxSeats + 10,
                 })
               }
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white disabled:opacity-50 transition"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-gray-900 dark:text-white disabled:opacity-50 transition"
             >
               {loadingAction === "seats" ? "Updating..." : "+10 Seats"}
             </button>
@@ -499,7 +526,7 @@ before:-z-10"
                   { type: "resetBib", nextBib: category.bibStart },
                 )
               }
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-white disabled:opacity-50 transition"
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-gray-900 dark:text-white disabled:opacity-50 transition"
             >
               {loadingAction === "resetBib" ? "Updating..." : "Reset Bib"}
             </button>
@@ -518,7 +545,7 @@ before:-z-10"
                   },
                 )
               }
-              className={`px-4 py-2.5 rounded-xl text-white disabled:opacity-50 transition ${
+              className={`px-4 py-2.5 rounded-xl text-gray-900 dark:text-white disabled:opacity-50 transition ${
                 category.waitlistEnabled
                   ? "bg-pink-700 hover:bg-pink-600"
                   : "bg-pink-500 hover:bg-pink-400"
@@ -541,6 +568,9 @@ before:-z-10"
             cancelText="Cancel"
             onConfirm={async () => {
               if (!pendingPayload) return;
+
+              setConfirmOpen(false); // ✅ CLOSE MODAL FIRST
+              setPendingPayload(null);
 
               if (pendingPayload.type === "seats") {
                 await updateCategory("seats", {
@@ -565,9 +595,6 @@ before:-z-10"
                   status: pendingPayload.status,
                 });
               }
-
-              setConfirmOpen(false);
-              setPendingPayload(null);
             }}
             onCancel={() => setConfirmOpen(false)}
           />

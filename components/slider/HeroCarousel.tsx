@@ -4,20 +4,27 @@ import { useEffect, useRef, useState } from "react";
 
 type Direction = "next" | "prev";
 
-const slides = [
+const marathonImages = [
+  "https://images.unsplash.com/photo-1502904550040-7534597429ae?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?q=80&w=1920&auto=format&fit=crop",
+];
+const baseSlides = [
   {
     title: "High-Precision Sports Timing",
     headline: "EVERY SECOND. EVERY ATHLETE.",
     text: "Professional timing solutions for marathons, cycling, triathlons, and competitive sports with ultra-accurate tracking and instant results.",
     cta: "Timing Solutions",
-    bg: "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?q=80&w=1920&auto=format&fit=crop",
+    bg: "https://images.unsplash.com/photo-1599058917212-d750089bc07b?q=80&w=1920&auto=format&fit=crop",
   },
   {
     title: "Built for Organizers",
     headline: "HOST EVENTS. SCALE WITH CONFIDENCE.",
     text: "Create events faster, manage participants effortlessly, and deliver a world-class experience for athletes and sponsors.",
     cta: "Host an Event",
-    bg: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1920&auto=format&fit=crop",
+    bg: "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?q=80&w=1920&auto=format&fit=crop",
   },
   {
     title: "From Registration to Results",
@@ -29,10 +36,19 @@ const slides = [
 ];
 
 export default function HeroSliderMatrixDirectional() {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [active, setActive] = useState(0);
   const [direction, setDirection] = useState<Direction>("next");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { innerWidth, innerHeight } = window;
 
+    const x = (e.clientX - innerWidth / 2) / innerWidth;
+    const y = (e.clientY - innerHeight / 2) / innerHeight;
+
+    setMousePos({ x, y });
+  };
+  const [slides, setSlides] = useState(baseSlides);
   /* AUTOPLAY */
   const startAuto = () => {
     stopAuto();
@@ -65,6 +81,15 @@ export default function HeroSliderMatrixDirectional() {
     return stopAuto;
   }, []);
 
+  useEffect(() => {
+    const randomized = baseSlides.map((slide) => ({
+      ...slide,
+      bg: marathonImages[Math.floor(Math.random() * marathonImages.length)],
+    }));
+
+    setSlides(randomized);
+  }, []);
+
   /* MATRIX */
   const getMatrix = (isActive: boolean) => {
     if (isActive) return "matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)";
@@ -75,15 +100,19 @@ export default function HeroSliderMatrixDirectional() {
 
   return (
     <section
+      onMouseMove={handleMouseMove}
       className="
     relative
-    min-h-[480px]          /* mobile height */
-    md:min-h-[620px]       /* tablet+ same as before */
+    min-h-[480px]
+    md:min-h-[620px]
     overflow-hidden
     bg-black
     perspective-[1200px]
   "
     >
+      <div className="absolute inset-0 pointer-events-none opacity-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-[repeating-linear-gradient(90deg,transparent,transparent_20px,white_21px,transparent_22px)]" />
+      </div>
       {slides.map((slide, index) => {
         const isActive = index === active;
 
@@ -99,14 +128,22 @@ export default function HeroSliderMatrixDirectional() {
           >
             {/* BG */}
             <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-[6000ms]"
+              className="absolute inset-0 bg-cover bg-center filter contrast-110 saturate-110 brightness-90 transition-transform duration-300 ease-out"
               style={{
                 backgroundImage: `url(${slide.bg})`,
-                transform: isActive ? "scale(1.05)" : "scale(1)",
+                transform: isActive
+                  ? `scale(1.1) translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)`
+                  : "scale(1)",
               }}
             />
 
+            {/* DARK OVERLAY */}
             <div className="absolute inset-0 bg-black/65" />
+
+            {/* Racing Light Streak */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -left-1/3 top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent animate-lightSweep" />
+            </div>
 
             {/* CONTENT */}
             <div className="relative z-20 h-full flex items-start pt-[100px] md:pt-[140px]">

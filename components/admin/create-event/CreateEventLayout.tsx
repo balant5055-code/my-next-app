@@ -9,6 +9,8 @@ import CategoryBuilderSection from "./CategoryBuilderSection";
 import MediaSection from "./MediaSection";
 import ReviewSubmitSection from "./ReviewSubmitSection";
 import { secureFetch } from "@/lib/secureFetch";
+import EventInclusionsSection from "./EventInclusionsSection";
+
 import {
   CheckIcon,
   InformationCircleIcon,
@@ -27,6 +29,7 @@ type Tab =
   | "basic"
   | "organizer"
   | "registration"
+  | "inclusions"
   | "categories"
   | "media"
   | "review";
@@ -77,6 +80,15 @@ interface CreateEventForm {
   bannerURL: string;
 
   categories: Category[];
+  // ✅ ADD THIS
+  inclusions: {
+    apparel: string[];
+    timing: string[];
+    certificates: string[];
+    media: string[];
+    support: string[];
+    awards: string[];
+  };
 }
 
 /* ============================= */
@@ -127,6 +139,14 @@ export default function CreateEventLayout() {
       medicalNote: "",
       bannerURL: "",
       categories: [],
+      inclusions: {
+        apparel: [],
+        timing: [],
+        certificates: [],
+        media: [],
+        support: [],
+        awards: [],
+      },
     };
   });
 
@@ -170,13 +190,16 @@ export default function CreateEventLayout() {
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.venue) newErrors.venue = "Venue is required";
     if (!formData.organizer.name)
-      newErrors.organizerName = "Organizer name required";
+      newErrors["organizer.name"] = "Organizer name required";
+
     if (!formData.organizer.phone)
-      newErrors.organizerPhone = "Organizer phone required";
+      newErrors["organizer.phone"] = "Organizer phone required";
     if (!formData.registration.start)
-      newErrors.registrationStart = "Registration start required";
+      newErrors["registration.start"] = "Registration start required";
+
     if (!formData.registration.end)
-      newErrors.registrationEnd = "Registration end required";
+      newErrors["registration.end"] = "Registration end required";
+
     if (!formData.categories || formData.categories.length === 0)
       newErrors.categories = "At least one category required";
     setErrors(newErrors);
@@ -240,6 +263,9 @@ export default function CreateEventLayout() {
               label: "Registration",
               icon: CalendarDaysIcon,
             },
+            // ✅ ADD HERE
+            { key: "inclusions", label: "Inclusions", icon: Squares2X2Icon },
+
             { key: "categories", label: "Categories", icon: Squares2X2Icon },
             { key: "media", label: "Media", icon: PhotoIcon },
             {
@@ -330,19 +356,12 @@ export default function CreateEventLayout() {
         )}
 
         {/* ORGANIZER */}
+        {/* ORGANIZER */}
         {activeTab === "organizer" && (
           <OrganizerSection
             data={formData.organizer}
             errors={errors}
-            onChange={(field, value) =>
-              setFormData((prev) => ({
-                ...prev,
-                organizer: {
-                  ...prev.organizer,
-                  [field]: value,
-                },
-              }))
-            }
+            onChange={updateField}
           />
         )}
 
@@ -354,7 +373,10 @@ export default function CreateEventLayout() {
             onChange={updateField}
           />
         )}
-
+        {/* INCLUSIONS */}
+        {activeTab === "inclusions" && (
+          <EventInclusionsSection data={formData} onChange={updateField} />
+        )}
         {/* CATEGORIES */}
         {activeTab === "categories" && (
           <CategoryBuilderSection
