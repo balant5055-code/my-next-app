@@ -7,7 +7,7 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: NextRequest, context: any) {
   try {
-    await requireRole(req, ["SUPER_ADMIN", "EVENT_MANAGER"]);
+    await requireRole(["SUPER_ADMIN", "EVENT_MANAGER"]);
 
     const { id } = await context.params;
     if (!id) {

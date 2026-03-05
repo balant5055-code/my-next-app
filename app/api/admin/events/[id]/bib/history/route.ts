@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/requireRole";
 
 export async function GET(req: NextRequest, context: any) {
   try {
-    await requireRole(req, ["SUPER_ADMIN", "EVENT_MANAGER"]);
+    await requireRole(["SUPER_ADMIN", "EVENT_MANAGER"]);
 
     const { id } = await context.params;
 
