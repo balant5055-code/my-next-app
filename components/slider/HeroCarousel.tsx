@@ -109,6 +109,7 @@ export default function HeroSliderMatrixDirectional() {
     bg-black
     perspective-[1200px]
   "
+      id="home"
     >
       <div className="absolute inset-0 pointer-events-none opacity-10">
         <div className="absolute top-0 left-0 w-full h-full bg-[repeating-linear-gradient(90deg,transparent,transparent_20px,white_21px,transparent_22px)]" />

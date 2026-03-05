@@ -34,36 +34,36 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventType[]>([]);
   const [page, setPage] = useState(1);
 
- useEffect(() => {
-  const fetchEvents = async () => {
-    const snap = await getDocs(collection(db, "events"));
-    const list = snap.docs.map((doc) => {
-      const data = doc.data();
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const snap = await getDocs(collection(db, "events"));
+      const list = snap.docs.map((doc) => {
+        const data = doc.data();
 
-      return {
-        id: doc.id,
-        ...data,
-        date: data.date?.toDate
-          ? data.date.toDate()
-          : data.date?.seconds
-          ? new Date(data.date.seconds * 1000)
-          : data.date || null,
-      };
-    });
-
-    const sorted = list
-      .filter((e) => e.date)
-      .sort((a, b) => {
-        const da = a.date instanceof Date ? a.date.getTime() : 0;
-        const db = b.date instanceof Date ? b.date.getTime() : 0;
-        return da - db;
+        return {
+          id: doc.id,
+          ...data,
+          date: data.date?.toDate
+            ? data.date.toDate()
+            : data.date?.seconds
+              ? new Date(data.date.seconds * 1000)
+              : data.date || null,
+        };
       });
 
-    setEvents(sorted);
-  };
+      const sorted = list
+        .filter((e) => e.date)
+        .sort((a, b) => {
+          const da = a.date instanceof Date ? a.date.getTime() : 0;
+          const db = b.date instanceof Date ? b.date.getTime() : 0;
+          return da - db;
+        });
 
-  fetchEvents();
-}, []);
+      setEvents(sorted);
+    };
+
+    fetchEvents();
+  }, []);
   const getDaysToGo = (date?: Date | null) => {
     if (!date) return null;
     const eventDate = date instanceof Date ? date : new Date(date);
@@ -86,7 +86,7 @@ export default function EventsPage() {
   const currentEvents = events.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 mt-20">
+    <section className="max-w-7xl mx-auto px-4 mt-20" id="events">
       {/* HEADER */}
       <motion.div
         ref={headingRef}
@@ -260,6 +260,6 @@ export default function EventsPage() {
           </div>
         </div>
       )}
-    </main>
+    </section>
   );
 }

@@ -1,33 +1,13 @@
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
-import { NextRequest } from "next/server";
+// lib/requireRole.ts
 
-export async function requireRole(req: NextRequest, allowedRoles: string[]) {
-  const token = req.cookies.get("admin_token")?.value;
+import { requireAdmin } from "@/lib/requireAdmin";
 
-  if (!token) {
-    throw new Error("Unauthorized");
-  }
+export async function requireRole(allowedRoles: string[]) {
+  const admin = await requireAdmin();
 
-  const decoded = await adminAuth.verifyIdToken(token);
-
-  const adminDoc = await adminDb.collection("admins").doc(decoded.uid).get();
-
-  if (!adminDoc.exists) {
-    throw new Error("Admin record not found");
-  }
-
-  const data = adminDoc.data();
-
-  if (!data?.active) {
-    throw new Error("Account disabled");
-  }
-
-  if (!allowedRoles.includes(data.role)) {
+  if (!allowedRoles.includes(admin.role)) {
     throw new Error("Insufficient permissions");
   }
 
-  return {
-    uid: decoded.uid,
-    role: data.role,
-  };
+  return admin;
 }

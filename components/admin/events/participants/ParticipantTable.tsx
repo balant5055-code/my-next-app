@@ -162,7 +162,18 @@ export default function ParticipantTable({ eventId, filters }: Props) {
 
       const result = await res.json();
 
-      setParticipants(result.data || []);
+      const rows = result.data || [];
+      setParticipants(rows);
+
+      // 🔥 Auto-switch to Bib sort if bib exists
+      if (
+        sortField === "createdAt" &&
+        rows.length > 0 &&
+        rows.some((p: any) => p.bibNumber)
+      ) {
+        setSortField("bibNumber");
+        setSortDirection("asc");
+      }
       setTotalCount(result.totalCount || 0);
       setNextCursor(result.nextCursor || null);
 

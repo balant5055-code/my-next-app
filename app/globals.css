@@ -137,31 +137,31 @@ body {
 }
 html {
   scroll-behavior: smooth;
+  outline: none;
 }
 * {
   -webkit-overflow-scrolling: touch;
 }
-/* Vertical Scrollbar */
-::-webkit-scrollbar {
+/* Admin Dark Scrollbar */
+.admin-theme ::-webkit-scrollbar {
   width: 8px;
 }
 
-::-webkit-scrollbar-track {
+.admin-theme ::-webkit-scrollbar-track {
   background: #0f172a;
 }
 
-::-webkit-scrollbar-thumb {
+.admin-theme ::-webkit-scrollbar-thumb {
   background: #334155;
   border-radius: 8px;
-  transition: background 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.admin-theme ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
 /* Firefox */
-* {
+.admin-theme {
   scrollbar-width: thin;
   scrollbar-color: #334155 #0f172a;
 }
@@ -176,4 +176,80 @@ html {
 
 .animate-lightSweep {
   animation: lightSweep 6s linear infinite;
+}
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease;
+}
+
+/* Public light scrollbar */
+.public-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.public-scroll::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.public-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5) !important;
+  border-radius: 9999px;
+}
+
+.public-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradientShift 6s ease infinite;
+}
+
+@keyframes sidebarGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.sidebar-gradient-animate {
+  background-size: 200% 200%;
+  animation: sidebarGradient 6s ease infinite;
 }

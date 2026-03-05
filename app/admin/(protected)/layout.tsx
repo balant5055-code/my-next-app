@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useState } from "react";
-import { usePathname } from "next/navigation";
+import { ReactNode, useState, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   HomeIcon,
@@ -17,27 +17,30 @@ import {
   CpuChipIcon,
   PresentationChartLineIcon,
   ChartBarIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import AdminAuthGate from "@/app/admin/AdminAuthGate";
 import { Toaster } from "react-hot-toast";
 import SessionManager from "@/components/admin/SessionManager";
 import { ThemeProvider } from "next-themes";
 import ThemeToggle from "@/components/admin/ThemeToggle";
+import { secureFetch } from "@/lib/secureFetch";
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Detect if inside event
-  const eventMatch = pathname.match(/^\/admin\/events\/([^\/]+)/);
-  const eventId = eventMatch?.[1];
+  // Detect eventId (memoized)
+  const eventId = useMemo(() => {
+    const match = pathname.match(/^\/admin\/events\/([^\/]+)/);
+    return match?.[1];
+  }, [pathname]);
 
-  // Default Sidebar
   const mainMenu = [
     { name: "Dashboard", path: "/admin/dashboard", icon: HomeIcon },
     { name: "All Events", path: "/admin/events", icon: CalendarDaysIcon },
     { name: "Create Event", path: "/admin/create-event", icon: PlusCircleIcon },
-
     {
       name: "Upload History",
       path: "/admin/upload-history",
@@ -46,7 +49,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { name: "Payments", path: "/admin/payments", icon: CreditCardIcon },
   ];
 
-  // Dynamic Event Sidebar
   const eventMenu = eventId
     ? [
         {
@@ -89,19 +91,27 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const menuToRender = eventId ? eventMenu : mainMenu;
 
+  const handleLogout = async () => {
+    try {
+      await secureFetch("/api/admin/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      router.replace("/admin/login");
+    }
+  };
+
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AdminAuthGate>
         <SessionManager />
 
         <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-[#0f172a] dark:via-[#111827] dark:to-[#0b1220] text-slate-900 dark:text-white transition-colors duration-300">
-          {/* SIDEBAR */}
           <aside
             className={`fixed top-0 left-0 h-screen ${
               collapsed ? "w-20" : "w-72"
             } bg-white dark:bg-[#111827] border-r border-slate-200 dark:border-slate-700 transition-all duration-300 px-5 py-6 flex flex-col z-40`}
           >
-            {/* HEADER */}
             <div className="flex items-center justify-between mb-8">
               {!collapsed && (
                 <div>
@@ -114,16 +124,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCollapsed(!collapsed)}
-                  className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                >
-                  <Bars3Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                </button>
-              </div>
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                <Bars3Icon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+              </button>
             </div>
-            {/* BACK BUTTON */}
+
             {eventId && !collapsed && (
               <Link
                 href="/admin/events"
@@ -132,7 +140,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 ← Back to All Events
               </Link>
             )}
-            {/* MENU */}
+
             <nav className="space-y-2 flex-1 overflow-y-auto">
               {menuToRender.map(({ name, path, icon: Icon }) => {
                 const active =
@@ -144,12 +152,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                       whileHover={{ scale: collapsed ? 1.1 : 1.02 }}
                       className={`relative flex items-center ${
                         collapsed ? "justify-center px-0" : "gap-3 px-4"
-                      } py-3 rounded-xl text-sm font-medium transition-all duration-200
-                    ${
-                      active
-                        ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-lg"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
-                    }`}
+                      } py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                        active
+                          ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-lg"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
+                      }`}
                     >
                       <Icon
                         className={`${
@@ -160,9 +167,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                             : "text-slate-500 dark:text-slate-400"
                         }`}
                       />
-
                       {!collapsed && name}
-
                       {!collapsed && active && (
                         <motion.div
                           layoutId="activeIndicator"
@@ -174,10 +179,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-            {/* ===== BOTTOM SECTION ===== */}
-            {/* ===== BOTTOM SECTION ===== */}
+
             <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800">
-              {/* Admin + Theme Row */}
               <div
                 className={`flex items-center ${
                   collapsed ? "justify-center" : "justify-between"
@@ -185,10 +188,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               >
                 {!collapsed && (
                   <div className="flex items-center gap-3">
-                    <div
-                      className="h-9 w-9 flex items-center justify-center rounded-full 
-          bg-indigo-600 text-white text-sm font-semibold"
-                    >
+                    <div className="h-9 w-9 flex items-center justify-center rounded-full bg-indigo-600 text-white text-sm font-semibold">
                       A
                     </div>
 
@@ -201,36 +201,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   </div>
                 )}
 
-                {/* Theme Toggle */}
-                <div
-                  className={`transition-all duration-300 ${
-                    collapsed ? "scale-90" : "scale-100"
-                  }`}
-                >
-                  <ThemeToggle collapsed={collapsed} />
-                </div>
+                <ThemeToggle collapsed={collapsed} />
               </div>
 
-              {/* Logout */}
               <button
-                onClick={() => {
-                  localStorage.removeItem("admin_token");
-                  window.location.href = "/admin/login";
-                }}
+                onClick={handleLogout}
                 className={`w-full flex items-center ${
                   collapsed ? "justify-center" : "gap-3"
-                } px-3 py-2 rounded-lg text-sm font-medium
-      text-slate-600 dark:text-slate-300
-      hover:bg-slate-100 dark:hover:bg-slate-800
-      transition`}
+                } px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition`}
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
                 {!collapsed && "Logout"}
               </button>
-            </div>{" "}
+            </div>
           </aside>
 
-          {/* MAIN CONTENT */}
           <main
             className={`transition-all duration-300 ${
               collapsed ? "ml-20" : "ml-72"
@@ -241,7 +226,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
           <Toaster position="top-right" />
         </div>
-      </AdminAuthGate>{" "}
+      </AdminAuthGate>
     </ThemeProvider>
   );
 }

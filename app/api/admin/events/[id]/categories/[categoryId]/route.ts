@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string; categoryId: string }> },
 ) {
   try {
+    // 🔐 Require login + get role
+    const { role } = await requireAdmin();
+
+    // 🚨 Block VIEW_ONLY from modifying
+    if (role === "VIEW_ONLY") {
+      return NextResponse.json(
+        { error: "Read-only access. Modification not allowed." },
+        { status: 403 },
+      );
+    }
+
     const { id, categoryId } = await context.params;
     const body = await request.json();
 
@@ -32,7 +44,6 @@ export async function PATCH(
        🔐 ENTERPRISE VALIDATIONS
     ================================= */
 
-    // 1️⃣ Seat Protection
     if (typeof body.maxSeats === "number") {
       if (body.maxSeats < existingCategory.bookedSeats) {
         return NextResponse.json(
@@ -51,7 +62,6 @@ export async function PATCH(
       }
     }
 
-    // 2️⃣ Price Protection
     if (typeof body.price === "number") {
       if (body.price < 0) {
         return NextResponse.json(
@@ -60,7 +70,7 @@ export async function PATCH(
         );
       }
     }
-    // 6️⃣ Waitlist Protection
+
     if (body.waitlistEnabled !== undefined) {
       if (typeof body.waitlistEnabled !== "boolean") {
         return NextResponse.json(
@@ -70,7 +80,6 @@ export async function PATCH(
       }
     }
 
-    // 5️⃣ Category Status Protection  ← ADD HERE
     if (body.status !== undefined) {
       if (!["open", "closed"].includes(body.status)) {
         return NextResponse.json(
@@ -80,7 +89,6 @@ export async function PATCH(
       }
     }
 
-    // 3️⃣ Bib Range Protection
     if (typeof body.bibStart === "number" && typeof body.bibEnd === "number") {
       if (body.bibStart >= body.bibEnd) {
         return NextResponse.json(
@@ -100,7 +108,6 @@ export async function PATCH(
       }
     }
 
-    // 4️⃣ Allowed Fields Only (Security)
     const allowedFields = [
       "price",
       "maxSeats",
@@ -128,10 +135,6 @@ export async function PATCH(
           }
         : cat,
     );
-
-    /* ==================================
-   🔥 ENTERPRISE METRICS RECALCULATION
-================================== */
 
     const totalParticipants = updatedCategories.reduce(
       (sum: number, cat: any) => sum + (cat.bookedSeats || 0),
@@ -172,7 +175,7 @@ export async function PATCH(
   } catch (err) {
     console.error("🔥 Category update error:", err);
     return NextResponse.json(
-      { error: "Failed to update category" },
+      { error: "Unauthorized or failed to update category" },
       { status: 500 },
     );
   }

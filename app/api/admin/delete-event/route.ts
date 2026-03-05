@@ -13,7 +13,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // 🔐 2️⃣ Verify Firebase token
-    const decoded = await adminAuth.verifyIdToken(token, true);
+    const decoded = await adminAuth.verifySessionCookie(token, true);
 
     // 🔐 3️⃣ Verify admin role
     const adminDoc = await adminDb.collection("admins").doc(decoded.uid).get();

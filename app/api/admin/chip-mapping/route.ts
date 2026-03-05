@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const eventId = searchParams.get("eventId");
-    const pageSize = Number(searchParams.get("pageSize") || 25);
+    const pageSize = Number(searchParams.get("pageSize") || 15);
     const cursor = searchParams.get("cursor");
 
     if (!eventId) {

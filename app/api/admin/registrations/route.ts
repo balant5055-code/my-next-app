@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     /* 🔐 2️⃣ Verify token */
     let decoded;
     try {
-      decoded = await adminAuth.verifyIdToken(token);
+      decoded = await adminAuth.verifySessionCookie(token);
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }

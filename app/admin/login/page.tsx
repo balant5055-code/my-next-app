@@ -21,11 +21,17 @@ export default function AdminLogin() {
   const [toastType, setToastType] = useState<
     "success" | "error" | "info" | null
   >(null);
+  const [loading, setLoading] = useState(false); // ✅ added
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (loading) return; // ✅ prevent double submit
+    setLoading(true);
+
     try {
-      const hiddenEmail = `${userId}@event.local`;
+      const trimmedUserId = userId.trim(); // ✅ trim
+      const hiddenEmail = `${trimmedUserId}@event.local`;
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -47,8 +53,11 @@ export default function AdminLogin() {
 
       router.replace("/admin/dashboard");
     } catch (error) {
+      console.error("Login error:", error); // ✅ better debugging
       setToastMessage("Invalid User ID or Password");
       setToastType("error");
+    } finally {
+      setLoading(false); // ✅ reset loading
     }
   };
 
@@ -63,17 +72,13 @@ export default function AdminLogin() {
         }}
       />
 
-      {/* LOGIN CARD */}
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
-        {/* HEADER */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
           <p className="text-gray-500 mt-1">Secure access to your dashboard</p>
         </div>
 
-        {/* FORM */}
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* USER ID */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
               User ID
@@ -89,7 +94,6 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* PASSWORD */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">
               Password
@@ -106,16 +110,16 @@ export default function AdminLogin() {
             />
           </div>
 
-          {/* SUBMIT */}
           <button
             type="submit"
+            disabled={loading}
             className="group mt-4 w-full inline-flex items-center justify-center gap-2
                        rounded-full bg-orange-600 hover:bg-orange-700 px-6 py-3
                        text-white font-semibold
-                       shadow-md hover:bg-red-700 hover:shadow-lg
-                       transition"
+                       shadow-md hover:shadow-lg
+                       transition disabled:opacity-60"
           >
-            Login Securely
+            {loading ? "Logging in..." : "Login Securely"}
             <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </button>
         </form>

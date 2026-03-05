@@ -20,11 +20,17 @@ export default function AdminAuthGate({
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/admin/login");
       } else {
-        setChecking(false);
+        try {
+          // Force refresh ID token to keep session synced
+          await user.getIdToken(true);
+          setChecking(false);
+        } catch (error) {
+          router.replace("/admin/login");
+        }
       }
     });
 

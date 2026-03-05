@@ -25,22 +25,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="bg-white text-gray-900 dark:bg-[#0b1220] dark:text-white transition-colors duration-300">
         <LoadingProvider>
-          {/* 🌍 GLOBAL LOADER (must be here) */}
           <GlobalLoader />
-
-          {/* ===== SEMANTIC HEADER ===== */}
-          <header>
-            <TopBar />
-            <Navbar />
-          </header>
-
-          {/* ===== MAIN CONTENT AREA ===== */}
-          <main id="main-content" role="main">
-            {children}
-          </main>
-
-          {/* ===== SEMANTIC FOOTER ===== */}
-          <Footer />
+          {children}
         </LoadingProvider>
       </body>
     </html>

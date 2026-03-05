@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(token);
+    const decoded = await adminAuth.verifySessionCookie(token);
 
     const adminDoc = await adminDb.collection("admins").doc(decoded.uid).get();
 

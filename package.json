@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "@pdf-lib/fontkit": "^1.1.1",
     "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.19",
     "@tiptap/react": "^3.20.0",
     "@tiptap/starter-kit": "^3.20.0",
     "canvas-confetti": "^1.9.4",
@@ -33,6 +34,7 @@
     "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.7.0",
+    "resend": "^6.9.3",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },

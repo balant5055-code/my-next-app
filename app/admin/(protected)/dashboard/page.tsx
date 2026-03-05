@@ -146,93 +146,18 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* HEADER */}
-      <div className="bg-white rounded-2xl shadow-md p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="rounded-2xl shadow-md p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-white">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
             Admin Dashboard
           </h1>
           <p className="text-gray-500 mt-1">
             Manage events, registrations & payments
           </p>
         </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={async () => {
-              await secureFetch("/api/admin/logout", {
-                method: "POST",
-              });
-
-              await auth.signOut();
-
-              router.replace("/admin/login");
-            }}
-            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-white font-semibold shadow-md hover:bg-red-700 transition"
-          >
-            <PowerIcon className="h-5 w-5" />
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title="Total Events"
-          value={total.toString()}
-          icon={<CalendarDaysIcon />}
-          color="from-blue-500 to-blue-600"
-        />
-
-        <StatCard
-          title="Open Events"
-          value={events
-            .filter((e) => e.registrationStatus === "open")
-            .length.toString()}
-          icon={<UsersIcon />}
-          color="from-green-500 to-green-600"
-        />
-
-        <StatCard
-          title="Closed Events"
-          value={events
-            .filter((e) => e.registrationStatus === "closed")
-            .length.toString()}
-          icon={<CurrencyRupeeIcon />}
-          color="from-orange-500 to-orange-600"
-        />
       </div>
 
       {/* TABLE */}
     </div>
-  );
-}
-
-/* ---------- STAT CARD ---------- */
-
-function StatCard({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  color: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-      className={`relative overflow-hidden rounded-2xl p-6 text-white shadow-xl bg-gradient-to-br ${color}`}
-    >
-      <div className="absolute top-0 right-0 opacity-10 text-7xl">{icon}</div>
-
-      <div className="relative z-10">
-        <p className="text-sm opacity-80">{title}</p>
-        <p className="text-4xl font-bold mt-2">{value}</p>
-      </div>
-    </motion.div>
   );
 }

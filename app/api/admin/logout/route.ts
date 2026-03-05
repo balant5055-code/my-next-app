@@ -1,5 +1,3 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 
 export async function POST() {
@@ -7,8 +5,10 @@ export async function POST() {
 
   response.cookies.set("admin_token", "", {
     httpOnly: true,
-    expires: new Date(0),
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
     path: "/",
+    maxAge: 0,
   });
 
   return response;

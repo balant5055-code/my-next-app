@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(token);
+    const decoded = await adminAuth.verifySessionCookie(token);
 
     const adminDoc = await adminDb.collection("admins").doc(decoded.uid).get();
 
@@ -153,13 +153,23 @@ export async function GET(
     }
 
     /* =====================================================
-       🔁 9️⃣ Cursor Pagination
-    ====================================================== */
+   🔁 9️⃣ Cursor Pagination (FIXED)
+===================================================== */
 
     if (lastValue && lastDocId) {
-      query = query.startAfter(lastValue, lastDocId);
-    }
+      let parsedValue: any = lastValue;
 
+      // Convert numeric fields properly
+      if (sortField === "createdAt") {
+        parsedValue = new Date(Number(lastValue));
+      }
+
+      if (["bibNumber", "amount"].includes(sortField)) {
+        parsedValue = Number(lastValue);
+      }
+
+      query = query.startAfter(parsedValue, lastDocId);
+    }
     /* =====================================================
        📦 10️⃣ Limit
     ====================================================== */
@@ -214,16 +224,26 @@ export async function GET(
     let nextCursor = null;
 
     if (lastDocSnap) {
-      const cursorValue = isNameSearch
-        ? lastDocSnap.get("nameLowercase")
-        : lastDocSnap.get(sortField);
+      let cursorValue: any;
+
+      if (isNameSearch) {
+        cursorValue = lastDocSnap.get("nameLowercase");
+      } else {
+        const rawValue = lastDocSnap.get(sortField);
+
+        // Convert Firestore Timestamp to number
+        if (rawValue?.toMillis) {
+          cursorValue = rawValue.toMillis();
+        } else {
+          cursorValue = rawValue;
+        }
+      }
 
       nextCursor = {
         lastValue: cursorValue,
         lastDocId: lastDocSnap.id,
       };
     }
-
     return NextResponse.json({
       data: participants,
       nextCursor,

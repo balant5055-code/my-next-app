@@ -91,8 +91,8 @@ export default function CategoryControlCard({
     payload: Record<string, any>,
   ) => {
     try {
-      startLoading(); // ✅ GLOBAL LOADER START
-      setLoadingAction(actionName); // local button loading
+      startLoading();
+      setLoadingAction(actionName);
 
       const res = await secureFetch(
         `/api/admin/events/${eventId}/categories/${category.id}`,
@@ -103,15 +103,19 @@ export default function CategoryControlCard({
         },
       );
 
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update category");
+      }
 
       await onRefresh();
       toast.success("Category updated successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to update category");
+      toast.error(err.message || "Something went wrong");
     } finally {
-      stopLoading(); // ✅ GLOBAL LOADER STOP
+      stopLoading();
       setLoadingAction(null);
     }
   };

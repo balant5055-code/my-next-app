@@ -2,20 +2,33 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginPage = request.nextUrl.pathname === "/admin/login";
+  const path = request.nextUrl.pathname;
 
-  // 🔐 Firebase auth cookie (you must set this on login)
-  const authCookie = request.cookies.get("admin-auth");
+  /* ---------- SUPER ADMIN ---------- */
 
-  // If accessing admin without login → redirect
-  if (isAdminRoute && !isLoginPage && !authCookie) {
+  const isAdminRoute = path.startsWith("/admin");
+  const isAdminLogin = path === "/admin/login";
+
+  const adminCookie = request.cookies.get("admin-auth");
+
+  if (isAdminRoute && !isAdminLogin && !adminCookie) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
+  /* ---------- ORGANIZER ---------- */
+
+  const isOrganizerRoute = path.startsWith("/organizer/admin");
+  const isOrganizerLogin = path === "/organizer/login";
+
+  const organizerCookie = request.cookies.get("organizer-auth");
+
+  if (isOrganizerRoute && !isOrganizerLogin && !organizerCookie) {
+    return NextResponse.redirect(new URL("/organizer/login", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/organizer/admin/:path*"],
 };

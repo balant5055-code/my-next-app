@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { secureFetch } from "@/lib/secureFetch";
 
@@ -41,52 +41,47 @@ export default function AllEventsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  //REal time update
-  useEffect(() => {
-    let q;
+  const [pageSize] = useState(10);
+  const [cursorStack, setCursorStack] = useState<any[]>([]);
+  const [currentCursor, setCurrentCursor] = useState<any>(null);
+  const [nextCursor, setNextCursor] = useState<any>(null);
 
-    if (statusFilter === "all") {
-      q = query(collection(db, "events"));
-    } else {
-      q = query(collection(db, "events"), where("status", "==", statusFilter));
-    }
+  const fetchEvents = async (cursorOverride?: any) => {
+    setLoading(true);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updatedEvents = snapshot.docs.map((doc) => {
-        const data = doc.data();
-
-        return {
-          id: doc.id,
-          name: data.name,
-          city: data.city,
-          date: data.date?.toDate ? data.date.toDate() : data.date,
-          status: data.status,
-          totalParticipants: data.metrics?.totalParticipants || 0,
-          totalRevenue: data.metrics?.totalRevenue || 0,
-        };
+    try {
+      const params = new URLSearchParams({
+        status: statusFilter,
+        pageSize: pageSize.toString(),
+        search,
       });
 
-      setEvents(updatedEvents);
-      setLoading(false);
-    });
+      if (cursorOverride?.lastValue && cursorOverride?.lastDocId) {
+        params.append("lastValue", cursorOverride.lastValue);
+        params.append("lastDocId", cursorOverride.lastDocId);
+      }
 
-    return () => unsubscribe();
-  }, [statusFilter]);
+      const res = await secureFetch(`/api/admin/events?${params.toString()}`);
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      const res = await secureFetch(
-        `/api/admin/events?status=${statusFilter}&pageSize=10`,
-      );
+      if (!res.ok) throw new Error("Failed to fetch");
+
       const json = await res.json();
+
       setEvents(json.data || []);
-    } catch {
+      setNextCursor(json.nextCursor || null);
+      setCurrentCursor(cursorOverride || null);
+    } catch (error) {
+      console.error(error);
       setEvents([]);
     } finally {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    setCursorStack([]);
+    setCurrentCursor(null);
+    fetchEvents();
+  }, [statusFilter, search]);
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "-";
@@ -160,19 +155,18 @@ export default function AllEventsPage() {
     }
   };
 
-  const filtered = events.filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()),
+  const totalParticipants = useMemo(
+    () => events.reduce((sum, e) => sum + (e.totalParticipants || 0), 0),
+    [events],
   );
 
+  const totalRevenue = useMemo(
+    () => events.reduce((sum, e) => sum + (e.totalRevenue || 0), 0),
+    [events],
+  );
   const totalEvents = events.length;
-  const totalParticipants = events.reduce(
-    (sum, e) => sum + (e.totalParticipants || 0),
-    0,
-  );
-  const totalRevenue = events.reduce(
-    (sum, e) => sum + (e.totalRevenue || 0),
-    0,
-  );
+  const filtered = events;
+
   const chartData = filtered
     .slice(-6) // show last 6 events only
     .map((event) => ({
@@ -223,7 +217,7 @@ export default function AllEventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1220] antialiased text-slate-100 p-4 md:p-8">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-[#0f172a] dark:via-[#111827] dark:to-[#0b1220] text-slate-900 dark:text-slate-100 antialiased p-4 md:p-8">
       {/* Header */}
       <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
         <div className="flex items-start gap-4">
@@ -561,6 +555,37 @@ border border-indigo-500/20
 
           <div className="text-sm text-slate-500">
             Premium · Professional · Dark Mode
+          </div>
+          <div className="flex items-center justify-between mt-4 text-sm text-slate-400">
+            <span>Showing {events.length} events</span>
+
+            <div className="flex gap-2">
+              {/* PREVIOUS */}
+              <button
+                disabled={cursorStack.length === 0}
+                onClick={() => {
+                  const newStack = [...cursorStack];
+                  const prevCursor = newStack.pop();
+                  setCursorStack(newStack);
+                  fetchEvents(prevCursor);
+                }}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              {/* NEXT */}
+              <button
+                disabled={!nextCursor}
+                onClick={() => {
+                  setCursorStack((prev) => [...prev, currentCursor]);
+                  fetchEvents(nextCursor);
+                }}
+                className="px-3 py-1 rounded bg-slate-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </section>

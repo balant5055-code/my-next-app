@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 
-// 15 minutes total session
-const LOGOUT_TIME = 25 * 60 * 1000; // 900000 ms
+// 25 minutes total session
+const LOGOUT_TIME = 25 * 60 * 1000;
 
-// Warning 5 minutes before logout
-const WARNING_TIME = 15 * 60 * 1000; // 600000 ms
-/* ---------------- AUTO SYNC TOKEN TO COOKIE ---------------- */
+// Warning at 15 minutes
+const WARNING_TIME = 15 * 60 * 1000;
 
 export default function SessionManager() {
   const router = useRouter();
@@ -25,18 +24,31 @@ export default function SessionManager() {
     if (warningTimer.current) clearTimeout(warningTimer.current);
     if (logoutTimer.current) clearTimeout(logoutTimer.current);
   };
+
+  /* ---------------- SYNC TOKEN TO SERVER ---------------- */
+  const syncSessionToServer = async (forceRefresh = false) => {
+    if (!auth.currentUser) return;
+
+    const token = await auth.currentUser.getIdToken(forceRefresh);
+
+    await fetch("/api/admin/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  };
+
+  /* ---------------- AUTO SYNC ON TOKEN CHANGE ---------------- */
   useEffect(() => {
     const unsubscribe = auth.onIdTokenChanged(async (user) => {
       if (user) {
-        const token = await user.getIdToken();
-        document.cookie = `admin_token=${token}; path=/; max-age=${
-          60 * 60
-        }; SameSite=Lax`;
+        await syncSessionToServer(false);
       }
     });
 
     return () => unsubscribe();
   }, []);
+
   /* ---------------- START TIMERS ---------------- */
   const startTimers = () => {
     clearTimers();
@@ -53,22 +65,16 @@ export default function SessionManager() {
   /* ---------------- LOGOUT ---------------- */
   const logoutNow = async () => {
     clearTimers();
+
+    await fetch("/api/admin/logout", { method: "POST" }); // clear cookie
     await signOut(auth);
+
     router.replace("/admin/login");
   };
 
   /* ---------------- EXTEND SESSION ---------------- */
-  /* ---------------- EXTEND SESSION ---------------- */
   const extendSession = async () => {
-    if (auth.currentUser) {
-      const freshToken = await auth.currentUser.getIdToken(true);
-
-      // 🔥 Update cookie with fresh token
-      document.cookie = `admin_token=${freshToken}; path=/; max-age=${
-        60 * 60
-      }; SameSite=Lax`;
-    }
-
+    await syncSessionToServer(true); // force refresh token
     setShowWarning(false);
     startTimers();
   };
@@ -95,7 +101,6 @@ export default function SessionManager() {
   /* ---------------- INITIAL START ---------------- */
   useEffect(() => {
     startTimers();
-
     return () => clearTimers();
   }, []);
 
@@ -105,7 +110,6 @@ export default function SessionManager() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
       <div className="relative w-full max-w-md rounded-2xl bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-slate-700 shadow-2xl p-8 space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2">
           <h2 className="text-xl font-bold text-white">
             Session Expiring Soon
@@ -115,7 +119,6 @@ export default function SessionManager() {
           </p>
         </div>
 
-        {/* Countdown Circle */}
         <div className="flex justify-center">
           <div className="relative w-24 h-24">
             <svg className="w-24 h-24 transform -rotate-90">
@@ -146,7 +149,6 @@ export default function SessionManager() {
           </div>
         </div>
 
-        {/* Message */}
         <p className="text-center text-sm text-slate-300">
           You will be logged out in{" "}
           <span className="font-semibold text-orange-400">
@@ -155,7 +157,6 @@ export default function SessionManager() {
           .
         </p>
 
-        {/* Actions */}
         <div className="flex gap-4">
           <button
             onClick={extendSession}
