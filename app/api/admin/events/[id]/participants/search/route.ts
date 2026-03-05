@@ -9,7 +9,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole(req, ["SUPER_ADMIN", "EVENT_MANAGER", "CHECKIN_STAFF"]);
+    await requireRole(["SUPER_ADMIN", "EVENT_MANAGER", "CHECKIN_STAFF"]);
 
     // ✅ MUST await params in Next 15
     const { id: eventId } = await context.params;
