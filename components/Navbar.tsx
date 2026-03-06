@@ -16,9 +16,10 @@ const navItems = [
 ];
 
 export default function Navbar() {
-  const pathname = usePathname();
-  if (pathname.startsWith("/admin")) return null;
+const pathname = usePathname();
+if (pathname.startsWith("/admin")) return null;
 
+const isHome = pathname === "/";
   const [activeSection, setActiveSection] = useState("home");
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -73,25 +74,31 @@ export default function Navbar() {
   return (
     <motion.header
       initial={false}
-      animate={{ top: scrolled ? 0 : 52 }}
+    animate={{
+   top: isHome ? (scrolled ? 0 : 52) : scrolled ? 0 : 0,
+
+}}
       transition={{ duration: 0.4 }}
-      className={`w-full z-50 ${scrolled ? "fixed" : "absolute"}`}
+    className={`w-full z-50 ${
+  scrolled ? "fixed top-0" : isHome ? "absolute" : "relative"
+}`}
     >
       {/* NAV CONTAINER */}
       <motion.nav
         layout
         transition={{ duration: 0.4 }}
-        className={`bg-white border border-gray-200 transition-all duration-500 shadow-xl
+      className={`bg-white border border-gray-200 transition-all duration-500 shadow-xl
 
-  ${
-    scrolled
+${
+  isHome
+    ? scrolled
       ? "w-full rounded-none shadow-2xl"
       : "max-w-7xl mx-auto md:rounded-xl shadow-xl"
-  }
+    : "w-full rounded-none border-x-0 border-t-0 shadow-md"
+}
 
-  md:block
-  w-full
-  `}
+md:block
+`}
       >
         <div className="h-[74px] flex items-center px-6 max-w-7xl mx-auto">
           {/* LOGO */}

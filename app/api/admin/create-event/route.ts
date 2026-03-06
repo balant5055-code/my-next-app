@@ -54,18 +54,6 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
 
-    const slugSnapshot = await adminDb
-      .collection("events")
-      .where("slug", "==", normalizedSlug)
-      .limit(1)
-      .get();
-
-    if (!slugSnapshot.empty) {
-      return NextResponse.json(
-        { error: "Slug already exists" },
-        { status: 400 },
-      );
-    }
 
     /* ===============================
        📅 4️⃣ DATE VALIDATION
@@ -200,9 +188,18 @@ export async function POST(req: NextRequest) {
 
       bannerURL: body.bannerURL || "",
 
-      categories: formattedCategories,
+   categories: formattedCategories,
 
-      status: "upcoming",
+    inclusions: {
+      apparel: body.inclusions?.apparel || [],
+      timing: body.inclusions?.timing || [],
+      certificates: body.inclusions?.certificates || [],
+      media: body.inclusions?.media || [],
+      support: body.inclusions?.support || [],
+      awards: body.inclusions?.awards || [],
+    },
+
+    status: "upcoming",
 
       /* ===============================
      📊 METRICS INITIALIZATION
@@ -248,8 +245,9 @@ export async function POST(req: NextRequest) {
        💾 7️⃣ SAVE EVENT
     =============================== */
 
-    const docRef = await adminDb.collection("events").add(eventPayload);
+    const docRef = adminDb.collection("events").doc(normalizedSlug);
 
+await docRef.create(eventPayload);
     return NextResponse.json({
       success: true,
       id: docRef.id,
