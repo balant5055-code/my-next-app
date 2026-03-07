@@ -243,176 +243,173 @@ export default function CreateEventLayout() {
   /* ============================= */
 
   return (
-    <div className="space-y-8">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Create New Event</h1>
-        <p className="text-slate-400 mt-2">
-          Enterprise event configuration panel
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#020617]">
+      {/* PAGE CONTAINER */}
+      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+        {/* HEADER */}
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-white">Create New Event</h1>
 
-      {/* PREMIUM STEPPER */}
-      <div className="bg-[#0b1220] border border-slate-700 rounded-2xl p-8">
-        {(() => {
-          const steps = [
-            { key: "basic", label: "Basic Info", icon: InformationCircleIcon },
-            { key: "organizer", label: "Organizer", icon: UserIcon },
-            {
-              key: "registration",
-              label: "Registration",
-              icon: CalendarDaysIcon,
-            },
-            // ✅ ADD HERE
-            { key: "inclusions", label: "Inclusions", icon: Squares2X2Icon },
+          <p className="text-slate-400 text-sm">
+            Enterprise event configuration panel
+          </p>
+        </div>
 
-            { key: "categories", label: "Categories", icon: Squares2X2Icon },
-            { key: "media", label: "Media", icon: PhotoIcon },
-            {
-              key: "review",
-              label: "Review",
-              icon: ClipboardDocumentCheckIcon,
-            },
-          ] as { key: Tab; label: string; icon: any }[];
+        {/* STEPPER */}
+        <div className="bg-[#0b1220] border border-slate-700 rounded-2xl p-8">
+          {(() => {
+            const steps = [
+              {
+                key: "basic",
+                label: "Basic Info",
+                icon: InformationCircleIcon,
+              },
+              { key: "organizer", label: "Organizer", icon: UserIcon },
+              {
+                key: "registration",
+                label: "Registration",
+                icon: CalendarDaysIcon,
+              },
+              { key: "inclusions", label: "Inclusions", icon: Squares2X2Icon },
+              { key: "categories", label: "Categories", icon: Squares2X2Icon },
+              { key: "media", label: "Media", icon: PhotoIcon },
+              {
+                key: "review",
+                label: "Review",
+                icon: ClipboardDocumentCheckIcon,
+              },
+            ] as { key: Tab; label: string; icon: any }[];
 
-          const currentIndex = steps.findIndex((s) => s.key === activeTab);
-          const progressPercent = (currentIndex / (steps.length - 1)) * 100;
+            const currentIndex = steps.findIndex((s) => s.key === activeTab);
+            const progressPercent = (currentIndex / (steps.length - 1)) * 100;
 
-          return (
-            <div className="relative">
-              {/* Base Line */}
-              <div className="absolute top-7 left-7 right-7 h-[3px] bg-slate-700 rounded-full" />
+            return (
+              <div className="relative">
+                {/* LINE */}
+                <div className="absolute top-7 left-7 right-7 h-[3px] bg-slate-700 rounded-full" />
 
-              {/* Progress Line */}
-              <div
-                className="absolute top-7 left-7 h-[3px] bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
-                style={{
-                  width: `calc(${progressPercent}% - 14px)`,
-                }}
-              />
+                <div
+                  className="absolute top-7 left-7 h-[3px] bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500"
+                  style={{ width: `calc(${progressPercent}% - 14px)` }}
+                />
 
-              {/* Steps */}
-              <div className="relative flex justify-between">
-                {steps.map((step, index) => {
-                  const isActive = index === currentIndex;
-                  const isCompleted = index < currentIndex;
-                  const Icon = step.icon;
+                {/* STEPS */}
+                <div className="relative flex justify-between">
+                  {steps.map((step, index) => {
+                    const isActive = index === currentIndex;
+                    const isCompleted = index < currentIndex;
+                    const Icon = step.icon;
 
-                  return (
-                    <div
-                      key={step.key}
-                      onClick={() => setActiveTab(step.key)}
-                      className="flex flex-col items-center cursor-pointer group"
-                    >
-                      {/* Step Box */}
+                    return (
                       <div
-                        className={`w-14 h-14 flex items-center justify-center rounded-xl transition-all duration-300
-                    ${
-                      isActive
-                        ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 scale-105"
-                        : isCompleted
-                          ? "bg-emerald-500 text-white"
-                          : "bg-slate-800 text-slate-400 border border-slate-600 group-hover:border-indigo-500"
-                    }`}
+                        key={step.key}
+                        onClick={() => setActiveTab(step.key)}
+                        className="flex flex-col items-center gap-2 cursor-pointer group"
                       >
-                        {isCompleted ? (
-                          <CheckIcon className="w-6 h-6" />
-                        ) : (
-                          <Icon className="w-6 h-6" />
-                        )}
+                        <div
+                          className={`w-14 h-14 flex items-center justify-center rounded-xl transition-all
+                        ${
+                          isActive
+                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg"
+                            : isCompleted
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-800 text-slate-400 border border-slate-600"
+                        }`}
+                        >
+                          {isCompleted ? (
+                            <CheckIcon className="w-6 h-6" />
+                          ) : (
+                            <Icon className="w-6 h-6" />
+                          )}
+                        </div>
+
+                        <span
+                          className={`text-xs font-semibold uppercase tracking-wide
+                        ${
+                          isActive
+                            ? "text-indigo-400"
+                            : isCompleted
+                              ? "text-emerald-400"
+                              : "text-slate-500"
+                        }`}
+                        >
+                          {step.label}
+                        </span>
                       </div>
-
-                      {/* Label */}
-                      <span
-                        className={`mt-3 text-xs font-semibold uppercase tracking-wide
-                    ${
-                      isActive
-                        ? "text-indigo-400"
-                        : isCompleted
-                          ? "text-emerald-400"
-                          : "text-slate-500 group-hover:text-slate-300"
-                    }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })()}
-      </div>
+            );
+          })()}
+        </div>
 
-      {/* CONTENT */}
-      <div className="bg-[#111827]">
-        {/* BASIC INFO */}
-        {activeTab === "basic" && (
-          <BasicInfoSection
-            data={formData}
-            errors={errors}
-            onChange={updateField}
-          />
-        )}
+        {/* FORM CONTENT */}
+        <div className="bg-[#020617]">
+          {activeTab === "basic" && (
+            <BasicInfoSection
+              data={formData}
+              errors={errors}
+              onChange={updateField}
+            />
+          )}
 
-        {/* ORGANIZER */}
-        {/* ORGANIZER */}
-        {activeTab === "organizer" && (
-          <OrganizerSection
-            data={formData.organizer}
-            errors={errors}
-            onChange={updateField}
-          />
-        )}
+          {activeTab === "organizer" && (
+            <OrganizerSection
+              data={formData.organizer}
+              errors={errors}
+              onChange={updateField}
+            />
+          )}
 
-        {/* REGISTRATION */}
-        {activeTab === "registration" && (
-          <RegistrationSection
-            data={formData}
-            errors={errors}
-            onChange={updateField}
-          />
-        )}
-        {/* INCLUSIONS */}
-        {activeTab === "inclusions" && (
-          <EventInclusionsSection data={formData} onChange={updateField} />
-        )}
-        {/* CATEGORIES */}
-        {activeTab === "categories" && (
-          <CategoryBuilderSection
-            categories={formData.categories}
-            setCategories={(value) =>
-              setFormData((prev) => ({
-                ...prev,
-                categories:
-                  typeof value === "function" ? value(prev.categories) : value,
-              }))
-            }
-            errors={errors}
-          />
-        )}
+          {activeTab === "registration" && (
+            <RegistrationSection
+              data={formData}
+              errors={errors}
+              onChange={updateField}
+            />
+          )}
 
-        {/* MEDIA */}
-        {activeTab === "media" && (
-          <MediaSection
-            data={formData}
-            errors={errors}
-            onChange={updateField}
-            bannerPreview={bannerPreview}
-            setBannerFile={setBannerFile}
-            setBannerPreview={setBannerPreview}
-          />
-        )}
+          {activeTab === "inclusions" && (
+            <EventInclusionsSection data={formData} onChange={updateField} />
+          )}
 
-        {/* REVIEW */}
-        {activeTab === "review" && (
-          <ReviewSubmitSection
-            data={formData}
-            onSubmit={handleSubmit}
-            loading={loading}
-            onEdit={(tab) => setActiveTab(tab as Tab)}
-          />
-        )}
+          {activeTab === "categories" && (
+            <CategoryBuilderSection
+              categories={formData.categories}
+              setCategories={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  categories:
+                    typeof value === "function"
+                      ? value(prev.categories)
+                      : value,
+                }))
+              }
+              errors={errors}
+            />
+          )}
+
+          {activeTab === "media" && (
+            <MediaSection
+              data={formData}
+              errors={errors}
+              onChange={updateField}
+              bannerPreview={bannerPreview}
+              setBannerFile={setBannerFile}
+              setBannerPreview={setBannerPreview}
+            />
+          )}
+
+          {activeTab === "review" && (
+            <ReviewSubmitSection
+              data={formData}
+              onSubmit={handleSubmit}
+              loading={loading}
+              onEdit={(tab) => setActiveTab(tab as Tab)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

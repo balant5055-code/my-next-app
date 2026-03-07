@@ -16,10 +16,10 @@ const navItems = [
 ];
 
 export default function Navbar() {
-const pathname = usePathname();
-if (pathname.startsWith("/admin")) return null;
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
 
-const isHome = pathname === "/";
+  const isHome = pathname === "/";
   const [activeSection, setActiveSection] = useState("home");
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -73,21 +73,21 @@ const isHome = pathname === "/";
 
   return (
     <motion.header
+      id="site-navbar"
       initial={false}
-    animate={{
-   top: isHome ? (scrolled ? 0 : 52) : scrolled ? 0 : 0,
-
-}}
+      animate={{
+        top: isHome ? (scrolled ? 0 : 52) : scrolled ? 0 : 0,
+      }}
       transition={{ duration: 0.4 }}
-    className={`w-full z-50 ${
-  scrolled ? "fixed top-0" : isHome ? "absolute" : "relative"
-}`}
+      className={`w-full z-50 ${
+        scrolled ? "fixed top-0" : isHome ? "absolute" : "relative"
+      }`}
     >
       {/* NAV CONTAINER */}
       <motion.nav
         layout
         transition={{ duration: 0.4 }}
-      className={`bg-white border border-gray-200 transition-all duration-500 shadow-xl
+        className={`bg-white border border-gray-200 transition-all duration-500 shadow-xl
 
 ${
   isHome

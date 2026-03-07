@@ -7,51 +7,75 @@ interface Props {
   onEdit: (tab: string) => void;
 }
 
+/* ================= VALIDATION ================= */
+function getWarnings(data: any) {
+  const warnings: string[] = [];
+
+  if (!data.city) warnings.push("City is required");
+  if (!data.venue) warnings.push("Venue is required");
+  if (!data.mapLink) warnings.push("Google Map link is required");
+
+  if (!data.organizer?.name) warnings.push("Organizer name is required");
+
+  if (!data.organizer?.phone)
+    warnings.push("Organizer phone number is required");
+
+  if (!data.registration?.start)
+    warnings.push("Registration start date missing");
+
+  if (!data.registration?.end) warnings.push("Registration end date missing");
+
+  return warnings;
+}
+
+/* ================= COMPONENT ================= */
+
 export default function ReviewSubmitSection({
   data,
   onSubmit,
   loading,
-  onEdit,
 }: Props) {
-  const getCategoryColor = (distance: string) => {
-    const d = Number(distance);
-
-    if (d === 2) return "from-green-500 to-emerald-600";
-    if (d === 3) return "from-sky-500 to-blue-600";
-    if (d === 5) return "from-blue-500 to-indigo-600";
-    if (d === 10) return "from-orange-500 to-amber-600";
-    if (d === 21) return "from-purple-500 to-violet-600";
-    if (d === 42) return "from-rose-500 to-red-600";
-
-    return "from-slate-600 to-slate-700";
-  };
+  const warnings = getWarnings(data);
 
   return (
-    <section className="space-y-8">
-      {/* ================= HEADER ================= */}
-      <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-2xl p-6 backdrop-blur-md">
-        <h2 className="text-2xl font-bold text-white">
-          Final Review & Publish
-        </h2>
-        <p className="text-slate-300 mt-2 text-sm">
-          Carefully verify all event information before publishing.
+    <section className="max-w-6xl mx-auto px-6 space-y-8 pb-40">
+      {/* HEADER */}
+      <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl p-6">
+        <h2 className="text-xl font-semibold text-white">Final Review</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Verify event information before publishing.
         </p>
       </div>
 
-      {/* ================= EVENT OVERVIEW ================= */}
-      <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-6">
-        <h3 className="text-lg font-semibold text-indigo-400 border-b border-slate-700 pb-3">
-          Event Overview
-        </h3>
+      {/* WARNINGS */}
+      {warnings.length > 0 && (
+        <div className="border border-amber-500/40 bg-amber-900/20 rounded-xl p-6">
+          <h3 className="text-amber-400 font-semibold mb-3">
+            Please review the following issues before publishing
+          </h3>
 
-        <div className="grid md:grid-cols-2 gap-6 text-sm">
+          <ul className="space-y-1 text-sm text-amber-300 list-disc pl-5">
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* EVENT OVERVIEW */}
+      <Card title="Event Overview">
+        <div className="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
           <Info label="Event Name" value={data.name} />
           <Info label="Slug" value={`/events/${data.slug}`} />
-          <Info label="Event Type" value={data.eventType} />
+
+          <Info label="Type" value={data.eventType} />
           <Info label="City" value={data.city} />
+
           <Info label="Venue" value={data.venue} />
           <Info label="Race Start" value={data.raceStart} />
+
           <Info label="Event Date" value={data.date} />
+
           <Info
             label="Registration Window"
             value={`${data.registration?.start || "—"} → ${
@@ -59,135 +83,133 @@ export default function ReviewSubmitSection({
             }`}
           />
         </div>
-      </div>
+      </Card>
 
-      {/* ================= ORGANIZER ================= */}
-      <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-6">
-        <h3 className="text-lg font-semibold text-emerald-400 border-b border-slate-700 pb-3">
-          Organizer Information
-        </h3>
-
-        <div className="grid md:grid-cols-2 gap-6 text-sm">
+      {/* ORGANIZER */}
+      <Card title="Organizer">
+        <div className="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
           <Info label="Organizer Name" value={data.organizer?.name} />
-          <Info label="Phone" value={data.organizer?.phone} />
+
+          <Info label="Organizer Phone" value={data.organizer?.phone} />
         </div>
-      </div>
+      </Card>
 
-      {/* ================= CATEGORIES ================= */}
-      <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-6">
-        <h3 className="text-lg font-semibold text-purple-400 border-b border-slate-700 pb-3">
-          Categories ({data.categories?.length || 0})
-        </h3>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {data.categories?.map((cat: any, index: number) => {
-            const gradient = getCategoryColor(cat.distance);
-
-            return (
+      {/* CATEGORIES */}
+      <Card
+        title={`Categories (${Array.isArray(data.categories) ? data.categories.length : 0})`}
+      >
+        <div className="grid md:grid-cols-2 gap-5">
+          {Array.isArray(data.categories) &&
+            data.categories.map((cat: any, i: number) => (
               <div
-                key={index}
-                className={`rounded-xl p-5 space-y-3 text-white shadow-lg bg-gradient-to-br ${gradient}`}
+                key={cat.title || i}
+                className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-2 text-sm"
               >
-                <div className="flex justify-between items-center">
-                  <p className="font-semibold text-lg">{cat.title}</p>
+                <div className="flex justify-between text-white font-medium">
+                  <span>{cat.title}</span>
 
-                  <span className="text-xs bg-white/20 backdrop-blur px-2 py-1 rounded-md">
-                    {cat.distance} KM
-                  </span>
+                  <span>{cat.distance} KM</span>
                 </div>
 
-                <div className="text-sm flex justify-between opacity-90">
-                  <span>₹ {cat.price}</span>
-                  <span>{cat.maxSeats} Seats</span>
+                <div className="text-slate-300 space-y-1">
+                  <div>Price: ₹{cat.price}</div>
+
+                  <div>Seats: {cat.maxSeats}</div>
+
+                  <div>
+                    Age: {cat.minAge} – {cat.maxAge}
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
         </div>
-      </div>
+      </Card>
 
-      {/* ================= DESCRIPTION & POLICIES ================= */}
-      <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-6">
-        <h3 className="text-lg font-semibold text-amber-400 border-b border-slate-700 pb-3">
-          Event Policies
-        </h3>
+      {/* INCLUSIONS */}
+      {data.inclusions && (
+        <Card title="Event Inclusions">
+          <div className="grid md:grid-cols-2 gap-6 text-sm">
+            {Object.entries(data.inclusions).map(([key, items]) => {
+              const list = items as string[];
 
-        <Block title="Description" content={data.description} />
-        <Block title="Refund Policy" content={data.refundPolicy} />
-        <Block title="Terms & Conditions" content={data.terms} />
-        {data.medicalNote && (
-          <Block title="Medical Note" content={data.medicalNote} />
-        )}
-      </div>
+              if (!list || list.length === 0) return null;
 
-      {/* ================= SOCIAL ================= */}
-      <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-6">
-        <h3 className="text-lg font-semibold text-pink-400 border-b border-slate-700 pb-3">
-          Social Links
-        </h3>
+              return (
+                <div key={key}>
+                  <p className="text-slate-400 capitalize mb-2">{key}</p>
 
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          {Object.entries(data.socialLinks || {}).map(([key, value]) => {
-            const link = value as string;
-
-            if (!link) return null;
-
-            return (
-              <div key={key} className="text-slate-300">
-                <span className="text-slate-400 capitalize">{key}:</span>{" "}
-                <span className="text-indigo-400 break-all">{link}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ================= BANNER ================= */}
-      {data.bannerURL && (
-        <div className="bg-[#111827] border border-slate-700 rounded-2xl p-8 space-y-4">
-          <h3 className="text-lg font-semibold text-cyan-400 border-b border-slate-700 pb-3">
-            Event Poster Preview
-          </h3>
-
-          <div className="rounded-xl overflow-hidden border border-slate-700">
-            <img
-              src={data.bannerURL}
-              alt="Event Banner"
-              className="w-full object-contain bg-black"
-            />
+                  <ul className="space-y-1 text-white">
+                    {list.map((item, i) => (
+                      <li key={i}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* ================= WARNING ================= */}
-      <div className="bg-amber-900/20 border border-amber-600 rounded-xl p-4 text-sm text-amber-300">
-        After publishing, Bib ranges and secure configurations will be generated
-        automatically by the server.
-      </div>
+      {/* POLICIES */}
+      <Card title="Event Policies">
+        <Policy title="Description" content={data.description} />
 
-      {/* ================= PUBLISH BUTTON ================= */}
+        <Policy title="Refund Policy" content={data.refundPolicy} />
 
-      {/* FIXED FOOTER */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-700 p-6 z-50">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-4">
-          {/* Draft Button */}
+        <Policy title="Terms & Conditions" content={data.terms} />
+
+        {data.medicalNote && (
+          <Policy title="Medical Note" content={data.medicalNote} />
+        )}
+      </Card>
+
+      {/* SOCIAL */}
+      {data.socialLinks && (
+        <Card title="Social Links">
+          <div className="grid md:grid-cols-2 gap-3 text-sm">
+            {Object.entries(data.socialLinks).map(([key, value]) => {
+              if (!value) return null;
+
+              return (
+                <div key={key} className="text-white">
+                  <span className="text-slate-400 capitalize">{key}:</span>{" "}
+                  {value as string}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* BANNER */}
+      {data.bannerURL && (
+        <Card title="Event Poster">
+          <img
+            src={data.bannerURL}
+            className="rounded-xl border border-slate-700"
+          />
+        </Card>
+      )}
+
+      {/* FOOTER ACTIONS */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0f172a] border-t border-slate-700 py-5">
+        <div className="max-w-6xl mx-auto px-6 flex gap-4">
           <button
             onClick={() => {
               localStorage.setItem("eventDraft", JSON.stringify(data));
               alert("Draft saved successfully");
             }}
-            className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium transition"
+            className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white"
           >
-            💾 Save as Draft
+            Save Draft
           </button>
 
-          {/* Publish Button */}
           <button
             onClick={onSubmit}
-            disabled={loading}
-            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition text-white font-bold text-lg shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+            disabled={loading || warnings.length > 0}
+            className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40"
           >
-            {loading ? "Publishing Event..." : "🚀 Publish Event"}
+            {loading ? "Publishing Event..." : "Publish Event"}
           </button>
         </div>
       </div>
@@ -195,24 +217,31 @@ export default function ReviewSubmitSection({
   );
 }
 
-/* ================= REUSABLE COMPONENTS ================= */
+/* ================= UI COMPONENTS ================= */
+
+function Card({ title, children }: any) {
+  return (
+    <div className="bg-[#111827] border border-slate-700 rounded-xl p-6 space-y-4">
+      <h3 className="text-sm font-semibold text-indigo-400">{title}</h3>
+      {children}
+    </div>
+  );
+}
 
 function Info({ label, value }: any) {
   return (
     <div>
       <p className="text-xs text-slate-400 mb-1">{label}</p>
-      <p className="text-white font-medium">{value || "—"}</p>
+      <p className="text-white">{value || "—"}</p>
     </div>
   );
 }
 
-function Block({ title, content }: any) {
+function Policy({ title, content }: any) {
   return (
     <div>
-      <p className="text-xs text-slate-400 mb-2">{title}</p>
-      <p className="text-white text-sm leading-relaxed whitespace-pre-line">
-        {content || "—"}
-      </p>
+      <p className="text-xs text-slate-400 mb-1">{title}</p>
+      <p className="text-white text-sm whitespace-pre-line">{content || "—"}</p>
     </div>
   );
 }

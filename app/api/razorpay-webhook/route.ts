@@ -53,7 +53,17 @@ export async function POST(req: Request) {
       if (!pendingData) {
         return NextResponse.json({ received: true });
       }
+      /* 🔒 Prevent duplicate webhook confirmations */
 
+      const existing = await adminDb
+        .collection("registrations_flat")
+        .doc(pendingData.registrationId)
+        .get();
+
+      if (existing.exists) {
+        console.log("Webhook retry ignored - registration already confirmed");
+        return NextResponse.json({ received: true });
+      }
       const registrationData = {
         ...pendingData,
         payment: {

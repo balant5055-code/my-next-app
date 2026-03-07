@@ -10,6 +10,8 @@ interface AnimatedInputProps {
   name: string;
   value?: string;
   required?: boolean;
+  disabled?: boolean;
+  inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url";
   onChange: (e: any) => void;
 }
 
@@ -20,6 +22,8 @@ export default function AnimatedInput({
   name,
   value,
   required,
+  disabled,
+  inputMode,
   onChange,
 }: AnimatedInputProps) {
   return (
@@ -35,12 +39,15 @@ export default function AnimatedInput({
         name={name}
         value={value}
         required={required}
+        disabled={disabled}
+        inputMode={inputMode}
         placeholder={placeholder}
         onChange={onChange}
-        className="w-full  border border-gray-300 bg-white py-3
-                   pl-12 pr-4 text-sm transition
-                   focus:border-orange-500 focus:outline-none
-                   focus:ring-2 focus:ring-orange-200"
+        className={`w-full border border-gray-300 py-3
+        pl-12 pr-4 text-sm transition
+        focus:border-orange-500 focus:outline-none
+        focus:ring-2 focus:ring-orange-200
+        ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
       />
     </motion.div>
   );

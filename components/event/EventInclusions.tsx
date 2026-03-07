@@ -91,7 +91,7 @@ export default function EventInclusions({ inclusions }: Props) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-               className="relative group bg-gradient-to-br from-red-700 via-red-800 to-red-900 rounded-3xl pt-[15px]"
+                className="relative group bg-gradient-to-br from-red-700 via-red-800 to-red-900 rounded-3xl pt-[15px]"
               >
                 <div
                   className="

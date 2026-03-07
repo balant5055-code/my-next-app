@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false, // 👈 add this
+  reactStrictMode: false,
+
   async headers() {
     return [
       {
@@ -11,9 +12,9 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value:
               "default-src 'self'; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://www.gstatic.com; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://www.gstatic.com https://apis.google.com; " +
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://*.razorpay.com https://www.google.com https://www.google.com/maps https://www.google.com/maps/embed; " +
-              "connect-src 'self' https://*.razorpay.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://*.googleapis.com; " +
+              "connect-src 'self' https://api.postalpincode.in https://*.razorpay.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://*.googleapis.com; " +
               "img-src 'self' data: https: blob:; " +
               "style-src 'self' 'unsafe-inline'; " +
               "font-src 'self' https: data:; " +

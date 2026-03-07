@@ -11,6 +11,7 @@ export async function POST() {
 
     const pendingSnap = await adminDb
       .collection("registrations_pending")
+      .where("status", "==", "PENDING")
       .where("createdAt", "<", expiryTime)
       .get();
 

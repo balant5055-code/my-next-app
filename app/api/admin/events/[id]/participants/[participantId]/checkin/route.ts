@@ -12,10 +12,10 @@ export async function POST(
   try {
     /* 🔐 Role-Based Protection */
     const { uid } = await requireRole([
-  "SUPER_ADMIN",
-  "EVENT_MANAGER",
-  "CHECKIN_STAFF",
-]);
+      "SUPER_ADMIN",
+      "EVENT_MANAGER",
+      "CHECKIN_STAFF",
+    ]);
 
     const { participantId } = await context.params;
 

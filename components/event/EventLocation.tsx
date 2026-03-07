@@ -18,7 +18,7 @@ export default function EventLocation({ event }: EventLocationProps) {
   const mapQuery = `${event.venue ?? ""} ${event.city ?? ""}`;
 
   const embedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
-    mapQuery
+    mapQuery,
   )}&z=15&output=embed`;
 
   return (
@@ -100,7 +100,7 @@ export default function EventLocation({ event }: EventLocationProps) {
                 event.mapLink
                   ? event.mapLink
                   : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      mapQuery
+                      mapQuery,
                     )}`
               }
               target="_blank"
@@ -129,7 +129,7 @@ export default function EventLocation({ event }: EventLocationProps) {
                 const url = event.mapLink
                   ? event.mapLink
                   : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      mapQuery
+                      mapQuery,
                     )}`;
 
                 if (navigator.share) {

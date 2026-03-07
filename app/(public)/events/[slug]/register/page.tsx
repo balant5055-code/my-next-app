@@ -12,7 +12,15 @@ import AnimatedRadioGroup from "@/components/ui/AnimatedRadioGroup";
 import DateOfBirthInput from "@/components/ui/DateOfBirthInput";
 import PopupModal from "@/components/ui/PopupModal";
 import { secureFetch } from "@/lib/secureFetch";
-
+import EventHeader from "@/components/register/EventHeader";
+import CategorySelector from "@/components/register/CategorySelector";
+import RegistrationForm from "@/components/register/RegistrationForm";
+import PersonalDetails from "@/components/register/form/PersonalDetails";
+import AddressDetails from "@/components/register/form/AddressDetails";
+import ContactDetails from "@/components/register/form/ContactDetails";
+import EmergencyContact from "@/components/register/form/EmergencyContact";
+import RunnerClubSection from "@/components/register/form/RunnerClubSection";
+import FormProgress from "@/components/register/FormProgress";
 import {
   UserIcon,
   PhoneIcon,
@@ -60,9 +68,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [emailOptional, setEmailOptional] = useState(false);
-  const [emergencyOptional, setEmergencyOptional] = useState(false);
-  const [skipEmergencyName, setSkipEmergencyName] = useState(false);
-  const [skipEmergencyNumber, setSkipEmergencyNumber] = useState(false);
+
+  const [skipEmergency, setSkipEmergency] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [event, setEvent] = useState<EventData | null>(null);
@@ -82,12 +89,28 @@ export default function RegisterPage() {
     message: "",
     type: "error",
   });
-
+  const formRef = useRef<HTMLDivElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
   const categoryFromURL = searchParams.get("category");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // ✅ FIX: add ref for click outside
+  const [currentStep, setCurrentStep] = useState(0);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const lastStepRef = useRef(0);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+
+    if (!el) return;
+
+    const yOffset = -80; // adjust for sticky header
+    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+    window.scrollTo({
+      top: y,
+      behavior: "smooth",
+    });
+  };
+  // ✅ FIX: add ref for click outside
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -97,11 +120,39 @@ export default function RegisterPage() {
     if (!form.gender) newErrors.gender = "Please select gender";
     if (!form.bloodGroup) newErrors.bloodGroup = "Please select blood group";
     if (!form.bibName) newErrors.bibName = "Bib name is required";
+    if (form.bibName && form.bibName.length > 12) {
+      newErrors.bibName = "Bib name cannot exceed 12 characters";
+    }
     if (!form.tshirtSize) newErrors.tshirtSize = "Please select T-shirt size";
     if (!form.address) newErrors.address = "Address is required";
     //if (!form.state) newErrors.state = "State is required";
-    if (!form.pincode) newErrors.pincode = "Pincode is required";
-    if (!form.phone) newErrors.phone = "WhatsApp number is required";
+    if (!form.pincode) {
+      newErrors.pincode = "Pincode is required";
+    } else if (!/^[1-9][0-9]{5}$/.test(form.pincode)) {
+      newErrors.pincode = "Enter valid 6 digit pincode";
+    }
+    if (!form.phone) {
+      newErrors.phone = "WhatsApp number is required";
+    } else if (!/^[6-9]\d{9}$/.test(form.phone)) {
+      newErrors.phone = "Enter valid 10 digit mobile number";
+    }
+    // EMAIL VALIDATION
+    if (!emailOptional && form.email) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+        newErrors.email = "Enter a valid email address";
+      }
+    }
+    // 🔥 Emergency Validation
+    if (!skipEmergency) {
+      if (!form.emergencyName)
+        newErrors.emergencyName = "Emergency contact name is required";
+
+      if (!form.emergencyNumber) {
+        newErrors.emergencyNumber = "Emergency contact number is required";
+      } else if (!/^[6-9]\d{9}$/.test(form.emergencyNumber)) {
+        newErrors.emergencyNumber = "Enter valid 10 digit mobile number";
+      }
+    }
     if (!form.agree) newErrors.agree = "You must accept terms";
 
     // 🔥 STATE VALIDATION (FINAL CORRECT VERSION)
@@ -160,7 +211,7 @@ export default function RegisterPage() {
 
         // 🔥 TOO OLD
         else if (!isNaN(maxAge) && birthDate < maxEligibleDOB) {
-          newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
+          newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years as on the event date.`;
         }
       }
     }
@@ -176,48 +227,7 @@ export default function RegisterPage() {
     return true;
   };
 
-  const validateDOB = (dobValue: string) => {
-    // Only validate if value exists
-    if (!dobValue) return "";
-
-    if (!cat || !event) return "";
-
-    const birthDate = new Date(dobValue);
-    if (!event?.date) return;
-
-    const eventDate = event.date;
-
-    const minAge = Number(cat.minAge);
-    const maxAge = Number(cat.maxAge);
-
-    if (!isNaN(minAge)) {
-      const minEligibleDOB = new Date(
-        eventDate.getFullYear() - minAge,
-        eventDate.getMonth(),
-        eventDate.getDate(),
-      );
-
-      if (birthDate > minEligibleDOB) {
-        const formattedDate = minEligibleDOB.toLocaleDateString("en-GB");
-        return `To register for ${cat.title}, your Date of Birth must be on or before ${formattedDate}.`;
-      }
-    }
-
-    if (!isNaN(maxAge)) {
-      const maxEligibleDOB = new Date(
-        eventDate.getFullYear() - maxAge,
-        eventDate.getMonth(),
-        eventDate.getDate(),
-      );
-
-      if (birthDate < maxEligibleDOB) {
-        return `Maximum eligible age for ${cat.title} is ${maxAge} years as on event date.`;
-      }
-    }
-
-    return "";
-  };
-
+  const [hydrated, setHydrated] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -237,8 +247,24 @@ export default function RegisterPage() {
     runnerClub: "",
     runnerClubOther: "",
     agree: false,
-    bibNumber: null,
+    bibNumber: "",
   });
+
+  useEffect(() => {
+    const saved = localStorage.getItem("race_registration_form");
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setForm(parsed);
+      } catch {
+        console.error("Failed to restore saved form");
+      }
+    }
+
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (form.dob) {
       // Manually trigger DOB validation when category changes
@@ -256,15 +282,6 @@ export default function RegisterPage() {
   }, [selectedCat]);
 
   useEffect(() => {
-    if (emergencyOptional) {
-      setForm((prev) => ({
-        ...prev,
-        emergencyName: "",
-        emergencyNumber: "",
-      }));
-    }
-  }, [emergencyOptional]);
-  useEffect(() => {
     if (!event?.categories?.length) return;
 
     if (
@@ -273,7 +290,7 @@ export default function RegisterPage() {
     ) {
       setSelectedCat(categoryFromURL);
     } else {
-      setSelectedCat(event.categories[0].title);
+      setSelectedCat(null); // ✅ do NOT auto select
     }
   }, [event, categoryFromURL]);
   useEffect(() => {
@@ -294,7 +311,9 @@ export default function RegisterPage() {
           venue: raw.venue,
           city: raw.city,
           bannerURL: raw.bannerURL,
-          categories: raw.categories ?? [],
+          categories: Array.isArray(raw.categories)
+            ? raw.categories
+            : Object.values(raw.categories || {}),
           rules: raw.rules,
 
           date: raw.date?.toDate
@@ -315,21 +334,25 @@ export default function RegisterPage() {
 
   // ✅ FIX: CLICK-OUTSIDE HANDLER (NEW)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowRunnerDropdown(false);
-      }
-    };
+    if (selectedCat !== null) return;
 
-    document.addEventListener("mousedown", handleClickOutside);
+    if (!categoryRef.current) return;
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+    const navbar = document.getElementById("site-navbar");
+    const navbarHeight = navbar?.getBoundingClientRect().height || 0;
+
+    const target =
+      categoryRef.current.getBoundingClientRect().top +
+      window.scrollY -
+      navbarHeight -
+      12;
+
+    window.scrollTo({
+      top: target,
+      behavior: "smooth",
+    });
+  }, [selectedCat]);
+
   const handleCategorySelect = (title: string) => {
     setSelectedCat(title);
 
@@ -340,25 +363,57 @@ export default function RegisterPage() {
       scroll: false,
     });
   };
-  const getMinEligibleDOB = (eventDate: string, minAge: number) => {
-    const eventDateObj = new Date(eventDate);
-    const eligibleDate = new Date(
-      eventDateObj.getFullYear() - minAge,
-      eventDateObj.getMonth(),
-      eventDateObj.getDate(),
-    );
+  useEffect(() => {
+    if (!selectedCat || !formRef.current) return;
 
-    return eligibleDate;
-  };
+    formRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [selectedCat]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
+    const fieldErrorMessages: Record<string, string> = {
+      firstName: "First name is required",
+      lastName: "Last name is required",
+      gender: "Please select gender",
+      bloodGroup: "Please select blood group",
+      bibName: "Bib name is required",
+      tshirtSize: "Please select T-shirt size",
+      address: "Address is required",
+      pincode: "Pincode is required",
+      phone: "WhatsApp number is required",
+      emergencyName: "Emergency contact name is required",
+      emergencyNumber: "Emergency contact number is required",
+    };
     const { name, value, type, checked } = e.target as any;
 
-    const fieldValue = type === "checkbox" ? checked : value;
+    let fieldValue = type === "checkbox" ? checked : value;
+
+    /* ================= NUMERIC INPUT RESTRICTION ================= */
+
+    if (name === "phone" || name === "emergencyNumber" || name === "pincode") {
+      // remove non-numeric characters
+      fieldValue = value.replace(/\D/g, "");
+    }
+
+    /* ================= LENGTH LIMIT ================= */
+
+    if (name === "phone" || name === "emergencyNumber") {
+      fieldValue = fieldValue.slice(0, 10);
+    }
+
+    if (name === "pincode") {
+      fieldValue = fieldValue.slice(0, 6);
+    }
+    if (name === "bibName") {
+      fieldValue = value.toUpperCase();
+      fieldValue = value.toUpperCase().slice(0, 12);
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -429,7 +484,6 @@ export default function RegisterPage() {
     setErrors((prev) => {
       const updated = { ...prev };
 
-      // Required field validation (EXCEPT state)
       const requiredFields = [
         "firstName",
         "lastName",
@@ -440,19 +494,63 @@ export default function RegisterPage() {
         "address",
         "pincode",
         "phone",
+        "emergencyName",
+        "emergencyNumber",
       ];
 
+      /* ================= REQUIRED FIELD VALIDATION ================= */
+
       if (requiredFields.includes(name)) {
-        if (!fieldValue) {
-          updated[name] = "This field is required";
+        if (name === "emergencyName" || name === "emergencyNumber") {
+          if (skipEmergency) {
+            delete updated[name];
+            return updated;
+          }
+        }
+
+        if (!fieldValue || fieldValue.toString().trim() === "") {
+          updated[name] = fieldErrorMessages[name] || "This field is required";
         } else {
           delete updated[name];
         }
       }
 
-      console.log(event);
+      /* ================= PHONE VALIDATION ================= */
 
-      // 🔥 STATE VALIDATION (ONLY HERE)
+      if (name === "phone") {
+        if (!fieldValue) {
+          updated.phone = "WhatsApp number is required";
+        } else if (!/^[6-9]\d{9}$/.test(fieldValue)) {
+          updated.phone = "Enter valid 10 digit mobile number";
+        } else {
+          delete updated.phone;
+        }
+      }
+
+      /* ================= EMAIL VALIDATION ================= */
+
+      if (name === "email" && !emailOptional) {
+        if (fieldValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldValue)) {
+          updated.email = "Enter valid email address";
+        } else {
+          delete updated.email;
+        }
+      }
+
+      /* ================= EMERGENCY NUMBER ================= */
+
+      if (name === "emergencyNumber" && !skipEmergency) {
+        if (!fieldValue) {
+          updated.emergencyNumber = "Emergency contact number is required";
+        } else if (!/^[6-9]\d{9}$/.test(fieldValue)) {
+          updated.emergencyNumber = "Enter valid 10 digit mobile number";
+        } else {
+          delete updated.emergencyNumber;
+        }
+      }
+
+      /* ================= STATE VALIDATION ================= */
+
       if (name === "state") {
         if (!fieldValue) {
           updated.state = "State is required";
@@ -462,11 +560,26 @@ export default function RegisterPage() {
           event.rules.stateRules.allowedStates?.length > 0 &&
           !event.rules.stateRules.allowedStates.includes(fieldValue)
         ) {
-          updated.state = `Registration is allowed only for: ${event.rules.stateRules.allowedStates.join(", ")}`;
+          updated.state =
+            `Registration is allowed only for: ` +
+            event.rules.stateRules.allowedStates.join(", ");
         } else {
           delete updated.state;
         }
       }
+
+      /* ================= PINCODE VALIDATION ================= */
+
+      if (name === "pincode") {
+        if (!fieldValue) {
+          updated.pincode = "Pincode is required";
+        } else if (!/^[1-9][0-9]{5}$/.test(fieldValue)) {
+          updated.pincode = "Enter valid 6 digit pincode";
+        } else {
+          delete updated.pincode;
+        }
+      }
+
       return updated;
     });
 
@@ -479,7 +592,7 @@ export default function RegisterPage() {
     return <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>;
   };
 
-  const cat = event?.categories.find((c) => c.title === selectedCat) || null;
+  const cat = event?.categories?.find((c) => c.title === selectedCat) ?? null;
   const loadRazorpay = () => {
     return new Promise<boolean>((resolve) => {
       if ((window as any).Razorpay) {
@@ -501,7 +614,7 @@ export default function RegisterPage() {
     if (!firstErrorKey) return;
 
     const element = document.querySelector(
-      `[name="${firstErrorKey}"]`,
+      `[name="${firstErrorKey}"], #${firstErrorKey}`,
     ) as HTMLElement | null;
 
     if (element) {
@@ -594,7 +707,7 @@ export default function RegisterPage() {
 
         handler: async function (response: any) {
           try {
-            const verifyRes = await secureFetch("/api/verify-payment", {
+            const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -617,6 +730,8 @@ export default function RegisterPage() {
             const verifyData = await verifyRes.json();
 
             if (verifyData.success) {
+              // 🔥 Clear saved registration form
+              localStorage.removeItem("race_registration_form");
               window.location.href = `/payment/success?regId=${verifyData.registrationId}`;
             } else {
               setFormError(verifyData.message || "Verification failed.");
@@ -657,6 +772,95 @@ export default function RegisterPage() {
       setIsProcessing(false);
     }
   };
+  useEffect(() => {
+    if (skipEmergency) {
+      setForm((prev) => ({
+        ...prev,
+        emergencyName: "",
+        emergencyNumber: "",
+      }));
+
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated.emergencyName;
+        delete updated.emergencyNumber;
+        return updated;
+      });
+    }
+  }, [skipEmergency]);
+  useEffect(() => {
+    let step = 0;
+
+    const personalValid =
+      form.firstName &&
+      form.lastName &&
+      form.dob &&
+      form.gender &&
+      form.bloodGroup &&
+      form.bibName &&
+      form.tshirtSize &&
+      !errors.firstName &&
+      !errors.lastName &&
+      !errors.dob &&
+      !errors.gender &&
+      !errors.bloodGroup &&
+      !errors.bibName &&
+      !errors.tshirtSize;
+
+    const addressValid =
+      form.address &&
+      form.state &&
+      form.pincode &&
+      !errors.address &&
+      !errors.state &&
+      !errors.pincode;
+
+    const contactValid = form.phone && !errors.phone;
+
+    const emergencyValid =
+      (form.emergencyName && form.emergencyNumber) || skipEmergency;
+
+    if (personalValid) step = 1;
+
+    if (personalValid && addressValid) step = 2;
+
+    if (personalValid && addressValid && contactValid) step = 3;
+
+    if (personalValid && addressValid && contactValid && emergencyValid)
+      step = 4;
+
+    if (
+      personalValid &&
+      addressValid &&
+      contactValid &&
+      emergencyValid &&
+      form.runnerClub
+    )
+      step = 5;
+
+    setCurrentStep(step);
+  }, [form, errors, skipEmergency]);
+
+  useEffect(() => {
+    if (currentStep > lastStepRef.current) {
+      if (currentStep === 1) scrollToSection("address-section");
+      if (currentStep === 2) scrollToSection("contact-section");
+      if (currentStep === 3) scrollToSection("emergency-section");
+      if (currentStep === 4) scrollToSection("runner-section");
+    }
+
+    lastStepRef.current = currentStep;
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const timer = setTimeout(() => {
+      localStorage.setItem("race_registration_form", JSON.stringify(form));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form, hydrated]);
 
   if (loading) {
     return (
@@ -665,7 +869,9 @@ export default function RegisterPage() {
       </div>
     );
   }
-
+  if (!hydrated) {
+    return null;
+  }
   if (!event) {
     return (
       <div className="text-center py-20">
@@ -834,767 +1040,199 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 space-y-8 py-20">
+      <div className="max-w-6xl mx-auto px-4 space-y-8">
         {/* HEADER */}
-        <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* LEFT ACCENT */}
-          <div className="absolute inset-y-0 left-0 w-1.5 bg-[var(--color-orange-500)]" />
+        <EventHeader event={event} />
+        {/* CATEGORY SELECTOR */}
+        <div ref={categoryRef}>
+          {!selectedCat ? (
+            <CategorySelector
+              categories={event.categories}
+              selectedCat={selectedCat}
+              handleCategorySelect={handleCategorySelect}
+              cat={cat}
+              isProcessing={isProcessing}
+            />
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TicketIcon className="h-5 w-5 text-gray-500" />
 
-          <div className="p-6 md:p-8">
-            {/* TITLE */}
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
-              Register for{" "}
-              <span className="text-[var(--color-orange-500)]">
-                {event.name}
-              </span>
-            </h1>
+                <div>
+                  <p className="text-sm text-gray-500">Selected Category</p>
+                  <p className="font-semibold text-gray-900">
+                    {cat?.title} • {cat?.distance}
+                  </p>
+                </div>
+              </div>
 
-            {/* META INFO */}
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
-                <MapPinIcon className="w-4 h-4 text-[var(--color-orange-500)]" />
-                {event.venue}
-              </span>
-              <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
-                <MapPinIcon className="w-4 h-4 text-[var(--color-orange-500)]" />
-                {event.city}
-              </span>
-              <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
-                <CalendarDaysIcon className="w-4 h-4 text-[var(--color-orange-500)]" />
-                {event.date
-                  ? event.date.toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "TBA"}
-              </span>
+              <button
+                onClick={() => {
+                  if (!isProcessing) {
+                    setSelectedCat(null);
+                  }
+                }}
+                className={`text-sm font-semibold ${
+                  isProcessing
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-orange-600 hover:underline"
+                }`}
+              >
+                Change
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* CATEGORY SELECTOR */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-          <h2 className="text-2xl font-bold mb-8 text-gray-800">
-            Choose Your Category
-          </h2>
+        {selectedCat && (
+          <>
+            <FormProgress currentStep={currentStep} />
+            <div ref={formRef} className="scroll-mt-[260px]">
+              <RegistrationForm handleSubmit={handleSubmit}>
+                <div id="personal-section">
+                  <PersonalDetails
+                    form={form}
+                    errors={errors}
+                    handleChange={handleChange}
+                  />
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {event.categories.map((c) => {
-              const isSelected = selectedCat === c.title;
+                <div id="address-section">
+                  <AddressDetails
+                    form={form}
+                    errors={errors}
+                    handleChange={handleChange}
+                  />
+                </div>
 
-              return (
-                <div
-                  key={c.title}
-                  onClick={() => handleCategorySelect(c.title)} // ✅ FIX HERE
-                  className={`relative cursor-pointer rounded-2xl border overflow-hidden transition-all duration-300
+                <div id="contact-section">
+                  <ContactDetails
+                    form={form}
+                    errors={errors}
+                    handleChange={handleChange}
+                    emailOptional={emailOptional}
+                    setEmailOptional={setEmailOptional}
+                  />
+                </div>
+
+                <div id="emergency-section">
+                  <EmergencyContact
+                    form={form}
+                    errors={errors}
+                    handleChange={handleChange}
+                    skipEmergency={skipEmergency}
+                    setSkipEmergency={setSkipEmergency}
+                  />
+                </div>
+
+                <div id="runner-section">
+                  <RunnerClubSection
+                    form={form}
+                    setForm={setForm}
+                    errors={errors}
+                    handleChange={handleChange}
+                    runnerSearch={runnerSearch}
+                    setRunnerSearch={setRunnerSearch}
+                    showRunnerDropdown={showRunnerDropdown}
+                    setShowRunnerDropdown={setShowRunnerDropdown}
+                    dropdownRef={dropdownRef}
+                    showTerms={showTerms}
+                    setShowTerms={setShowTerms}
+                    isProcessing={isProcessing}
+                    formError={formError}
+                  />
+                </div>
+              </RegistrationForm>
+            </div>
+
+            {/* PAYMENT BAR */}
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-sm z-50">
+              {/* your payment bar code */}
+            </div>
+          </>
+        )}
+
+        {/* STICKY PAYMENT BAR */}
+        {/* PAYMENT BAR */}
+        {/* PAYMENT BAR */}
+        {/* PAYMENT BAR */}
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-sm z-50">
+          <div className="max-w-6xl mx-auto px-4 py-3">
+            {/* DESKTOP */}
+            <div className="hidden md:flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TicketIcon className="h-5 w-5 text-gray-400" />
+
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-gray-900">
+                    {cat?.title || "Select Category"}
+                  </span>
+
+                  {cat?.distance && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-medium">
+                      {cat.distance}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <span className="text-lg font-bold text-gray-900">
+                  ₹{cat?.price ?? 0}
+                </span>
+
+                <button
+                  type="submit"
+                  form="registration-form"
+                  disabled={isProcessing}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white transition
           ${
-            isSelected
-              ? "border-green-600 shadow-2xl scale-[1.03]"
-              : "border-gray-200 hover:shadow-lg hover:scale-[1.01]"
+            isProcessing
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
           }`}
                 >
-                  {/* LEFT ACCENT STRIP */}
-                  <div
-                    className={`absolute left-0 top-0 h-full w-2 transition-all duration-300
-            ${
-              isSelected
-                ? "bg-green-600"
-                : "bg-[var(--color-orange-500)] opacity-40"
-            }`}
-                  />
+                  {isProcessing ? "Processing..." : "Proceed to Payment"}
 
-                  {/* CONTENT */}
-                  <div className="p-6 flex flex-col gap-4">
-                    {/* TITLE + PRICE */}
-                    <div className="flex justify-between items-start gap-4">
-                      {/* TITLE */}
-                      <div className="relative">
-                        <h3
-                          className={`text-xl font-extrabold tracking-wide transition-all duration-300
-                  ${isSelected ? "text-green-700" : "text-gray-800"}`}
-                        >
-                          {c.title}
-                        </h3>
-
-                        {/* UNDERLINE */}
-                        <span
-                          className={`absolute left-0 -bottom-1 h-[3px] rounded-full transition-all duration-300
-                  ${isSelected ? "w-full bg-green-600" : "w-10 bg-gray-300"}`}
-                        />
-
-                        {/* SOFT GREEN GLOW */}
-                        {isSelected && (
-                          <span className="absolute inset-0 blur-xl bg-green-500 opacity-10 -z-10 rounded-lg" />
-                        )}
-                      </div>
-
-                      {/* PRICE BADGE */}
-                      <div
-                        className={`px-4 py-1.5 rounded-full text-sm font-extrabold transition-all duration-300
-                ${
-                  isSelected
-                    ? "bg-green-600 text-white scale-110 shadow-lg"
-                    : "bg-[var(--color-orange-500)] text-white"
-                }`}
-                      >
-                        ₹ {c.price}
-                      </div>
-                    </div>
-
-                    {/* META INFO */}
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>
-                        {c.distance} • Age {c.minAge}-{c.maxAge}
-                      </span>
-
-                      {isSelected && (
-                        <span className="font-semibold text-green-600 flex items-center gap-1">
-                          ✓ Selected
-                        </span>
-                      )}
-                    </div>
-
-                    {/* EXTRA INFO */}
-                    <div className="text-xs text-gray-500">
-                      Max Seats: {c.maxSeats}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ✅ SELECTED CATEGORY SUMMARY (GREEN) */}
-          {cat && (
-            <div className="mt-8 relative overflow-hidden rounded-2xl border border-green-600 bg-gradient-to-r from-green-50 to-emerald-50 shadow-xl animate-[fadeIn_0.4s_ease-out]">
-              {/* BACK GLOW */}
-              <div className="absolute inset-0 bg-green-500 opacity-5" />
-
-              <div className="relative p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-green-700 mb-1 font-semibold">
-                    ✓ Selected Category
-                  </p>
-                  <h3 className="text-xl font-bold text-gray-800">
-                    {cat.title} — {cat.distance}
-                  </h3>
-                </div>
-
-                {/* PRICE FOCUS */}
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Payable</span>
-                    <span className="text-3xl font-extrabold text-green-700 drop-shadow">
-                      ₹ {cat.price}
-                    </span>
-                  </div>
-
-                  {/* GATEWAY NOTE */}
-                  <p className="text-xs text-gray-500 italic">
-                    * Additional payment gateway charges applicable as per
-                    standard
-                  </p>
-                </div>
+                  {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
+                </button>
               </div>
             </div>
-          )}
+
+            {/* MOBILE */}
+            <div className="flex md:hidden flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TicketIcon className="h-4 w-4 text-gray-400" />
+
+                  <span className="text-sm font-semibold text-gray-900">
+                    {cat?.title || "Select Category"}
+                  </span>
+                </div>
+
+                <span className="text-base font-bold text-gray-900">
+                  ₹{cat?.price ?? 0}
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                form="registration-form"
+                disabled={isProcessing}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold text-white transition
+        ${
+          isProcessing
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-600 hover:bg-green-700"
+        }`}
+              >
+                {isProcessing ? "Processing..." : "Proceed to Payment"}
+
+                {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* FORM */}
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-2xl shadow-lg space-y-6"
-        >
-          {/* ================= PERSONAL DATA ================= */}
-          <div className="space-y-8">
-            {/* SECTION HEADER */}
-
-            <div className="flex items-center gap-4 rounded-xl bg-gray-50 px-5 py-4">
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-full
-                  bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)]
-                  font-bold"
-              >
-                4
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  PERSONAL DETAILS
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Tell us about the runner
-                </p>
-              </div>
-            </div>
-
-            {/* ROW 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  First Name <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedInput
-                  name="firstName"
-                  placeholder="Enter first name"
-                  required
-                  onChange={handleChange}
-                  icon={<UserIcon className="h-5 w-5" />}
-                />
-                <FieldError error={errors.firstName} />
-              </div>
-
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedInput
-                  name="lastName"
-                  placeholder="Enter last name"
-                  required
-                  onChange={handleChange}
-                  icon={<UserIcon className="h-5 w-5" />}
-                />
-                <FieldError error={errors.lastName} />
-              </div>
-            </div>
-
-            {/* ROW 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Date of Birth <span className="text-red-500">*</span>
-                </label>
-
-                <DateOfBirthInput
-                  name="dob"
-                  value={form.dob}
-                  required
-                  onChange={handleChange}
-                />
-
-                <FieldError error={errors.dob} />
-              </div>
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Biological Gender <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedRadioGroup
-                  name="gender"
-                  required
-                  value={form.gender}
-                  options={["Male", "Female", "Other"]}
-                  onChange={handleChange}
-                />
-                <FieldError error={errors.gender} />
-              </div>
-            </div>
-
-            {/* ROW 3 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Blood Group <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedSelect
-                  name="bloodGroup"
-                  required
-                  onChange={handleChange}
-                  icon={<HeartIcon className="h-5 w-5" />}
-                >
-                  <option value="">Select Blood Group</option>
-                  <option>A+</option>
-                  <option>A-</option>
-                  <option>B+</option>
-                  <option>B-</option>
-                  <option>O+</option>
-                  <option>O-</option>
-                  <option>AB+</option>
-                  <option>AB-</option>
-                </AnimatedSelect>
-                <FieldError error={errors.bloodGroup} />
-              </div>
-
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Name to appear on Race Bib{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedInput
-                  name="bibName"
-                  placeholder="Enter name to print on bib"
-                  required
-                  onChange={handleChange}
-                  icon={<IdentificationIcon className="h-5 w-5" />}
-                />
-              </div>
-            </div>
-
-            {/* T-SHIRT */}
-            <div className="space-y-1 px-5">
-              <label className="block text-sm font-medium text-gray-700">
-                T-Shirt Size <span className="text-red-500">*</span>
-              </label>
-
-              <AnimatedSelect
-                name="tshirtSize"
-                required
-                onChange={handleChange}
-                icon={<TicketIcon className="h-5 w-5" />}
-              >
-                <option value="">Please Select</option>
-                <option>XS</option>
-                <option>S</option>
-                <option>M</option>
-                <option>L</option>
-                <option>XL</option>
-                <option>XXL</option>
-                <option>3XL</option>
-
-                <optgroup label="Kids">
-                  <option>2-4 Yrs — 24 inches</option>
-                  <option>4-5 Yrs — 26 inches</option>
-                  <option>5-7 Yrs — 28 inches</option>
-                  <option>7-8 Yrs — 30 inches</option>
-                  <option>8-10 Yrs — 32 inches</option>
-                </optgroup>
-              </AnimatedSelect>
-              <FieldError error={errors.tshirtSize} />
-            </div>
-
-            {/* ================= ADDRESS ================= */}
-
-            <div className="mt-10 flex items-center gap-4 rounded-xl bg-gray-50 px-5 py-4">
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-full
-                  bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)]
-                  font-bold"
-              >
-                4
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  ADDRESS DETAILS
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Where should we contact you?
-                </p>
-              </div>
-            </div>
-
-            {/* ADDRESS */}
-            <div className="space-y-1 px-5">
-              <label className="block text-sm font-medium text-gray-700">
-                Address <span className="text-red-500">*</span>
-              </label>
-
-              <AnimatedInput
-                name="address"
-                placeholder="Enter full address"
-                required
-                onChange={handleChange}
-                icon={<MapPinIcon className="h-5 w-5" />}
-              />
-              <FieldError error={errors.address} />
-            </div>
-
-            {/* STATE + PINCODE */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* STATE */}
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  State <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedSelect
-                  name="state"
-                  required
-                  onChange={handleChange}
-                  icon={<BuildingOfficeIcon className="h-5 w-5" />}
-                >
-                  <option value="">Select State</option>
-                  <option>Tamil Nadu</option>
-                  <option>Karnataka</option>
-                  <option>Kerala</option>
-                  <option>Andhra Pradesh</option>
-                </AnimatedSelect>
-                <FieldError error={errors.state} />
-              </div>
-
-              {/* PINCODE */}
-              <div className="space-y-1 px-5">
-                <label className="block text-sm font-medium text-gray-700">
-                  Pincode <span className="text-red-500">*</span>
-                </label>
-
-                <AnimatedInput
-                  name="pincode"
-                  placeholder="Enter pincode"
-                  required
-                  onChange={handleChange}
-                  icon={<MapPinIcon className="h-5 w-5" />}
-                />
-                <FieldError error={errors.pincode} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center gap-4 rounded-xl bg-gray-50 px-5 py-4">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-full
-                  bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)]
-                  font-bold"
-            >
-              4
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">CONTACT</h2>
-              <p className="text-sm text-gray-500">
-                Emergency communication details
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-1 px-5">
-              <label className="block text-sm font-medium text-gray-700">
-                WhatsApp Number <span className="text-red-500">*</span>
-              </label>
-
-              <AnimatedInput
-                type="tel"
-                name="phone"
-                placeholder="Enter WhatsApp number"
-                required
-                onChange={handleChange}
-                icon={<PhoneIcon className="h-5 w-5" />}
-              />
-              <FieldError error={errors.phone} />
-            </div>
-
-            <div className="space-y-1 px-5">
-              {/* LABEL + CHECKBOX */}
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700">
-                  Email ID{" "}
-                  {!emailOptional && <span className="text-red-500">*</span>}
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={emailOptional}
-                    onChange={(e) => setEmailOptional(e.target.checked)}
-                    className="accent-[var(--color-orange-500)]"
-                  />
-                  Skip Email
-                </label>
-              </div>
-
-              {/* DISABLED WRAPPER */}
-              <div
-                className={
-                  emailOptional
-                    ? "pointer-events-none opacity-60 select-none"
-                    : ""
-                }
-              >
-                <AnimatedInput
-                  type="email"
-                  name="email"
-                  placeholder="Enter email address"
-                  required={!emailOptional}
-                  onChange={handleChange}
-                  icon={<EnvelopeIcon className="h-5 w-5" />}
-                />
-                <FieldError error={!emailOptional ? errors.email : undefined} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center gap-4 rounded-xl bg-gray-50 px-5 py-4">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-full
-                  bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)]
-                  font-bold"
-            >
-              4
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Emergency Contact
-              </h2>
-              <p className="text-sm text-gray-500">
-                Emergency communication details
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* EMERGENCY NAME */}
-            <div className="space-y-1 px-5">
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700">
-                  Emergency Contact Name{" "}
-                  {!skipEmergencyName && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={skipEmergencyName}
-                    onChange={(e) => setSkipEmergencyName(e.target.checked)}
-                    className="accent-[var(--color-orange-500)]"
-                  />
-                  Skip
-                </label>
-              </div>
-
-              {/* DISABLED WRAPPER */}
-              <div
-                className={
-                  skipEmergencyName
-                    ? "pointer-events-none opacity-60 select-none"
-                    : ""
-                }
-              >
-                <AnimatedInput
-                  name="emergencyName"
-                  placeholder="Enter emergency contact name"
-                  required={!skipEmergencyName}
-                  onChange={handleChange}
-                  icon={<UserIcon className="h-5 w-5" />}
-                />
-                <FieldError
-                  error={!skipEmergencyName ? errors.emergencyName : undefined}
-                />
-              </div>
-            </div>
-
-            {/* EMERGENCY NUMBER */}
-            <div className="space-y-1 px-5">
-              <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700">
-                  Emergency Contact Number{" "}
-                  {!skipEmergencyNumber && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={skipEmergencyNumber}
-                    onChange={(e) => setSkipEmergencyNumber(e.target.checked)}
-                    className="accent-[var(--color-orange-500)]"
-                  />
-                  Skip
-                </label>
-              </div>
-
-              {/* DISABLED WRAPPER */}
-              <div
-                className={
-                  skipEmergencyNumber
-                    ? "pointer-events-none opacity-60 select-none"
-                    : ""
-                }
-              >
-                <AnimatedInput
-                  type="tel"
-                  name="emergencyNumber"
-                  placeholder="Enter emergency contact number"
-                  required={!skipEmergencyNumber}
-                  onChange={handleChange}
-                  icon={<PhoneIcon className="h-5 w-5" />}
-                />
-                <FieldError
-                  error={
-                    !skipEmergencyNumber ? errors.emergencyNumber : undefined
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-center gap-4 rounded-xl bg-gray-50 px-5 py-4">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-full
-                  bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)]
-                  font-bold"
-            >
-              4
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                COUPON & RUNNER CLUB
-              </h2>
-              <p className="text-sm text-gray-500">
-                Emergency communication details
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* COUPON CODE */}
-            <div className="space-y-1 px-5">
-              <label className="block text-sm font-medium text-gray-700">
-                Coupon Code
-              </label>
-
-              <AnimatedInput
-                name="couponCode"
-                placeholder="Enter coupon code"
-                onChange={handleChange}
-                icon={<TagIcon className="h-5 w-5" />}
-              />
-            </div>
-
-            {/* RUNNER CLUB (CUSTOM DROPDOWN) */}
-            <div className="space-y-1 px-5" ref={dropdownRef}>
-              <label className="block text-sm font-medium text-gray-700">
-                Runner Club
-              </label>
-
-              {/* RELATIVE WRAPPER — IMPORTANT */}
-              <div className="relative w-full">
-                {/* DROPDOWN TRIGGER */}
-                <div
-                  className="w-full cursor-pointer  border border-gray-300 bg-white
-                 px-4 py-3 text-sm flex items-center justify-between
-                 transition hover:border-orange-400"
-                  onClick={() => {
-                    setShowRunnerDropdown(!showRunnerDropdown);
-                    setRunnerSearch("");
-                  }}
-                >
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <UsersIcon className="h-5 w-5 text-gray-400" />
-                    <span>{form.runnerClub || "Please Select"}</span>
-                  </div>
-
-                  <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-                </div>
-
-                {/* DROPDOWN PANEL */}
-                {showRunnerDropdown && (
-                  <div
-                    className="absolute left-0 top-full z-30 mt-2 w-full
-                   rounded-xl border bg-white shadow-xl"
-                  >
-                    {/* SEARCH */}
-                    <input
-                      type="text"
-                      placeholder="Search club..."
-                      className="w-full border-b px-3 py-2 text-sm outline-none"
-                      value={runnerSearch}
-                      onChange={(e) => setRunnerSearch(e.target.value)}
-                    />
-
-                    {/* OPTIONS */}
-                    <div className="max-h-48 overflow-y-auto">
-                      {[
-                        "TOYOTA - ICICI BANK, MG ROAD, BANGALORE",
-                        "360 RUN CLUB",
-                        "500 MILER",
-                        "70 MINUTES",
-                        "Rotary Runners",
-                        "Decathlon Club",
-                        "Independent",
-                        "Others",
-                      ]
-                        .filter((club) =>
-                          club
-                            .toLowerCase()
-                            .includes(runnerSearch.toLowerCase()),
-                        )
-                        .map((club) => (
-                          <div
-                            key={club}
-                            className="px-4 py-2 text-sm cursor-pointer hover:bg-orange-50"
-                            onClick={() => {
-                              setForm((prev) => ({
-                                ...prev,
-                                runnerClub: club,
-                              }));
-                              setShowRunnerDropdown(false);
-                              setRunnerSearch("");
-                            }}
-                          >
-                            {club}
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {form.runnerClub === "Others" && (
-            <input
-              name="runnerClubOther"
-              placeholder="Enter your Runner Club name"
-              className="input-style mt-2"
-              onChange={handleChange}
-            />
-          )}
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="agree"
-              onChange={handleChange}
-              className="w-4 h-4"
-            />
-
-            <label>
-              I have read and accept the{" "}
-              <span
-                onClick={() => setShowTerms(true)}
-                className="text-blue-600 underline cursor-pointer"
-              >
-                Terms and Conditions
-              </span>
-              <p className="text-sm text-gray-600">
-                * Additional payment gateway charges applicable as per standard
-              </p>
-              <FieldError error={errors.agree} />
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isProcessing}
-            className={`group flex items-center gap-2 px-6 py-3 w-full md:w-auto
-  transition-all text-white
-  ${isProcessing ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}
-          >
-            {isProcessing ? "Processing..." : "Proceed to Payment"}
-            {!isProcessing && (
-              <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            )}
-          </button>
-
-          {formError && (
-            <p className="mt-3 text-sm text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-200">
-              {formError}
-            </p>
-          )}
-        </form>
       </div>
     </main>
   );

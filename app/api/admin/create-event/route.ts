@@ -37,7 +37,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!Array.isArray(body.categories) || body.categories.length === 0) {
+    const categories = Array.isArray(body.categories)
+      ? body.categories
+      : Object.values(body.categories || {});
+
+    if (!categories.length) {
       return NextResponse.json(
         { error: "At least one category required" },
         { status: 400 },
@@ -53,7 +57,6 @@ export async function POST(req: NextRequest) {
       .trim()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
-
 
     /* ===============================
        📅 4️⃣ DATE VALIDATION
@@ -89,59 +92,57 @@ export async function POST(req: NextRequest) {
     const usedDistances = new Set<string>();
     let totalSeats = 0;
 
-    const formattedCategories = body.categories.map(
-      (cat: any, index: number) => {
-        if (!cat.title || !cat.distance || !cat.maxSeats) {
-          throw new Error("Invalid category structure");
-        }
+    const formattedCategories = categories.map((cat: any, index: number) => {
+      if (!cat.title || !cat.distance || !cat.maxSeats) {
+        throw new Error("Invalid category structure");
+      }
 
-        const distanceNumber = parseInt(cat.distance);
+      const distanceNumber = parseInt(cat.distance);
 
-        if (isNaN(distanceNumber)) {
-          throw new Error("Distance must be numeric like 3KM");
-        }
+      if (isNaN(distanceNumber)) {
+        throw new Error("Distance must be numeric like 3KM");
+      }
 
-        if (usedDistances.has(cat.distance)) {
-          throw new Error(`Duplicate distance detected: ${cat.distance}`);
-        }
+      if (usedDistances.has(cat.distance)) {
+        throw new Error(`Duplicate distance detected: ${cat.distance}`);
+      }
 
-        usedDistances.add(cat.distance);
+      usedDistances.add(cat.distance);
 
-        const maxSeats = Number(cat.maxSeats);
+      const maxSeats = Number(cat.maxSeats);
 
-        if (maxSeats <= 0) {
-          throw new Error("Seats must be greater than zero");
-        }
+      if (maxSeats <= 0) {
+        throw new Error("Seats must be greater than zero");
+      }
 
-        totalSeats += maxSeats;
+      totalSeats += maxSeats;
 
-        const bibBase = distanceNumber * 1000;
-        const bibStart = bibBase + 1;
-        const bibEnd = bibBase + maxSeats;
+      const bibBase = distanceNumber * 1000;
+      const bibStart = bibBase + 1;
+      const bibEnd = bibBase + maxSeats;
 
-        return {
-          id: `cat_${index + 1}`,
-          title: String(cat.title),
-          distance: String(cat.distance),
-          price: Number(cat.price) || 0,
-          minAge: Number(cat.minAge) || 0,
-          maxAge: Number(cat.maxAge) || 100,
-          maxSeats,
-          bookedSeats: 0,
+      return {
+        id: `cat_${index + 1}`,
+        title: String(cat.title),
+        distance: String(cat.distance),
+        price: Number(cat.price) || 0,
+        minAge: Number(cat.minAge) || 0,
+        maxAge: Number(cat.maxAge) || 100,
+        maxSeats,
+        bookedSeats: 0,
 
-          // 🎽 SERVER GENERATED BIB
-          bibStart,
-          bibEnd,
-          nextBib: bibStart,
+        // 🎽 SERVER GENERATED BIB
+        bibStart,
+        bibEnd,
+        nextBib: bibStart,
 
-          status: "open",
-          waitlistEnabled: false,
+        status: "open",
+        waitlistEnabled: false,
 
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        };
-      },
-    );
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+    });
 
     /* ===============================
        📊 6️⃣ EVENT STRUCTURE
@@ -188,18 +189,18 @@ export async function POST(req: NextRequest) {
 
       bannerURL: body.bannerURL || "",
 
-   categories: formattedCategories,
+      categories: formattedCategories,
 
-    inclusions: {
-      apparel: body.inclusions?.apparel || [],
-      timing: body.inclusions?.timing || [],
-      certificates: body.inclusions?.certificates || [],
-      media: body.inclusions?.media || [],
-      support: body.inclusions?.support || [],
-      awards: body.inclusions?.awards || [],
-    },
+      inclusions: {
+        apparel: body.inclusions?.apparel || [],
+        timing: body.inclusions?.timing || [],
+        certificates: body.inclusions?.certificates || [],
+        media: body.inclusions?.media || [],
+        support: body.inclusions?.support || [],
+        awards: body.inclusions?.awards || [],
+      },
 
-    status: "upcoming",
+      status: "upcoming",
 
       /* ===============================
      📊 METRICS INITIALIZATION
@@ -246,8 +247,19 @@ export async function POST(req: NextRequest) {
     =============================== */
 
     const docRef = adminDb.collection("events").doc(normalizedSlug);
+    const existing = await adminDb
+      .collection("events")
+      .doc(normalizedSlug)
+      .get();
 
-await docRef.create(eventPayload);
+    if (existing.exists) {
+      return NextResponse.json(
+        { error: "Event with this slug already exists" },
+        { status: 400 },
+      );
+    }
+
+    await docRef.create(eventPayload);
     return NextResponse.json({
       success: true,
       id: docRef.id,

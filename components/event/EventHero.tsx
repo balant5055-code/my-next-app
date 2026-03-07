@@ -25,7 +25,9 @@ import { BoltIcon } from "@heroicons/react/24/solid";
 
 export default function EventHero({ event }: Props) {
   if (!event) return null;
-
+  const categories = Array.isArray(event.categories)
+    ? event.categories
+    : Object.values(event.categories || {});
   const [time, setTime] = useState({
     days: 0,
     hours: 0,
@@ -228,9 +230,7 @@ END:VCALENDAR`;
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="w-4 h-4 text-orange-500 shrink-0" />
 
-                  <span className="font-medium truncate">
-                    {event.venue}, {event.city}
-                  </span>
+                  <span className="font-medium truncate">{event.city}</span>
                 </div>
 
                 {/* divider (desktop only) */}
@@ -261,8 +261,11 @@ END:VCALENDAR`;
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {event.categories?.map((cat) => (
-                    <RaceCard key={cat.id} distance={Number(cat.distance)} />
+                  {categories.map((cat: any, index: number) => (
+                    <RaceCard
+                      key={cat.id ?? cat.title ?? cat.distance ?? index}
+                      distance={Number(cat.distance)}
+                    />
                   ))}
                 </div>
               </div>

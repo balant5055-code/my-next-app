@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TopBar from "@/components/topBar/TopBar";
@@ -7,6 +10,10 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  const hideFooter = pathname.includes("/register");
+
   return (
     <>
       {/* ===== SEMANTIC HEADER ===== */}
@@ -21,7 +28,7 @@ export default function PublicLayout({
       </main>
 
       {/* ===== SEMANTIC FOOTER ===== */}
-      <Footer />
+      {!hideFooter && <Footer />}
     </>
   );
 }

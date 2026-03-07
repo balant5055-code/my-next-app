@@ -12,102 +12,124 @@ const razorpay = new Razorpay({
 
 export async function POST(req: Request) {
   try {
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
     const body = await req.json();
+
     const { eventId, categoryId, participant } = body;
 
     if (!eventId || !categoryId) {
-      return NextResponse.json(
-        { error: "Missing event or category" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const eventRef = adminDb.collection("events").doc(eventId);
 
-    // 🔥 Firestore Transaction (Seat Lock)
-    const result = await adminDb.runTransaction(async (transaction) => {
-      const eventSnap = await transaction.get(eventRef);
+    let categoryPrice = 0;
+    let eventName = "";
+    let categoryTitle = "";
+
+    /* TRANSACTION */
+    await adminDb.runTransaction(async (tx) => {
+      const eventSnap = await tx.get(eventRef);
 
       if (!eventSnap.exists) {
         throw new Error("Event not found");
       }
 
-      const eventData = eventSnap.data()!;
+      const event = eventSnap.data()!;
 
-      // 🔒 Check registration window
-      const now = new Date();
+      eventName = event.name;
 
-      const registration = eventData.registration;
+      /* REGISTRATION WINDOW CHECK */
+
+      const registration = event.registration;
 
       if (!registration) {
         throw new Error("Registration not configured");
       }
 
-      const startDate = registration.start?.toDate?.() || registration.start;
+      const now = new Date();
 
-      const endDate = registration.end?.toDate?.() || registration.end;
+      const start = registration.start?.toDate?.() || registration.start;
+      const end = registration.end?.toDate?.() || registration.end;
 
       if (
         registration.status !== "open" ||
-        !startDate ||
-        !endDate ||
-        now < new Date(startDate) ||
-        now > new Date(endDate)
+        !start ||
+        !end ||
+        now < new Date(start) ||
+        now > new Date(end)
       ) {
-        console.log("NOW:", now);
-        console.log("START:", startDate);
-        console.log("END:", endDate);
-        console.log("STATUS:", registration.status);
         throw new Error("Registration closed");
       }
 
-      const categories = eventData.categories;
-      const categoryIndex = categories.findIndex(
-        (c: any) => c.id === categoryId,
-      );
+      /* FIND CATEGORY */
 
-      if (categoryIndex === -1) {
+      const categories = event.categories || [];
+
+      const index = categories.findIndex((c: any) => c.id === categoryId);
+
+      if (index === -1) {
         throw new Error("Invalid category");
       }
 
-      const category = categories[categoryIndex];
+      const category = categories[index];
 
-      if (category.bookedSeats >= category.maxSeats) {
+      /* CATEGORY STATUS CHECK */
+
+      if (category.status === "closed") {
+        throw new Error("Category closed");
+      }
+
+      /* SEAT CHECK */
+
+      const booked = category.bookedSeats || 0;
+
+      if (booked >= category.maxSeats) {
         throw new Error("Category full");
       }
 
-      // 🔥 Lock seat
-      categories[categoryIndex].bookedSeats += 1;
+      /* LOCK SEAT */
 
-      transaction.update(eventRef, { categories });
+      categories[index].bookedSeats = booked + 1;
 
-      return {
-        price: category.price,
-        eventName: eventData.name,
-      };
+      tx.update(eventRef, { categories });
+
+      /* SAVE DB PRICE */
+
+      categoryPrice = category.price;
+      categoryTitle = category.title;
     });
 
-    // 🔥 Create Razorpay Order (price from DB, not frontend)
+    /* CREATE RAZORPAY ORDER */
+
     const order = await razorpay.orders.create({
-      amount: result.price * 100,
+      amount: categoryPrice * 100, // 🔒 price from DB
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+      receipt: `rli_${Date.now()}`,
     });
 
     const registrationId =
       "RLI-" + uuidv4().replace(/-/g, "").slice(0, 8).toUpperCase();
 
-    // 🔥 Create PENDING Registration
+    /* CREATE PENDING REGISTRATION */
+
     await adminDb.collection("registrations_pending").doc(order.id).set({
       registrationId,
+      orderId: order.id,
+
       eventId,
       categoryId,
+      categoryTitle,
+
       participant,
-      amount: result.price,
-      orderId: order.id,
+
+      amount: categoryPrice,
+
       status: "PENDING",
+
       createdAt: new Date(),
+
       expiresAt,
     });
 
@@ -116,10 +138,12 @@ export async function POST(req: Request) {
       registrationId,
     });
   } catch (error: any) {
-    console.error("CREATE ORDER ERROR:", error.message);
+    console.error("CREATE ORDER ERROR:", error);
 
     return NextResponse.json(
-      { error: error.message || "Order creation failed" },
+      {
+        error: error.message || "Order creation failed",
+      },
       { status: 400 },
     );
   }

@@ -126,21 +126,18 @@ export default function EventPage() {
       <main>
         {/* HERO */}
         <EventHero event={event} />
- {/* CATEGORY + LOCATION */}
-<section className="bg-[#f8f7f3] py-10">
-  <div className="max-w-7xl mx-auto px-6">
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+        {/* CATEGORY + LOCATION */}
+        <section className="bg-[#f8f7f3] py-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+              {/* LEFT - Categories */}
+              <CategoryCards event={event} />
 
-      {/* LEFT - Categories */}
-      <CategoryCards event={event} />
-
-      {/* RIGHT - Location */}
-      <EventLocation event={event} />
-
-    </div>
-
-  </div>
-</section>
+              {/* RIGHT - Location */}
+              <EventLocation event={event} />
+            </div>
+          </div>
+        </section>
         {/* EVENT INCLUSIONS */}
         <EventInclusions inclusions={event.inclusions} />
 
@@ -152,9 +149,7 @@ export default function EventPage() {
               <div className="lg:col-span-2 space-y-8">
                 <EventAbout event={event} />
 
-               
-
-              <RaceSchedule event={event} />
+                <RaceSchedule event={event} />
 
                 <ImportantInfo event={event} />
               </div>
@@ -162,8 +157,6 @@ export default function EventPage() {
               {/* SIDEBAR */}
               <div className="lg:col-span-1">
                 <StickyRegisterCard event={event} />
-               
-                
               </div>
             </div>
           </div>
@@ -172,7 +165,7 @@ export default function EventPage() {
         <EventStats event={event} />
 
         {/* REGISTRATION PROGRESS */}
-       {/*  <EventRegistrationProgress event={event} /> */}
+        {/*  <EventRegistrationProgress event={event} /> */}
       </main>
 
       {/* MOBILE REGISTER BAR */}

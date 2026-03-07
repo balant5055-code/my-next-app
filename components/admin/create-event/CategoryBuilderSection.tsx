@@ -11,6 +11,7 @@ interface Category {
   minAge: string;
   maxAge: string;
   maxSeats: string;
+  unlimited?: boolean;
 }
 
 interface Props {
@@ -27,6 +28,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "5",
     maxAge: "60",
     maxSeats: "999",
+    unlimited: true,
   },
   "3KM": {
     title: "3KM Kids Run",
@@ -35,6 +37,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "5",
     maxAge: "14",
     maxSeats: "999",
+    unlimited: true,
   },
   "5KM": {
     title: "5KM Fit Run",
@@ -43,6 +46,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "12",
     maxAge: "100",
     maxSeats: "999",
+    unlimited: true,
   },
   "10KM": {
     title: "10KM Pro Run",
@@ -51,6 +55,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "16",
     maxAge: "100",
     maxSeats: "999",
+    unlimited: true,
   },
   "21KM": {
     title: "21KM Half Marathon",
@@ -59,6 +64,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "18",
     maxAge: "100",
     maxSeats: "999",
+    unlimited: true,
   },
   "42KM": {
     title: "42KM Full Marathon",
@@ -67,6 +73,7 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     minAge: "18",
     maxAge: "100",
     maxSeats: "999",
+    unlimited: true,
   },
 };
 
@@ -74,13 +81,19 @@ export default function CategoryBuilderSection({
   categories,
   setCategories,
 }: Props) {
-  const updateCategory = (
-    index: number,
-    field: keyof Category,
-    value: string,
-  ) => {
+  const updateCategory = (index: number, field: keyof Category, value: any) => {
     const updated = [...categories];
-    updated[index][field] = value;
+
+    if (field === "unlimited") {
+      updated[index].unlimited = value;
+
+      if (value) {
+        updated[index].maxSeats = "999";
+      }
+    } else {
+      (updated[index] as any)[field] = value;
+    }
+
     setCategories(updated);
   };
   const [openIndexes, setOpenIndexes] = useState<number[]>([]);
@@ -97,6 +110,7 @@ export default function CategoryBuilderSection({
         minAge: "",
         maxAge: "",
         maxSeats: "",
+        unlimited: false,
       },
     ];
 
@@ -284,31 +298,93 @@ export default function CategoryBuilderSection({
               >
                 {/* GRID INPUTS */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                  {[
-                    { label: "Distance (KM)", field: "distance" },
-                    { label: "Price (₹)", field: "price" },
-                    { label: "Max Seats", field: "maxSeats" },
-                    { label: "Min Age", field: "minAge" },
-                    { label: "Max Age", field: "maxAge" },
-                  ].map((item) => (
-                    <div key={item.field}>
-                      <label className="block text-xs text-slate-400 mb-2">
-                        {item.label}
-                      </label>
+                  {/* Distance */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Distance (KM)
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.distance}
+                      onChange={(e) =>
+                        updateCategory(index, "distance", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.price}
+                      onChange={(e) =>
+                        updateCategory(index, "price", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Max Seats */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Max Seats
+                    </label>
+
+                    <input
+                      type="number"
+                      disabled={cat.unlimited}
+                      value={cat.maxSeats}
+                      onChange={(e) =>
+                        updateCategory(index, "maxSeats", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm disabled:opacity-40"
+                    />
+
+                    <label className="flex items-center gap-2 mt-2 text-xs text-slate-300">
                       <input
-                        type="number"
-                        value={(cat as any)[item.field]}
+                        type="checkbox"
+                        checked={cat.unlimited || false}
                         onChange={(e) =>
-                          updateCategory(
-                            index,
-                            item.field as any,
-                            e.target.value,
-                          )
+                          updateCategory(index, "unlimited", e.target.checked)
                         }
-                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                       />
-                    </div>
-                  ))}
+                      Unlimited Seats
+                    </label>
+                  </div>
+
+                  {/* Min Age */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Min Age
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.minAge}
+                      onChange={(e) =>
+                        updateCategory(index, "minAge", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Max Age */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Max Age
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.maxAge}
+                      onChange={(e) =>
+                        updateCategory(index, "maxAge", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
                 </div>
 
                 {/* BIB PREVIEW */}
@@ -318,7 +394,7 @@ export default function CategoryBuilderSection({
                       Bib Range: {bibPreview.bibStart} – {bibPreview.bibEnd}
                     </span>
                     <span className="text-slate-300">
-                      Total Bibs: {cat.maxSeats}
+                      Total Bibs: {cat.unlimited ? "Unlimited" : cat.maxSeats}
                     </span>
                   </div>
                 )}
