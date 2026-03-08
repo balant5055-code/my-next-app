@@ -12,7 +12,8 @@ interface AnimatedInputProps {
   required?: boolean;
   disabled?: boolean;
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url";
-  onChange: (e: any) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
 }
 
 export default function AnimatedInput({
@@ -24,6 +25,7 @@ export default function AnimatedInput({
   required,
   disabled,
   inputMode,
+  autoComplete,
   onChange,
 }: AnimatedInputProps) {
   return (
@@ -43,6 +45,7 @@ export default function AnimatedInput({
         inputMode={inputMode}
         placeholder={placeholder}
         onChange={onChange}
+        autoComplete={autoComplete}
         className={`w-full border border-gray-300 py-3
         pl-12 pr-4 text-sm transition
         focus:border-orange-500 focus:outline-none

@@ -49,6 +49,7 @@ export default function ContactDetails({
 
           <AnimatedInput
             type="tel"
+            inputMode="numeric"
             name="phone"
             value={form.phone}
             placeholder="Enter WhatsApp number"

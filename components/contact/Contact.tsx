@@ -126,10 +126,17 @@ export default function Contact() {
               <h3 className="text-xl font-semibold text-gray-900">
                 Send Us a Message
               </h3>
+              <p className="sr-only">
+                Contact Raceline for marathon timing services, sports event
+                registration platform, race timing chips, cycling event timing,
+                and participant management for running and sports events in
+                India.
+              </p>
             </div>
 
             <p className="text-sm text-gray-500">
-              Have an event idea? We'd love to help you organize it.
+              Planning a marathon, cycling race, walkathon or sports event?
+              Contact Raceline for event registration and race timing solutions.
             </p>
           </div>
 
@@ -140,6 +147,7 @@ export default function Contact() {
               <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
 
               <input
+                aria-label="Full name"
                 value={name}
                 onChange={(e) => validateName(e.target.value)}
                 type="text"
@@ -172,6 +180,7 @@ export default function Contact() {
               <EnvelopeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
 
               <input
+                aria-label="Email address"
                 value={email}
                 onChange={(e) => validateEmail(e.target.value)}
                 type="email"
@@ -204,6 +213,7 @@ export default function Contact() {
               <PencilSquareIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
 
               <textarea
+                aria-label="Event details message"
                 rows={4}
                 value={message}
                 onChange={(e) => validateMessage(e.target.value)}
@@ -278,7 +288,7 @@ export default function Contact() {
           {/* HEADER */}
           <div>
             <p className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-1">
-              Support & Partnerships
+              Event Support & Partnerships
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900">
@@ -290,7 +300,13 @@ export default function Contact() {
               helps you manage registrations, race timing, and event technology
               seamlessly — all in one powerful platform.
             </p>
-
+            {/* Hidden SEO location text */}
+            <p className="sr-only">
+              Raceline provides marathon timing services, race timing systems,
+              sports event registration platforms, and event technology
+              solutions across India including Tamil Nadu, Coimbatore, Chennai
+              and major running and cycling events.
+            </p>
             {/* CONTACT TITLE */}
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">
               Contact Information
@@ -311,19 +327,6 @@ export default function Contact() {
                 value="+91 98765 43210"
                 href="tel:+919876543210"
               />
-            </div>
-          </div>
-
-          {/* SOCIAL */}
-          <div className=" pt-6">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-              Follow Raceline
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <SocialButton icon={<CameraIcon />} label="Instagram" />
-              <SocialButton icon={<GlobeAltIcon />} label="Facebook" />
-              <SocialButton icon={<PlayCircleIcon />} label="YouTube" />
             </div>
           </div>
         </div>

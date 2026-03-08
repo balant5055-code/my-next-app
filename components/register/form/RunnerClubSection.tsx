@@ -117,6 +117,7 @@ export default function RunnerClubSection({
 
           <AnimatedInput
             name="couponCode"
+            value={form.couponCode}
             placeholder="Enter coupon code"
             onChange={handleChange}
             icon={<TagIcon className="h-4 w-4" />}
@@ -218,6 +219,7 @@ export default function RunnerClubSection({
 
           <AnimatedInput
             name="runnerClubOther"
+            value={form.runnerClubOther}
             placeholder="Enter your Runner Club name"
             onChange={handleChange}
             icon={<UsersIcon className="h-4 w-4" />}
@@ -227,11 +229,35 @@ export default function RunnerClubSection({
 
       {/* TERMS */}
 
-      <div className="space-y-1 text-sm">
+      {/* DECLARATIONS */}
+
+      <div className="space-y-3 text-sm">
+        {/* MEDICAL FITNESS */}
+
+        <label className="flex items-start gap-2 text-gray-600 cursor-pointer">
+          <input
+            type="checkbox"
+            name="medicallyFit"
+            checked={form.medicallyFit}
+            onChange={handleChange}
+            className="mt-1 accent-[var(--color-orange-500)]"
+          />
+
+          <span>
+            I confirm that I am medically fit to participate in this event and
+            understand that participation involves physical activity and risk.
+          </span>
+        </label>
+
+        <FieldError error={errors.medicallyFit} />
+
+        {/* TERMS */}
+
         <label className="flex items-start gap-2 text-gray-600 cursor-pointer">
           <input
             type="checkbox"
             name="agree"
+            checked={form.agree}
             onChange={handleChange}
             className="mt-1 accent-[var(--color-orange-500)]"
           />

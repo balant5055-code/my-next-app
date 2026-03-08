@@ -265,3 +265,32 @@ html {
 .animate-gradientMove {
   animation: gradientMove 6s linear infinite;
 }
+
+/* ===== Skeleton Shimmer ===== */
+
+.skeleton {
+  background: linear-gradient(90deg, #eeeeee 25%, #e4e4e4 37%, #eeeeee 63%);
+  background-size: 1000px 100%;
+  animation: skeleton-loading 1.6s infinite linear;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: -500px 0;
+  }
+  100% {
+    background-position: 500px 0;
+  }
+}
+@keyframes speedStreak {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.animate-speedStreak {
+  animation: speedStreak 6s linear infinite;
+}

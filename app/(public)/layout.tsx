@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TopBar from "@/components/topBar/TopBar";
-
+import FloatingSocial from "@/components/FloatingSocial";
 export default function PublicLayout({
   children,
 }: {
@@ -16,6 +16,7 @@ export default function PublicLayout({
 
   return (
     <>
+      <FloatingSocial />
       {/* ===== SEMANTIC HEADER ===== */}
       <header>
         <TopBar />
@@ -23,9 +24,8 @@ export default function PublicLayout({
       </header>
 
       {/* ===== MAIN CONTENT AREA ===== */}
-      <main id="main-content" role="main">
-        {children}
-      </main>
+
+      {children}
 
       {/* ===== SEMANTIC FOOTER ===== */}
       {!hideFooter && <Footer />}

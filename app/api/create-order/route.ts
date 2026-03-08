@@ -5,9 +5,13 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { v4 as uuidv4 } from "uuid";
 
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  throw new Error("Razorpay keys not configured");
+}
+
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 export async function POST(req: Request) {
@@ -16,8 +20,16 @@ export async function POST(req: Request) {
 
     const { eventId, categoryId, participant } = body;
 
-    if (!eventId || !categoryId) {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    if (
+      !eventId ||
+      !categoryId ||
+      !participant ||
+      typeof participant !== "object"
+    ) {
+      return NextResponse.json(
+        { error: "Invalid request data" },
+        { status: 400 },
+      );
     }
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -86,7 +98,7 @@ export async function POST(req: Request) {
       const booked = category.bookedSeats || 0;
 
       if (booked >= category.maxSeats) {
-        throw new Error("Category full");
+        throw new Error("This category is fully booked");
       }
 
       /* LOCK SEAT */
@@ -103,11 +115,18 @@ export async function POST(req: Request) {
 
     /* CREATE RAZORPAY ORDER */
 
-    const order = await razorpay.orders.create({
-      amount: categoryPrice * 100, // 🔒 price from DB
-      currency: "INR",
-      receipt: `rli_${Date.now()}`,
-    });
+    let order;
+
+    try {
+      order = await razorpay.orders.create({
+        amount: categoryPrice * 100,
+        currency: "INR",
+        receipt: `rli_${Date.now()}`,
+      });
+    } catch (err) {
+      console.error("RAZORPAY ORDER ERROR:", err);
+      throw new Error("Payment initialization failed");
+    }
 
     const registrationId =
       "RLI-" + uuidv4().replace(/-/g, "").slice(0, 8).toUpperCase();
@@ -140,11 +159,9 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("CREATE ORDER ERROR:", error);
 
-    return NextResponse.json(
-      {
-        error: error.message || "Order creation failed",
-      },
-      { status: 400 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Order creation failed";
+
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

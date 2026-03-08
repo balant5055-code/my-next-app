@@ -12,6 +12,7 @@ interface Props {
 }
 
 export default function EmergencyContact({
+  form,
   errors,
   handleChange,
   skipEmergency,
@@ -67,6 +68,7 @@ export default function EmergencyContact({
           >
             <AnimatedInput
               name="emergencyName"
+              value={form.emergencyName}
               placeholder="Enter emergency contact name"
               required={!skipEmergency}
               onChange={handleChange}
@@ -91,6 +93,7 @@ export default function EmergencyContact({
           >
             <AnimatedInput
               type="tel"
+              inputMode="numeric"
               name="emergencyNumber"
               placeholder="Enter emergency contact number"
               required={!skipEmergency}

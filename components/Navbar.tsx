@@ -6,19 +6,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useRouter } from "next/navigation";
 const navItems = [
-  { name: "Home", id: "home" },
-  { name: "Events", id: "events" },
-  { name: "Services", id: "services" },
-  { name: "About", id: "about" },
-  { name: "Contact", id: "contact" },
+  { name: "Home", id: "home", link: "/#home" },
+  { name: "Events", id: "events", link: "/#events" },
+  { name: "Services", id: "services", link: "/#services" },
+  { name: "About", id: "about", link: "/#about" },
+  { name: "Contact", id: "contact", link: "/#contact" },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
-
+  const router = useRouter();
   const isHome = pathname === "/";
   const [activeSection, setActiveSection] = useState("home");
   const [open, setOpen] = useState(false);
@@ -56,11 +56,17 @@ export default function Navbar() {
 
   /* Smooth scroll */
   const handleScroll = (id: string) => {
+    setActiveSection(id);
+
+    if (!isHome) {
+      router.push(`/#${id}`);
+      return;
+    }
+
     const el = document.getElementById(id);
     if (!el) return;
 
     const yOffset = -100;
-
     const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
 
     window.scrollTo({
@@ -71,6 +77,37 @@ export default function Navbar() {
     setOpen(false);
   };
 
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+
+    const el = document.getElementById(hash);
+    if (!el) return;
+
+    setTimeout(() => {
+      const yOffset = -100;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+      window.scrollTo({
+        top: y,
+        behavior: "smooth",
+      });
+    }, 100);
+  }, []);
+
+  useEffect(() => {
+    const updateActiveFromHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash) {
+        setActiveSection(hash);
+      }
+    };
+
+    updateActiveFromHash(); // run on load
+    window.addEventListener("hashchange", updateActiveFromHash);
+
+    return () => window.removeEventListener("hashchange", updateActiveFromHash);
+  }, []);
   return (
     <motion.header
       id="site-navbar"
@@ -85,6 +122,7 @@ export default function Navbar() {
     >
       {/* NAV CONTAINER */}
       <motion.nav
+        aria-label="Main navigation"
         layout
         transition={{ duration: 0.4 }}
         className={`bg-white border border-gray-200 transition-all duration-500 shadow-xl
@@ -119,16 +157,17 @@ md:block
           <ul className="hidden md:flex items-center gap-8 font-semibold text-gray-800">
             {navItems.map((item) => (
               <li key={item.name} className="relative group">
-                <button
-                  onClick={() => handleScroll(item.id)}
-                  className={`cursor-pointer transition ${
+                <Link
+                  href={item.link}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`transition ${
                     activeSection === item.id
                       ? "text-orange-600"
                       : "text-gray-800 hover:text-orange-500"
                   }`}
                 >
                   {item.name}
-                </button>
+                </Link>
 
                 <span
                   className={`absolute left-0 -bottom-2 h-[2px]
@@ -179,21 +218,25 @@ md:block
               <ul className="p-5 space-y-4">
                 {navItems.map((item) => (
                   <li key={item.name}>
-                    <button
-                      onClick={() => handleScroll(item.id)}
+                    <Link
+                      href={item.link}
+                      onClick={() => {
+                        setActiveSection(item.id);
+                        setOpen(false);
+                      }}
                       className="block w-full text-left font-medium text-gray-700 hover:text-orange-500"
                     >
                       {item.name}
-                    </button>
+                    </Link>
                   </li>
                 ))}
 
-                <button
-                  onClick={() => handleScroll("contact")}
-                  className="w-full bg-orange-500 text-white py-2 rounded-full font-semibold"
+                <Link
+                  href="/#contact"
+                  className="bg-orange-500 text-white px-7 py-2 rounded-full font-semibold hover:bg-orange-600 transition"
                 >
                   Host an Event
-                </button>
+                </Link>
               </ul>
             </motion.div>
           )}

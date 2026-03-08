@@ -88,7 +88,7 @@ export default function StrongCTA() {
 
       {/* Card */}
       <motion.div
-        onMouseEnter={() => setHovered(true)}
+        onMouseEnter={() => setHovered(false)}
         onMouseLeave={() => setHovered(false)}
         animate={{
           boxShadow: hovered
@@ -107,15 +107,21 @@ export default function StrongCTA() {
 
         {/* privacy text */}
         {/* HEADER */}
-        <h6 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-2">
-          Start managing registrations, race timing and results in minutes.
-        </h6>
-
+        <h2 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-2">
+          Start Managing Sports Event Registrations & Race Timing in Minutes
+        </h2>
+        {/* Hidden SEO text */}
+        <p className="sr-only">
+          Raceline is a sports event registration and race timing platform for
+          marathons, cycling races, walkathons, school sports and corporate
+          fitness events. Organizers can manage participants, payments, race
+          timing and results easily.
+        </p>
         {/* privacy text */}
         <p className="text-xs text-gray-500 mb-6">
-          We respect your privacy. No spam. Only event-related support.
+          Talk to our team to launch your marathon, cycling race or sports event
+          with online registration and race timing support.
         </p>
-
         {/* PHONE INPUT */}
         <div className="w-full max-w-md mx-auto">
           <div className="relative">
@@ -178,6 +184,7 @@ export default function StrongCTA() {
         {/* BUTTONS */}
         <div className="w-full max-w-md mx-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-6">
           <motion.button
+            aria-label="Request a call back for sports event management platform"
             onClick={handleSubmit}
             disabled={loading}
             whileHover={{ scale: 1.04 }}
@@ -200,6 +207,7 @@ export default function StrongCTA() {
           </span>
 
           <motion.a
+            aria-label="Chat on WhatsApp to organize sports event"
             href={`https://wa.me/${whatsappNumber}?text=Hello%20I%20want%20to%20organize%20an%20event`}
             target="_blank"
             whileHover={{ scale: 1.04 }}
@@ -215,7 +223,7 @@ export default function StrongCTA() {
 
         {/* response time */}
         <p className="text-xs text-gray-500 mt-6">
-          ⚡ Usually responds within 2 hours
+          ⚡ Our event support team usually responds within 2 hours
         </p>
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-gray-600">
           <div className="flex items-center justify-center gap-2">

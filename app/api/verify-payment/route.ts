@@ -7,30 +7,51 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    let body;
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    try {
+      body = await req.json();
+    } catch {
       return NextResponse.json(
-        { success: false, message: "Missing required details" },
+        { success: false, message: "Invalid request body" },
         { status: 400 },
       );
     }
 
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+
+    if (
+      typeof razorpay_order_id !== "string" ||
+      typeof razorpay_payment_id !== "string" ||
+      typeof razorpay_signature !== "string"
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Missing or invalid payment details" },
+        { status: 400 },
+      );
+    }
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      throw new Error("Payment verification not configured");
+    }
     /* 🔐 1️⃣ Verify Razorpay signature */
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (generatedSignature !== razorpay_signature) {
+    const isValid =
+      generatedSignature.length === razorpay_signature.length &&
+      crypto.timingSafeEqual(
+        Buffer.from(generatedSignature),
+        Buffer.from(razorpay_signature),
+      );
+
+    if (!isValid) {
       return NextResponse.json(
         { success: false, message: "Invalid payment signature" },
         { status: 400 },
       );
     }
-
     /* 🔥 2️⃣ Get pending registration */
     const pendingRef = adminDb
       .collection("registrations_pending")
@@ -73,6 +94,16 @@ export async function POST(req: Request) {
     ======================================================= */
 
     await adminDb.runTransaction(async (transaction) => {
+      const flatRef = adminDb
+        .collection("registrations_flat")
+        .doc(pendingData.registrationId);
+
+      const existing = await transaction.get(flatRef);
+
+      if (existing.exists) {
+        return;
+      }
+
       const eventRef = adminDb.collection("events").doc(pendingData.eventId);
       const eventSnap = await transaction.get(eventRef);
 
@@ -87,7 +118,8 @@ export async function POST(req: Request) {
       }
 
       /* ✅ Validate category still exists */
-      const categories = eventData.categories;
+
+      const categories = eventData.categories || [];
 
       const categoryIndex = categories.findIndex(
         (c: any) => c.id === pendingData.categoryId,
@@ -137,7 +169,7 @@ export async function POST(req: Request) {
         /* 🟢 Registration status */
         status: "CONFIRMED",
         confirmedAt: new Date(),
-        createdAt: new Date(),
+        createdAt: pendingData.createdAt || new Date(),
 
         /* 🎟 BIB SYSTEM */
         bibNumber: null,
@@ -157,10 +189,6 @@ export async function POST(req: Request) {
           },
         ],
       };
-
-      const flatRef = adminDb
-        .collection("registrations_flat")
-        .doc(pendingData.registrationId);
 
       transaction.set(flatRef, registrationData);
 
@@ -188,9 +216,8 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("VERIFY ERROR:", error);
 
-    return NextResponse.json(
-      { success: false, message: error.message || "Server error" },
-      { status: 500 },
-    );
+    const message = error instanceof Error ? error.message : "Server error";
+
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }

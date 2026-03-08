@@ -1,8 +1,11 @@
 "use client";
-
+import { toPng } from "html-to-image";
+import QRCodeCanvas from "react-qr-code";
+import QRCode from "qrcode";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   CheckCircleIcon,
   ClipboardDocumentIcon,
@@ -12,23 +15,28 @@ import {
   CalendarDaysIcon,
   ShareIcon,
 } from "@heroicons/react/24/outline";
-
+import { FireIcon } from "@heroicons/react/24/solid";
 import confetti from "canvas-confetti";
-import { useRef } from "react";
+
 import { secureFetch } from "@/lib/secureFetch";
 
 const myConfetti = confetti.create(undefined, {
   resize: true,
-  useWorker: false, // ✅ disable worker here (correct place)
+  useWorker: false,
 });
+
 export default function PaymentSuccess() {
   const searchParams = useSearchParams();
   const regId = searchParams.get("regId");
-  const qrRef = useRef<HTMLDivElement>(null);
 
+  const qrRef = useRef<HTMLDivElement>(null);
+  const storyRef = useRef<HTMLDivElement>(null);
   const [registration, setRegistration] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">(
+    "desktop",
+  );
   useEffect(() => {
     if (!regId) return;
 
@@ -39,17 +47,23 @@ export default function PaymentSuccess() {
 
         if (data.success) {
           setRegistration(data.data);
-
-          // 🔥 Trigger Premium Confetti After Success
           triggerConfetti();
         }
       } catch (err) {
-        console.error("Error fetching registration", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
+    const ua = navigator.userAgent.toLowerCase();
 
+    if (/iphone|ipad|ipod/.test(ua)) {
+      setDeviceType("ios");
+    } else if (/android/.test(ua)) {
+      setDeviceType("android");
+    } else {
+      setDeviceType("desktop");
+    }
     fetchRegistration();
   }, [regId]);
 
@@ -60,113 +74,25 @@ export default function PaymentSuccess() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  // 🔥 SAFELY PARSE EVENT DATE
-  const getEventJSDate = (): Date | null => {
-    const raw = registration?.eventDate;
-    if (!raw) return null;
-
-    // Firestore Timestamp
-    if (raw?._seconds) {
-      return new Date(raw._seconds * 1000);
-    }
-
-    // ISO String
-    if (typeof raw === "string") {
-      const d = new Date(raw);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    // Already Date
-    if (raw instanceof Date) {
-      return isNaN(raw.getTime()) ? null : raw;
-    }
-
-    return null;
-  };
-
-  const eventJSDate = getEventJSDate();
-
-  const formattedDate =
-    eventJSDate &&
-    eventJSDate.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-
-  // 🔥 SAFE GOOGLE CALENDAR LINK
-  const generateGoogleCalendarLink = () => {
-    if (!eventJSDate) return "#";
-
-    const start = eventJSDate.toISOString().replace(/[-:]/g, "").split(".")[0];
-
-    const end = new Date(eventJSDate.getTime() + 3 * 60 * 60 * 1000)
-      .toISOString()
-      .replace(/[-:]/g, "")
-      .split(".")[0];
-
-    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-      registration.eventName || "Race Event",
-    )}&dates=${start}/${end}&details=Registered via Raceline India&location=${encodeURIComponent(
-      registration.venue || "",
-    )}`;
-  };
-
-  const handleAppleCalendarDownload = async () => {
-    if (!eventJSDate || !registration) return;
-
-    try {
-      const res = await secureFetch("/api/calendar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: registration.eventName,
-          description: `Registered via Raceline India\nCategory: ${registration.category}`,
-          location: registration.venue || "",
-          startDate: eventJSDate.toISOString(), // API handles IST
-          durationMinutes: 180,
-        }),
-      });
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${registration.eventName?.replace(/\s+/g, "-")}.ics`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (error) {
-      console.error("Calendar download failed", error);
-    }
-  };
-
   const triggerConfetti = () => {
-    const duration = 3000;
-    const end = Date.now() + duration;
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+    };
 
-    const colors = ["#16a34a", "#22c55e", "#10b981", "#facc15"];
-
-    (function frame() {
+    function fire(particleRatio: number, opts: any) {
       myConfetti({
-        particleCount: 5,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio),
       });
+    }
 
-      myConfetti({
-        particleCount: 5,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    })();
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
   };
 
   const downloadQRAsPNG = () => {
@@ -183,73 +109,111 @@ export default function PaymentSuccess() {
     const svgBlob = new Blob([svgData], {
       type: "image/svg+xml;charset=utf-8",
     });
+
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = () => {
-      // Retina quality (2x scale)
-      const scale = 2;
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-
-      ctx?.scale(scale, scale);
+      canvas.width = img.width * 2;
+      canvas.height = img.height * 2;
+      ctx?.scale(2, 2);
       ctx?.drawImage(img, 0, 0);
-
       URL.revokeObjectURL(url);
 
-      const pngUrl = canvas.toDataURL("image/png");
-
       const link = document.createElement("a");
-      link.href = pngUrl;
-      link.download = `${registration.registrationId}-QR.png`;
-      document.body.appendChild(link);
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${registration.registrationId}.png`;
       link.click();
-      document.body.removeChild(link);
     };
 
     img.src = url;
   };
+  const getEventJSDate = (): Date | null => {
+    const raw = registration?.eventDate;
+    if (!raw) return null;
 
-  // 🔥 WHATSAPP SHARE
-  const generateWhatsAppLink = () => {
-    if (!registration) return "#";
+    if (raw?._seconds) return new Date(raw._seconds * 1000);
+    if (typeof raw === "string") return new Date(raw);
+    if (raw instanceof Date) return raw;
 
-    const eventName = registration.eventName;
-    const category = registration.category;
-    const raceDate = formattedDate || "";
-    const location = registration.venue
-      ? `${registration.venue}${registration.city ? `, ${registration.city}` : ""}`
-      : "";
+    return null;
+  };
 
-    const lines = [
-      `I am pleased to confirm my participation in "${eventName}".`,
-      "",
-      raceDate ? `Event Date: ${raceDate}` : null,
-      category ? `Category: ${category}` : null,
-      location ? `Venue: ${location}` : null,
-      "",
-      "This event represents excellence in organization and community engagement.",
-      "I invite you to be part of this premium experience.",
-      "",
-      `Secure your registration: ${window.location.origin}/events`,
-    ].filter(Boolean);
+  const eventJSDate = getEventJSDate();
 
-    const message = lines.join("\n");
+  const formattedDate = eventJSDate
+    ? eventJSDate.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
 
-    return `https://wa.me/?text=${encodeURIComponent(message)}`;
+  // GOOGLE CALENDAR (with 5 day reminder)
+  const generateGoogleCalendarLinkWithReminder = () => {
+    if (!eventJSDate) return "#";
+
+    const start = eventJSDate.toISOString().replace(/[-:]/g, "").split(".")[0];
+
+    const end = new Date(eventJSDate.getTime() + 3 * 60 * 60 * 1000)
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .split(".")[0];
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      registration.eventName || "Race Event",
+    )}&dates=${start}/${end}&details=Race Event`;
+  };
+
+  // APPLE + OUTLOOK (.ICS FILE WITH 5 DAY REMINDER)
+  const downloadICSCalendar = () => {
+    if (!eventJSDate) return;
+
+    const start = new Date(eventJSDate);
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+
+    const formatDate = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+    const icsContent = `
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      SUMMARY:${registration.eventName}
+      DESCRIPTION:Race Event
+      DTSTART:${formatDate(start)}
+      DTEND:${formatDate(end)}
+      BEGIN:VALARM
+      TRIGGER:-P5D
+      ACTION:DISPLAY
+      DESCRIPTION:Race Reminder
+      END:VALARM
+      END:VEVENT
+      END:VCALENDAR
+      `;
+
+    const blob = new Blob([icsContent.trim()], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "race-event.ics";
+    link.click();
+
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-lg font-semibold">
-        Loading confirmation...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-4 border-green-600 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   if (!registration) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-600 font-semibold">
-        Registration not found.
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        Registration not found
       </div>
     );
   }
@@ -258,207 +222,458 @@ export default function PaymentSuccess() {
     registration.participant?.lastName || ""
   }`;
 
-  return (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center px-4 py-8 relative"
-      style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=90&w=2400')",
-      }}
-    >
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+  const qrValue = `${baseUrl}/checkin/${registration.registrationId}`;
 
-      {/* Content Wrapper */}
-      <div className="relative z-10 w-full max-w-6xl">
-        <div className="w-full max-w-6xl">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className="flex flex-col lg:flex-row">
-              {/* LEFT PANEL */}
-              <div className="lg:w-1/2 bg-gradient-to-br from-green-600 to-emerald-600 text-white p-12 flex flex-col justify-center items-center text-center">
-                <div className="bg-white/20 p-6 rounded-full mb-6 shadow-xl">
-                  <CheckCircleIcon className="w-16 h-16" />
+  const generateStoryCard = async () => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // helper function to safely load images
+      const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(img);
+          img.onerror = () => {
+            console.warn("Image failed to load:", src);
+            resolve(null);
+          };
+        });
+      };
+
+      /* ---------------- BACKGROUND ---------------- */
+
+      const bg = await loadImage("/story-bg.jpg");
+
+      if (bg) {
+        ctx.drawImage(bg, 0, 0, 1080, 1920);
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
+        gradient.addColorStop(0, "#111111");
+        gradient.addColorStop(1, "#7f1d1d");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1080, 1920);
+      }
+
+      /* ---------------- OVERLAY ---------------- */
+
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffffff";
+
+      /* ---------------- LOGO ---------------- */
+
+      const logo = await loadImage("/logo/raceline-in.png");
+
+      if (logo) {
+        const maxWidth = 320;
+        const scale = maxWidth / logo.width;
+
+        const logoWidth = logo.width * scale;
+        const logoHeight = logo.height * scale;
+
+        ctx.drawImage(logo, (1080 - logoWidth) / 2, 60, logoWidth, logoHeight);
+      }
+
+      /* ---------------- EVENT TITLE ---------------- */
+
+      const eventTitle = registration?.eventName?.toUpperCase() || "MARATHON";
+
+      ctx.font = "bold 90px sans-serif";
+      ctx.fillText(eventTitle.slice(0, 22), 540, 420);
+
+      /* ---------------- BADGE ---------------- */
+
+      ctx.fillStyle = "#16a34a";
+      ctx.fillRect(360, 600, 360, 70);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 30px sans-serif";
+      ctx.fillText("OFFICIAL RUNNER", 540, 645);
+
+      /* ---------------- RUNNER NAME ---------------- */
+
+      ctx.font = "bold 70px sans-serif";
+      ctx.fillText(fullName.toUpperCase(), 540, 840);
+
+      /* ---------------- CATEGORY ---------------- */
+
+      ctx.font = "40px sans-serif";
+      ctx.fillText(registration.category.toUpperCase(), 540, 920);
+
+      /* ---------------- DATE ---------------- */
+
+      ctx.font = "34px sans-serif";
+      ctx.fillText(formattedDate, 540, 980);
+
+      /* ---------------- MOTIVATION ---------------- */
+
+      ctx.font = "bold 60px sans-serif";
+      ctx.fillText("THE START LINE", 540, 1240);
+      ctx.fillText("IS WAITING", 540, 1320);
+
+      /* ---------------- HASHTAG ---------------- */
+
+      ctx.font = "bold 44px sans-serif";
+      ctx.fillText("#RunWithRaceline", 540, 1450);
+
+      /* ---------------- QR LABEL ---------------- */
+
+      ctx.font = "28px sans-serif";
+      ctx.fillText("SCAN FOR RACE DETAILS", 540, 1550);
+
+      /* ---------------- QR CODE ---------------- */
+
+      const qrData = await QRCode.toDataURL(
+        "https://www.racelineindia.com/events",
+      );
+
+      const qrImg = await loadImage(qrData);
+
+      if (qrImg) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(420, 1580, 240, 240);
+        ctx.drawImage(qrImg, 440, 1600, 200, 200);
+      }
+
+      /* ---------------- WEBSITE ---------------- */
+
+      ctx.font = "30px sans-serif";
+      ctx.fillText("www.racelineindia.com", 540, 1860);
+
+      /* ---------------- DOWNLOAD ---------------- */
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve),
+      );
+
+      if (!blob) return;
+
+      const file = new File([blob], "raceline-story.png", {
+        type: "image/png",
+      });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: "Race Registration",
+            text: "I'm running this race!",
+          });
+          return;
+        } catch {}
+      }
+
+      const link = document.createElement("a");
+      link.download = "raceline-story.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Story generation failed:", err);
+    }
+  };
+
+  return (
+    <div className="bg-[#f8f7f3] flex justify-center px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-5xl"
+      >
+        <div className="max-w-5xl w-full mx-auto mb-4">
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+              <CheckCircleIcon className="w-5 h-5" />
+              You're officially in the race!
+            </div>
+
+            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-md">
+              Raceline India
+            </span>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_10px_40px_rgba(0,0,0,0.08)] backdrop-blur-sm">
+          <div className="grid lg:grid-cols-2">
+            {/* LEFT */}
+            <div className="p-6 space-y-4">
+              {/* HEADER */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                  <CheckCircleIcon className="w-5 h-5 text-green-600" />
                 </div>
 
-                <h1 className="text-3xl font-bold">
-                  Registration Confirmed 🎉
-                </h1>
+                <div className="flex-1">
+                  <h1 className="text-base  text-gray-900">
+                    Registration Confirmed
+                  </h1>
 
-                <p className="mt-4 text-green-100 text-base max-w-md leading-relaxed">
-                  Congratulations{" "}
-                  <span className="font-semibold text-white">{fullName}</span>
-                  <br />
-                  You are successfully registered for:
-                </p>
-
-                <div className="mt-6 text-center">
-                  {/* Event Name */}
-                  <h2 className="text-xl md:text-2xl font-semibold text-white">
-                    {registration.eventName}
-                  </h2>
-
-                  {/* Desktop View (Single Line with Icons) */}
-                  <div className="hidden md:flex items-center justify-center gap-4 text-green-100 text-sm mt-3">
-                    <div className="flex items-center gap-1">
-                      <TicketIcon className="w-4 h-4 opacity-80" />
-                      <span>{registration.category}</span>
-                    </div>
-
-                    <span className="opacity-50">•</span>
-
-                    <div className="flex items-center gap-1">
-                      <CalendarDaysIcon className="w-4 h-4 opacity-80" />
-                      <span>{formattedDate}</span>
-                    </div>
-
-                    <span className="opacity-50">•</span>
-
-                    <div className="flex items-center gap-1">
-                      <ReceiptPercentIcon className="w-4 h-4 opacity-80" />
-                      <span>₹ {registration.amount}</span>
-                    </div>
-                  </div>
-
-                  {/* Mobile View (Stacked with Icons) */}
-                  <div className="md:hidden flex flex-col items-center text-green-100 text-sm mt-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <TicketIcon className="w-4 h-4 opacity-80" />
-                      <span>{registration.category}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <CalendarDaysIcon className="w-4 h-4 opacity-80" />
-                      <span>{formattedDate}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <ReceiptPercentIcon className="w-4 h-4 opacity-80" />
-                      <span>₹ {registration.amount}</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-gray-500">{fullName}</p>
                 </div>
               </div>
 
-              {/* RIGHT PANEL */}
-              <div className="lg:w-1/2 p-8 space-y-6">
-                {/* REGISTRATION ID */}
-                <InfoCard
-                  icon={<TicketIcon className="w-5 h-5 text-green-600" />}
-                  label="Registration ID"
-                  value={registration.registrationId}
-                  copied={copied === "reg"}
-                  onCopy={() =>
+              {/* EVENT INFO */}
+              <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-md">
+                  <TicketIcon className="w-4 h-4 text-gray-500" />
+                  {registration.category}
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-md">
+                  <CalendarDaysIcon className="w-4 h-4 text-gray-500" />
+                  {formattedDate}
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-md">
+                  <ReceiptPercentIcon className="w-4 h-4 text-gray-500" />₹{" "}
+                  {registration.amount}
+                </div>
+              </div>
+
+              {/* EVENT NAME */}
+              <h2 className="text-sm font-semibold text-gray-900 bg-gray-100 px-3 py-1.5 rounded-md inline-block">
+                {registration.eventName}
+              </h2>
+
+              {/* REGISTRATION ID */}
+              <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">
+                    Registration ID
+                  </p>
+
+                  <p className="text-sm font-mono font-semibold text-gray-900">
+                    {registration.registrationId}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
                     copyToClipboard(registration.registrationId, "reg")
                   }
-                />
+                  className="p-1.5 rounded-md hover:bg-white transition"
+                >
+                  <ClipboardDocumentIcon className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="space-y-3 pt-2">
-                  <a
-                    href={`/api/download-receipt?id=${registration.registrationId}`}
-                    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition shadow-md"
-                  >
-                    <ReceiptPercentIcon className="w-5 h-5" />
-                    Download Receipt
-                  </a>
+              {/* ACTION BUTTONS */}
+              {/* ACTIONS SECTION */}
+              <div className="space-y-3">
+                {/* SHARE SECTION TITLE */}
+                <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                  Share your race
+                </p>
 
+                {/* INSTAGRAM SHARE */}
+                <button
+                  onClick={generateStoryCard}
+                  className="w-full bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium shadow hover:opacity-90 transition"
+                >
+                  <ShareIcon className="w-4 h-4" />
+                  Share to Instagram Story
+                </button>
+
+                {/* REMINDER TITLE */}
+                <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                  Add race reminder
+                </p>
+
+                <div className="grid grid-cols-3 gap-2">
                   <a
-                    href={generateGoogleCalendarLink()}
+                    href={generateGoogleCalendarLinkWithReminder()}
                     target="_blank"
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition shadow-md"
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <CalendarDaysIcon className="w-5 h-5" />
-                    Add to Google Calendar
+                    <CalendarDaysIcon className="w-4 h-4 text-blue-600" />
+                    Google
                   </a>
+
                   <button
-                    onClick={handleAppleCalendarDownload}
-                    className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white py-3 rounded-xl font-medium hover:bg-gray-900 transition shadow-md"
+                    onClick={downloadICSCalendar}
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <CalendarDaysIcon className="w-5 h-5" />
-                    Add to Apple / Outlook Calendar
+                    <CalendarDaysIcon className="w-4 h-4 text-gray-800" />
+                    Apple
                   </button>
-                  <a
-                    href={generateWhatsAppLink()}
-                    target="_blank"
-                    className="w-full flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition shadow-md"
+
+                  <button
+                    onClick={downloadICSCalendar}
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <ShareIcon className="w-5 h-5" />
-                    Share on WhatsApp
-                  </a>
+                    <CalendarDaysIcon className="w-4 h-4 text-sky-600" />
+                    Outlook
+                  </button>
+                </div>
+
+                {/* NAVIGATION */}
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Link
+                    href="/"
+                    className="bg-gray-100 text-gray-800 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-gray-200"
+                  >
+                    ← Back Home
+                  </Link>
 
                   <Link
                     href="/events"
-                    className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-800 py-3 rounded-xl font-medium hover:bg-gray-200 transition"
+                    className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-slate-800 transition"
                   >
-                    Explore More Events
+                    Explore Events
                     <ArrowRightIcon className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
             </div>
+
+            {/* RIGHT QR */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="border-l border-gray-200 flex items-center justify-center p-6"
+            >
+              <div
+                ref={qrRef}
+                className="relative w-full max-w-xs bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] overflow-hidden"
+              >
+                {/* TOP HEADER */}
+                <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white text-center py-4">
+                  <p className="text-[11px] tracking-wider opacity-80">
+                    DIGITAL RACE ENTRY
+                  </p>
+
+                  <p className="text-xs font-mono mt-1">
+                    #{registration.registrationId}
+                  </p>
+                </div>
+
+                {/* TICKET CUT HOLES */}
+                <div className="absolute -left-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
+                <div className="absolute -right-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
+
+                {/* QR SECTION */}
+                <div className="px-6 py-6 text-center">
+                  <div className="flex justify-center mb-4">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="relative flex justify-center"
+                    >
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 rounded-2xl blur-xl animate-pulse"></div>
+
+                      {/* QR container */}
+                      <div className="relative bg-white border border-gray-200 p-3 rounded-xl shadow-md">
+                        <QRCodeCanvas value={qrValue} size={160} />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  <p className="text-xs text-gray-500">Scan at race check-in</p>
+                </div>
+
+                {/* DIVIDER */}
+                <div className="border-t border-dashed border-gray-200"></div>
+
+                {/* ACTION BUTTONS */}
+                <div className="p-4 flex flex-col gap-2">
+                  <button
+                    onClick={downloadQRAsPNG}
+                    className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-slate-800 transition"
+                  >
+                    Download QR
+                  </button>
+
+                  <a
+                    href={`/api/download-receipt?id=${registration.registrationId}`}
+                    className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg transition"
+                  >
+                    <ReceiptPercentIcon className="w-4 h-4 text-green-600" />
+                    Download Receipt
+                  </a>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-/* Detail Row */
-function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      {icon}
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="font-semibold text-gray-800">{value}</p>
-      </div>
-    </div>
-  );
-}
+        <div
+          ref={storyRef}
+          style={{
+            position: "fixed",
+            top: "0",
+            left: "200vw", // push it far right (outside screen)
+            width: "1080px",
+            height: "1920px",
+            backgroundImage: "url('/story-bg.jpeg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            color: "white",
+            padding: "140px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* TOP */}
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "24px", letterSpacing: "4px" }}>
+              RACELINE INDIA
+            </p>
 
-/* Info Card */
-function InfoCard({
-  icon,
-  label,
-  value,
-  onCopy,
-  copied,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  onCopy: () => void;
-  copied: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
-      <div className="flex items-center gap-3">
-        {icon}
-        <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="font-semibold text-gray-800 break-all">{value}</p>
+            <h1
+              style={{ fontSize: "72px", fontWeight: "800", marginTop: "40px" }}
+            >
+              {registration.eventName}
+            </h1>
+          </div>
+
+          {/* CENTER */}
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "32px" }}>RACE CONFIRMED 🏃</p>
+
+            <p
+              style={{ fontSize: "60px", fontWeight: "700", marginTop: "40px" }}
+            >
+              {fullName}
+            </p>
+
+            <p style={{ fontSize: "36px", marginTop: "20px" }}>
+              {registration.category}
+            </p>
+
+            <p style={{ fontSize: "30px", marginTop: "20px" }}>
+              {formattedDate}
+            </p>
+          </div>
+
+          {/* BOTTOM */}
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "34px", fontWeight: "600" }}>
+              See you at the starting line
+            </p>
+
+            <p
+              style={{ fontSize: "38px", fontWeight: "700", marginTop: "30px" }}
+            >
+              #RunWithRaceline
+            </p>
+
+            <p style={{ fontSize: "22px", marginTop: "20px" }}>
+              Powered by Raceline India
+            </p>
+          </div>
         </div>
-      </div>
-
-      <button
-        onClick={onCopy}
-        className="text-gray-400 hover:text-green-600 transition flex items-center"
-      >
-        <ClipboardDocumentIcon className="w-5 h-5" />
-        {copied && (
-          <span className="ml-2 text-xs text-green-600 font-medium">
-            Copied
-          </span>
-        )}
-      </button>
+      </motion.div>
     </div>
   );
 }

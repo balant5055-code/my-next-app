@@ -2,9 +2,6 @@
 
 import { useEffect, useState, useRef } from "react"; // ✅ FIX: added useRef
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { MapPinIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
@@ -21,6 +18,8 @@ import ContactDetails from "@/components/register/form/ContactDetails";
 import EmergencyContact from "@/components/register/form/EmergencyContact";
 import RunnerClubSection from "@/components/register/form/RunnerClubSection";
 import FormProgress from "@/components/register/FormProgress";
+import RegisterPageSkeleton from "./loading";
+import EventTermsContent from "@/components/legal/EventTermsContent";
 import {
   UserIcon,
   PhoneIcon,
@@ -68,13 +67,14 @@ export default function RegisterPage() {
   const router = useRouter();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [emailOptional, setEmailOptional] = useState(false);
-
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [skipEmergency, setSkipEmergency] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const cat = event?.categories?.find((c) => c.title === selectedCat) ?? null;
   const [showTerms, setShowTerms] = useState(false);
   const [showRunnerDropdown, setShowRunnerDropdown] = useState(false);
   const [runnerSearch, setRunnerSearch] = useState("");
@@ -153,7 +153,10 @@ export default function RegisterPage() {
         newErrors.emergencyNumber = "Enter valid 10 digit mobile number";
       }
     }
-    if (!form.agree) newErrors.agree = "You must accept terms";
+    if (!form.medicallyFit)
+      newErrors.medicallyFit = "You must confirm medical fitness";
+
+    if (!form.agree) newErrors.agree = "You must accept terms and conditions";
 
     // 🔥 STATE VALIDATION (FINAL CORRECT VERSION)
 
@@ -248,7 +251,54 @@ export default function RegisterPage() {
     runnerClubOther: "",
     agree: false,
     bibNumber: "",
+    medicallyFit: false,
   });
+
+  useEffect(() => {
+    if (!form.dob || !cat || !event?.date) return;
+
+    const normalize = (d: Date) =>
+      new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+    const birthDate = normalize(new Date(form.dob));
+    const eventDate = normalize(event.date);
+
+    const minAge = Number(cat.minAge);
+    const maxAge = Number(cat.maxAge);
+
+    const minDOB = normalize(
+      new Date(
+        eventDate.getFullYear() - minAge,
+        eventDate.getMonth(),
+        eventDate.getDate(),
+      ),
+    );
+
+    const maxDOB = normalize(
+      new Date(
+        eventDate.getFullYear() - maxAge,
+        eventDate.getMonth(),
+        eventDate.getDate(),
+      ),
+    );
+
+    setErrors((prev) => {
+      const updated = { ...prev };
+
+      if (birthDate > minDOB) {
+        updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
+        return updated;
+      }
+
+      if (birthDate < maxDOB) {
+        updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
+        return updated;
+      }
+
+      delete updated.dob;
+      return updated;
+    });
+  }, [form.dob, cat, event?.date]);
 
   useEffect(() => {
     const saved = localStorage.getItem("race_registration_form");
@@ -256,7 +306,13 @@ export default function RegisterPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setForm(parsed);
+
+        setForm((prev) => ({
+          ...prev,
+          ...parsed,
+          medicallyFit: parsed.medicallyFit ?? false,
+          agree: parsed.agree ?? false,
+        }));
       } catch {
         console.error("Failed to restore saved form");
       }
@@ -264,22 +320,6 @@ export default function RegisterPage() {
 
     setHydrated(true);
   }, []);
-
-  useEffect(() => {
-    if (form.dob) {
-      // Manually trigger DOB validation when category changes
-      const fakeEvent = {
-        target: {
-          name: "dob",
-          value: form.dob,
-          type: "date",
-          checked: false,
-        },
-      } as any;
-
-      handleChange(fakeEvent);
-    }
-  }, [selectedCat]);
 
   useEffect(() => {
     if (!event?.categories?.length) return;
@@ -297,36 +337,39 @@ export default function RegisterPage() {
     if (!slug) return;
 
     const fetchEvent = async () => {
-      const q = query(collection(db, "events"), where("slug", "==", slug));
-      const snap = await getDocs(q);
+      try {
+        const res = await fetch(`/api/events/${slug}`);
 
-      if (!snap.empty) {
-        const docSnap = snap.docs[0];
-        const raw = docSnap.data();
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("API ERROR:", data);
+          setEvent(null);
+          return;
+        }
+
+        const raw = data;
 
         const formattedEvent: EventData = {
-          id: docSnap.id,
-          name: raw.name,
-          slug: raw.slug,
-          venue: raw.venue,
-          city: raw.city,
-          bannerURL: raw.bannerURL,
-          categories: Array.isArray(raw.categories)
-            ? raw.categories
-            : Object.values(raw.categories || {}),
-          rules: raw.rules,
+          id: raw.id,
+          name: raw.name ?? "",
+          slug: raw.slug ?? "",
+          venue: raw.venue ?? "",
+          city: raw.city ?? "",
+          bannerURL: raw.bannerURL ?? "",
+          categories: raw.categories ?? [],
+          rules: raw.rules ?? {},
 
-          date: raw.date?.toDate
-            ? raw.date.toDate()
-            : raw.date?.seconds
-              ? new Date(raw.date.seconds * 1000)
-              : null,
+          date: raw.date?._seconds ? new Date(raw.date._seconds * 1000) : null,
         };
 
         setEvent(formattedEvent);
+      } catch (err) {
+        console.error("Error loading event:", err);
+        setEvent(null);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchEvent();
@@ -410,69 +453,57 @@ export default function RegisterPage() {
     if (name === "pincode") {
       fieldValue = fieldValue.slice(0, 6);
     }
+
     if (name === "bibName") {
       fieldValue = value.toUpperCase();
       fieldValue = value.toUpperCase().slice(0, 12);
     }
 
+    if (name === "couponCode") {
+      fieldValue = value.toUpperCase();
+    }
     setForm((prev) => ({
       ...prev,
       [name]: fieldValue,
     }));
 
-    if (name === "dob") {
-      const rawValue = value;
+    // 🔥 DOB LIVE VALIDATION
+    if (name === "dob" && cat && event?.date) {
+      const normalize = (d: Date) =>
+        new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+      const birthDate = normalize(new Date(fieldValue));
+      const eventDate = normalize(event.date);
+
+      const minAge = Number(cat.minAge);
+      const maxAge = Number(cat.maxAge);
+
+      const minDOB = normalize(
+        new Date(
+          eventDate.getFullYear() - minAge,
+          eventDate.getMonth(),
+          eventDate.getDate(),
+        ),
+      );
+
+      const maxDOB = normalize(
+        new Date(
+          eventDate.getFullYear() - maxAge,
+          eventDate.getMonth(),
+          eventDate.getDate(),
+        ),
+      );
 
       setErrors((prev) => {
         const updated = { ...prev };
 
-        if (!rawValue) {
-          updated.dob = "Please select Date of Birth.";
+        if (birthDate > minDOB) {
+          updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
           return updated;
         }
 
-        if (!cat || !event?.date) return updated;
-
-        const normalizeDate = (date: Date) =>
-          new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-        const birthDate = normalizeDate(new Date(rawValue));
-
-        if (isNaN(birthDate.getTime())) {
-          updated.dob = "Invalid date selected.";
-          return updated;
-        }
-
-        const eventDate = normalizeDate(event.date);
-
-        const minAge = Number(cat.minAge);
-        const maxAge = Number(cat.maxAge);
-
-        const minEligibleDOB = normalizeDate(
-          new Date(
-            eventDate.getFullYear() - minAge,
-            eventDate.getMonth(),
-            eventDate.getDate(),
-          ),
-        );
-
-        const maxEligibleDOB = normalizeDate(
-          new Date(
-            eventDate.getFullYear() - maxAge,
-            eventDate.getMonth(),
-            eventDate.getDate(),
-          ),
-        );
-
-        // 🔥 TOO YOUNG
-        if (!isNaN(minAge) && birthDate > minEligibleDOB) {
-          updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minEligibleDOB.toLocaleDateString("en-GB")}.`;
-          return updated;
-        }
-
-        // 🔥 TOO OLD
-        if (!isNaN(maxAge) && birthDate < maxEligibleDOB) {
-          updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
+        if (birthDate < maxDOB) {
+          updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on the event date.`;
           return updated;
         }
 
@@ -480,108 +511,45 @@ export default function RegisterPage() {
         return updated;
       });
     }
+    // ✅ CLEAR CHECKBOX ERRORS
+    if (type === "checkbox") {
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
 
-    setErrors((prev) => {
-      const updated = { ...prev };
+    if (name !== "dob") {
+      setErrors((prev) => {
+        const updated = { ...prev };
 
-      const requiredFields = [
-        "firstName",
-        "lastName",
-        "gender",
-        "bloodGroup",
-        "bibName",
-        "tshirtSize",
-        "address",
-        "pincode",
-        "phone",
-        "emergencyName",
-        "emergencyNumber",
-      ];
+        const requiredFields = [
+          "firstName",
+          "lastName",
+          "gender",
+          "bloodGroup",
+          "bibName",
+          "tshirtSize",
+          "address",
+          "pincode",
+          "phone",
+          "emergencyName",
+          "emergencyNumber",
+        ];
 
-      /* ================= REQUIRED FIELD VALIDATION ================= */
-
-      if (requiredFields.includes(name)) {
-        if (name === "emergencyName" || name === "emergencyNumber") {
-          if (skipEmergency) {
+        if (requiredFields.includes(name)) {
+          if (!fieldValue || fieldValue.toString().trim() === "") {
+            updated[name] =
+              fieldErrorMessages[name] || "This field is required";
+          } else {
             delete updated[name];
-            return updated;
           }
         }
 
-        if (!fieldValue || fieldValue.toString().trim() === "") {
-          updated[name] = fieldErrorMessages[name] || "This field is required";
-        } else {
-          delete updated[name];
-        }
-      }
-
-      /* ================= PHONE VALIDATION ================= */
-
-      if (name === "phone") {
-        if (!fieldValue) {
-          updated.phone = "WhatsApp number is required";
-        } else if (!/^[6-9]\d{9}$/.test(fieldValue)) {
-          updated.phone = "Enter valid 10 digit mobile number";
-        } else {
-          delete updated.phone;
-        }
-      }
-
-      /* ================= EMAIL VALIDATION ================= */
-
-      if (name === "email" && !emailOptional) {
-        if (fieldValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldValue)) {
-          updated.email = "Enter valid email address";
-        } else {
-          delete updated.email;
-        }
-      }
-
-      /* ================= EMERGENCY NUMBER ================= */
-
-      if (name === "emergencyNumber" && !skipEmergency) {
-        if (!fieldValue) {
-          updated.emergencyNumber = "Emergency contact number is required";
-        } else if (!/^[6-9]\d{9}$/.test(fieldValue)) {
-          updated.emergencyNumber = "Enter valid 10 digit mobile number";
-        } else {
-          delete updated.emergencyNumber;
-        }
-      }
-
-      /* ================= STATE VALIDATION ================= */
-
-      if (name === "state") {
-        if (!fieldValue) {
-          updated.state = "State is required";
-        } else if (
-          event?.rules?.stateRules &&
-          event.rules.stateRules.allowAllIndia === false &&
-          event.rules.stateRules.allowedStates?.length > 0 &&
-          !event.rules.stateRules.allowedStates.includes(fieldValue)
-        ) {
-          updated.state =
-            `Registration is allowed only for: ` +
-            event.rules.stateRules.allowedStates.join(", ");
-        } else {
-          delete updated.state;
-        }
-      }
-
-      /* ================= PINCODE VALIDATION ================= */
-
-      if (name === "pincode") {
-        if (!fieldValue) {
-          updated.pincode = "Pincode is required";
-        } else if (!/^[1-9][0-9]{5}$/.test(fieldValue)) {
-          updated.pincode = "Enter valid 6 digit pincode";
-        } else {
-          delete updated.pincode;
-        }
-      }
-
-      return updated;
-    });
+        return updated;
+      });
+    }
 
     setFormError("");
   };
@@ -592,7 +560,6 @@ export default function RegisterPage() {
     return <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>;
   };
 
-  const cat = event?.categories?.find((c) => c.title === selectedCat) ?? null;
   const loadRazorpay = () => {
     return new Promise<boolean>((resolve) => {
       if ((window as any).Razorpay) {
@@ -629,16 +596,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // 🚫 Prevent double click
+    if (isProcessing) return;
 
+    setIsProcessing(true);
     setFormError("");
 
     // 1️⃣ Validate basic required fields
     const isValid = validateForm();
     if (!isValid) {
       setFormError("Please fix the highlighted errors.");
+      setIsProcessing(false); // ✅ FIX
       return;
     }
-
     // 2️⃣ Ensure event exists
     if (!event) {
       setFormError("Event not loaded properly.");
@@ -706,6 +676,8 @@ export default function RegisterPage() {
         order_id: order.order.id,
 
         handler: async function (response: any) {
+          // 🔒 Lock UI
+          setVerifyingPayment(true);
           try {
             const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
@@ -863,11 +835,7 @@ export default function RegisterPage() {
   }, [form, hydrated]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-xl font-semibold">
-        Loading...
-      </div>
-    );
+    return <RegisterPageSkeleton />;
   }
   if (!hydrated) {
     return null;
@@ -888,6 +856,21 @@ export default function RegisterPage() {
 
   return (
     <main className="bg-[#F3F6FB] min-h-screen py-10">
+      {verifyingPayment && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999]">
+          <div className="bg-white rounded-xl p-8 shadow-xl text-center space-y-4">
+            <div className="animate-spin h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
+
+            <h2 className="text-lg font-semibold text-gray-900">
+              Verifying Payment
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Please wait while we confirm your registration.
+            </p>
+          </div>
+        </div>
+      )}
       <PopupModal
         open={popup.open}
         message={popup.message}
@@ -918,114 +901,7 @@ export default function RegisterPage() {
             </div>
 
             {/* CONTENT */}
-            <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
-              <p>
-                Welcome to <strong>Race Line India</strong>. By registering for
-                any event through our platform, you acknowledge that you have
-                read, understood, and agreed to the following Terms and
-                Conditions.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                1. Participant Responsibility
-              </h3>
-              <p>
-                Participants confirm that they are physically fit and medically
-                capable of taking part in the event. Participation is at the
-                participant’s own risk, and they are responsible for their own
-                safety, health, and conduct throughout the event.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                2. Registration & Information Accuracy
-              </h3>
-              <p>
-                All registration details must be accurate and complete.
-                Providing incorrect or misleading information may result in
-                disqualification without refund.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                3. Payments & Refunds
-              </h3>
-              <p>
-                Registration is confirmed only after successful payment.
-                Payments are securely processed via third-party payment
-                gateways. Race Line India does not store or handle payment
-                details. Registration fees are non-refundable and
-                non-transferable unless stated otherwise by the event organizer.
-                Additional payment gateway charges may apply.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                4. Platform Role & Organizer Responsibility
-              </h3>
-              <p>
-                Race Line India acts solely as a registration and event-listing
-                platform. Event organizers are fully responsible for event
-                planning, safety arrangements, permissions, and execution. Race
-                Line India is not liable for any event-related incidents.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                5. Event Changes or Cancellation
-              </h3>
-              <p>
-                Event details such as date, venue, or schedule may change due to
-                weather conditions, government regulations, or unforeseen
-                circumstances. Race Line India is not responsible for any
-                personal costs incurred due to such changes or cancellations.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                6. Liability Waiver
-              </h3>
-              <p>
-                Participants agree that Race Line India, event organizers,
-                sponsors, partners, and volunteers shall not be held liable for
-                any injury, loss, damage, illness, or death arising before,
-                during, or after the event.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">
-                7. Media & Promotion
-              </h3>
-              <p>
-                Participants grant permission for photographs and videos
-                captured during the event to be used for promotional and
-                marketing purposes without compensation.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">8. Data Privacy</h3>
-              <p>
-                Personal information collected is used only for event-related
-                communication and administration. Race Line India does not sell
-                or misuse participant data.
-              </p>
-
-              <h3 className="font-semibold text-gray-900">9. Governing Law</h3>
-              <p>
-                These Terms and Conditions are governed by the laws of India,
-                and any disputes shall be subject to the jurisdiction of Indian
-                courts.
-              </p>
-
-              <p className="pt-2 font-medium text-gray-900">
-                By proceeding with registration, you agree to all the above
-                terms and conditions.
-              </p>
-
-              <p className="text-sm text-gray-600">
-                For support, contact us at{" "}
-                <a
-                  href="mailto:support@racelineindia.in"
-                  className="text-[var(--color-orange-500)] underline"
-                >
-                  support@racelineindia.in
-                </a>
-              </p>
-            </div>
-
+            <EventTermsContent />
             {/* FOOTER */}
             <div className="flex justify-end mt-6">
               <button
@@ -1184,7 +1060,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   form="registration-form"
-                  disabled={isProcessing}
+                  disabled={!selectedCat || isProcessing}
                   className={`flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white transition
           ${
             isProcessing

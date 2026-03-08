@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { EventData } from "@/types/event";
 
 /* COMPONENTS */
@@ -18,77 +16,65 @@ import EventLocation from "@/components/event/EventLocation";
 import ImportantInfo from "@/components/event/ImportantInfo";
 import StickyRegisterCard from "@/components/event/StickyRegisterCard";
 import MobileRegisterBar from "@/components/event/MobileRegisterBar";
-
+import EventPageSkeleton from "./loading";
 /* ================= PAGE ================= */
 
 export default function EventPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) return;
+
     const fetchEvent = async () => {
       try {
-        const q = query(collection(db, "events"), where("slug", "==", slug));
-        const snap = await getDocs(q);
+        const res = await fetch(`/api/events/${slug}`, { cache: "no-store" });
 
-        if (!snap.empty) {
-          const docSnap = snap.docs[0];
-          const raw = docSnap.data();
+        const data = await res.json();
 
-          const formattedEvent: EventData = {
-            id: docSnap.id,
-
-            name: raw.name ?? "",
-            slug: raw.slug ?? "",
-            bannerURL: raw.bannerURL ?? "",
-
-            eventType: raw.eventType ?? "Event",
-
-            venue: raw.venue ?? "",
-            city: raw.city ?? "",
-            mapLink: raw.mapLink ?? "",
-
-            gateOpen: raw.gateOpen ?? "",
-            raceStart: raw.raceStart ?? "",
-
-            description: raw.description ?? "",
-
-            medicalNote: raw.medicalNote ?? "",
-
-            maxParticipants: raw.maxParticipants ?? 0,
-
-            categories: raw.categories ?? [],
-
-            inclusions: raw.inclusions ?? {},
-
-            date: raw.date?.toDate
-              ? raw.date.toDate()
-              : raw.date?.seconds
-                ? new Date(raw.date.seconds * 1000)
-                : null,
-
-            registration: {
-              start: raw.registration?.start?.toDate
-                ? raw.registration.start.toDate()
-                : raw.registration?.start?.seconds
-                  ? new Date(raw.registration.start.seconds * 1000)
-                  : undefined,
-
-              end: raw.registration?.end?.toDate
-                ? raw.registration.end.toDate()
-                : raw.registration?.end?.seconds
-                  ? new Date(raw.registration.end.seconds * 1000)
-                  : undefined,
-
-              status: raw.registration?.status ?? "closed",
-            },
-          };
-
-          setEvent(formattedEvent);
+        if (!res.ok) {
+          console.error("API ERROR:", data);
+          setEvent(null);
+          return;
         }
+
+        const raw = data;
+
+        const formattedEvent: EventData = {
+          id: raw.id,
+          name: raw.name ?? "",
+          slug: raw.slug ?? "",
+          bannerURL: raw.bannerURL ?? "",
+          eventType: raw.eventType ?? "Event",
+          venue: raw.venue ?? "",
+          city: raw.city ?? "",
+          mapLink: raw.mapLink ?? "",
+          gateOpen: raw.gateOpen ?? "",
+          raceStart: raw.raceStart ?? "",
+          description: raw.description ?? "",
+          medicalNote: raw.medicalNote ?? "",
+          maxParticipants: raw.maxParticipants ?? 0,
+          categories: raw.categories ?? [],
+          inclusions: raw.inclusions ?? {},
+          date: raw.date?.seconds ? new Date(raw.date.seconds * 1000) : null,
+
+          registration: {
+            start: raw.registration?.start?.seconds
+              ? new Date(raw.registration.start.seconds * 1000)
+              : undefined,
+
+            end: raw.registration?.end?.seconds
+              ? new Date(raw.registration.end.seconds * 1000)
+              : undefined,
+
+            status: raw.registration?.status ?? "closed",
+          },
+        };
+
+        setEvent(formattedEvent);
       } catch (err) {
         console.error("Error loading event:", err);
       } finally {
@@ -99,18 +85,9 @@ export default function EventPage() {
     fetchEvent();
   }, [slug]);
 
-  /* ================= LOADING ================= */
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B1220] text-white">
-        <p className="animate-pulse text-lg">Loading event...</p>
-      </div>
-    );
+    return <EventPageSkeleton />;
   }
-
-  /* ================= EVENT NOT FOUND ================= */
-
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0B1220] text-white">

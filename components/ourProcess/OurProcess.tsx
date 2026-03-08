@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   ChatBubbleLeftRightIcon,
   GlobeAltIcon,
@@ -50,7 +51,7 @@ const steps = [
 
 export default function OurProcess() {
   return (
-    <section className="bg-white overflow-hidden mt-20">
+    <div className="bg-white overflow-hidden mt-16 md:mt-20">
       <div className="max-w-6xl mx-auto px-4">
         {/* Heading */}
         <motion.div
@@ -58,49 +59,55 @@ export default function OurProcess() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center border-title"
+          className="mb-12 md:mb-16 text-center border-title"
         >
-          <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 main-title">
-            <span>OUR PROCESS</span>
+          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
+            <span>Our Event Registration & Race Timing Process</span>
           </h2>
-          <p className="mt-3 text-2xl md:text-3xl lg:text-4xl text-gray-600 max-w-2xl mx-auto tan">
-            Choose your next experience and register instantly.
+
+          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
+            A simple workflow for organizers to launch and manage sports events
+            with our platform.
           </p>
         </motion.div>
 
-        {/* Steps */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-14">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
-              className="group flex flex-col items-center"
-            >
-              <div className="relative w-full rounded-2xl border border-gray-200 bg-white p-8 text-center transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl">
-                {/* Step Number */}
-                <div
-                  className={`absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-bold ${step.text} ${step.border} border`}
-                >
-                  STEP {index + 1}
-                </div>
+        {/* Steps Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 md:gap-8">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
 
-                {/* Icon */}
-                <div
-                  className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full ${step.color} transition-transform duration-300 group-hover:scale-110`}
-                >
-                  <step.icon className="h-7 w-7 text-white" />
-                </div>
+            return (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="group flex flex-col items-center"
+              >
+                <div className="relative w-full rounded-xl border border-gray-200 bg-white p-5 md:p-6 text-center transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
+                  {/* Step Badge */}
+                  <div
+                    className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-[3px] text-[11px] font-bold ${step.text} ${step.border} border`}
+                  >
+                    STEP {index + 1}
+                  </div>
 
-                {/* Title */}
-                <h3 className="text-sm font-semibold text-gray-800 leading-snug">
-                  {step.title}
-                </h3>
-              </div>
-            </motion.div>
-          ))}
+                  {/* Icon */}
+                  <div
+                    className={`mx-auto mb-4 flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full ${step.color} transition-transform duration-300 group-hover:scale-110`}
+                  >
+                    <Icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-xs md:text-sm font-semibold text-gray-800 leading-snug">
+                    {step.title}
+                  </h3>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Read More */}
@@ -111,14 +118,14 @@ export default function OurProcess() {
           transition={{ delay: 0.4 }}
           className="mt-10 text-center"
         >
-          <a
+          <Link
             href="/our-process"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-orange-500 px-12 py-3 text-sm font-semibold uppercase text-orange-500 transition-all duration-300 hover:bg-orange-500 hover:text-white hover:shadow-lg"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-orange-500 px-8 md:px-12 py-2.5 md:py-3 text-xs md:text-sm font-semibold uppercase text-orange-500 transition-all duration-300 hover:bg-orange-500 hover:text-white hover:shadow-lg"
           >
             Read More <ArrowRightIcon className="h-4 w-4" />
-          </a>
+          </Link>
         </motion.div>
       </div>
-    </section>
+    </div>
   );
 }
