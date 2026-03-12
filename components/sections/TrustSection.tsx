@@ -28,7 +28,7 @@ export default function TrustSection() {
               transition={{ delay: i * 0.1 }}
               viewport={{ once: true }}
             >
-              <p className="text-3xl md:text-4xl font-bold text-orange-500">
+              <p className="text-3xl md:text-3xl font-bold text-orange-500">
                 {item.value}
               </p>
 

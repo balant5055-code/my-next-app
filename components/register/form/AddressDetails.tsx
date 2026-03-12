@@ -2,8 +2,9 @@
 
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
-
 import { MapPinIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { FIELD_HELP } from "@/lib/formFieldHelp";
 
 interface Props {
   form: any;
@@ -37,8 +38,10 @@ export default function AddressDetails({ form, errors, handleChange }: Props) {
       <div className="space-y-5">
         {/* ADDRESS */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            Address <span className="text-red-500">*</span>
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Residential Address
+            <span className="text-red-500">*</span>
+            <InfoTooltip text={FIELD_HELP.address} />
           </label>
 
           <AnimatedInput
@@ -57,8 +60,10 @@ export default function AddressDetails({ form, errors, handleChange }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* STATE */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              State <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              State
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.state} />
             </label>
 
             <AnimatedSelect
@@ -116,8 +121,10 @@ export default function AddressDetails({ form, errors, handleChange }: Props) {
 
           {/* PINCODE */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Pincode <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Postal Code
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.pincode} />
             </label>
 
             <AnimatedInput

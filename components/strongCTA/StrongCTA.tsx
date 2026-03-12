@@ -107,7 +107,7 @@ export default function StrongCTA() {
 
         {/* privacy text */}
         {/* HEADER */}
-        <h2 className="text-xl sm:text-3xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">
           Start Managing Sports Event Registrations & Race Timing in Minutes
         </h2>
         {/* Hidden SEO text */}

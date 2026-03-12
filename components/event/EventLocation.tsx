@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   MapPinIcon,
   ArrowTopRightOnSquareIcon,
+  FlagIcon,
 } from "@heroicons/react/24/outline";
 
 interface EventLocationProps {
@@ -43,16 +44,34 @@ export default function EventLocation({ event }: EventLocationProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 border border-orange-100">
-            <MapPinIcon className="h-5 w-5 text-orange-600" />
-          </div>
+          <div className="">
+            {/* Top label row */}
+            <div className="flex items-center gap-3 mb-3">
+              {/* Icon badge */}
+              <div
+                className="flex items-center justify-center 
+      w-8 h-8 sm:w-9 sm:h-9 
+      rounded-lg bg-red-50 border border-red-100"
+              >
+                <MapPinIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+              </div>
 
-          <div>
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-              Event Location
+              {/* Label */}
+              <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-red-500 uppercase">
+                Event
+              </span>
+
+              {/* Divider */}
+              <span className="flex-1 h-[1px] bg-gradient-to-r from-red-200 via-red-100 to-transparent"></span>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+              Location
             </h2>
 
-            <p className="text-xs text-gray-500">
+            {/* Description */}
+            <p className="text-gray-500 text-sm sm:text-base mt-1 sm:mt-2 max-w-xl">
               Race start point and venue details
             </p>
           </div>

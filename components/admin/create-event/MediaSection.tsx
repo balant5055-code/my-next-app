@@ -1,14 +1,16 @@
 "use client";
 
+import { useState } from "react";
+import { PhotoIcon, LinkIcon } from "@heroicons/react/24/outline";
+import imageCompression from "browser-image-compression";
 interface Props {
   data: any;
   errors: Record<string, string>;
-  onChange: (path: string, value: string) => void;
+  onChange: (path: string, value: any) => void;
   bannerPreview: string | null;
   setBannerFile: (file: File | null) => void;
   setBannerPreview: (url: string | null) => void;
 }
-import { PhotoIcon, LinkIcon } from "@heroicons/react/24/outline";
 
 export default function MediaSection({
   data,
@@ -18,118 +20,265 @@ export default function MediaSection({
   setBannerFile,
   setBannerPreview,
 }: Props) {
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [zoom, setZoom] = useState(1);
+  const [posX, setPosX] = useState(0);
+  const [posY, setPosY] = useState(0);
+  const [overlay, setOverlay] = useState(0.3);
+
+  /* ==============================
+        POSTER UPLOAD
+  ============================== */
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    /* ✅ FILE TYPE VALIDATION */
+    /* IMAGE COMPRESSION OPTIONS */
+
+    const options = {
+      maxSizeMB: 0.8,
+      maxWidthOrHeight: 1600,
+      useWebWorker: true,
+      fileType: "image/webp",
+    };
+
+    /* COMPRESS IMAGE */
+
+    const compressedFile = await imageCompression(file, options);
+
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
     if (!allowedTypes.includes(file.type)) {
-      alert("Only JPG, PNG, or WebP images are allowed.");
+      alert("Only JPG, PNG or WebP images allowed.");
       return;
     }
 
-    /* ✅ FILE SIZE VALIDATION (2MB) */
     const maxSizeMB = 2;
+
     if (file.size > maxSizeMB * 1024 * 1024) {
-      alert("Banner must be under 2MB.");
+      alert("Poster must be under 2MB.");
       return;
     }
 
-    /* ✅ IMAGE DIMENSION VALIDATION */
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(compressedFile);
 
-    img.onload = () => {
-      const width = img.width;
-      const height = img.height;
-      const aspectRatio = width / height;
+    setBannerFile(compressedFile);
+    setBannerPreview(objectUrl);
+  };
 
-      const requiredRatio = 16 / 9;
-      const ratioTolerance = 0.02; // small tolerance
+  /* ==============================
+        RESET CONTROLS
+  ============================== */
 
-      /* ❌ Aspect Ratio Check */
-      if (Math.abs(aspectRatio - requiredRatio) > ratioTolerance) {
-        alert("Banner must be landscape 16:9 ratio (example: 1920x1080).");
-        URL.revokeObjectURL(objectUrl);
-        return;
-      }
+  const resetControls = () => {
+    setZoom(1);
+    setPosX(0);
+    setPosY(0);
+    setOverlay(0.3);
+  };
 
-      /* ❌ Minimum Resolution Check */
-      if (width < 1280 || height < 720) {
-        alert("Minimum resolution required is 1280x720.");
-        URL.revokeObjectURL(objectUrl);
-        return;
-      }
+  /* ==============================
+        SAVE VIEWER SETTINGS
+  ============================== */
 
-      /* ✅ VALID */
-      setBannerFile(file);
-      setBannerPreview(objectUrl);
-    };
-
-    img.onerror = () => {
-      alert("Invalid image file.");
-    };
-
-    img.src = objectUrl;
+  const saveViewerSettings = () => {
+    onChange("bannerViewer", {
+      zoom,
+      posX,
+      posY,
+      overlayOpacity: overlay,
+    });
   };
 
   return (
-    <section className="bg-[#0f172a] border border-slate-700 rounded-2xl p-6 space-y-8">
+    <section className="bg-[#0f172a] border border-slate-700 rounded-2xl p-6 space-y-10">
       {/* HEADER */}
       <div>
         <h2 className="text-lg font-semibold text-white">
-          Media & Social Configuration
+          Media & Poster Configuration
         </h2>
+
         <p className="text-sm text-slate-400">
-          Upload banner and configure public social links.
+          Upload event poster and adjust how it appears on the event page.
         </p>
       </div>
 
-      {/* ================= BANNER ================= */}
-      {/* ================= BANNER ================= */}
+      {/* ==============================
+            POSTER UPLOAD
+      ============================== */}
+
       <div>
         <label className="block text-sm text-slate-300 mb-3">
-          Event Banner
+          Event Poster
         </label>
 
-        <div className="relative border-2 border-dashed border-slate-600 rounded-2xl p-8 text-center hover:border-indigo-500 transition bg-slate-800/60">
-          <PhotoIcon className="w-10 h-10 mx-auto text-indigo-400 mb-3" />
+        {!bannerPreview && (
+          <div className="relative border-2 border-dashed border-slate-600 rounded-2xl p-10 text-center hover:border-indigo-500 transition bg-slate-800/60">
+            <PhotoIcon className="w-10 h-10 mx-auto text-indigo-400 mb-3" />
 
-          <p className="text-sm text-slate-300">Click to upload banner image</p>
-          <p className="text-xs text-slate-400 mt-2">
-            Required: Landscape 16:9 ratio (1920x1080 recommended), Max 2MB
-          </p>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleBannerUpload}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-        </div>
+            <p className="text-sm text-slate-300">
+              Click to upload event poster
+            </p>
+
+            <p className="text-xs text-slate-400 mt-2">
+              Any orientation supported (portrait / landscape). Recommended
+              resolution: 1200px+ width.
+            </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleBannerUpload}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </div>
+        )}
+
+        {/* ==============================
+              POSTER PREVIEW EDITOR
+        ============================== */}
 
         {bannerPreview && (
-          <div className="mt-6 relative">
-            <img
-              src={bannerPreview}
-              alt="Preview"
-              className="rounded-2xl border border-slate-700 w-full aspect-video object-cover shadow-xl"
-            />
+          <div className="space-y-6">
+            {/* HERO PREVIEW */}
 
-            <button
-              onClick={() => {
-                setBannerFile(null);
-                setBannerPreview(null);
-              }}
-              className="absolute top-3 right-3 bg-rose-600 hover:bg-rose-500 text-white text-xs px-3 py-1 rounded-lg"
-            >
-              Remove
-            </button>
+            <div className="relative h-[420px] rounded-2xl overflow-hidden bg-black border border-slate-700">
+              {/* BLUR BACKGROUND */}
+
+              <img
+                src={bannerPreview}
+                className="absolute inset-0 w-full h-full object-cover blur-3xl scale-110 opacity-60"
+              />
+
+              {/* OVERLAY */}
+
+              <div
+                className="absolute inset-0 bg-black"
+                style={{ opacity: overlay }}
+              />
+
+              {/* MAIN POSTER */}
+
+              <img
+                src={bannerPreview}
+                className="absolute left-1/2 top-1/2 max-h-[380px] object-contain"
+                style={{
+                  transform: `translate(-50%, -50%) scale(${zoom}) translate(${posX}px, ${posY}px)`,
+                }}
+              />
+
+              {/* REMOVE BUTTON */}
+
+              <button
+                onClick={() => {
+                  setBannerFile(null);
+                  setBannerPreview(null);
+                }}
+                className="absolute top-3 right-3 bg-rose-600 hover:bg-rose-500 text-white text-xs px-3 py-1 rounded-lg"
+              >
+                Remove
+              </button>
+            </div>
+
+            {/* ==============================
+                  CONTROL PANEL
+            ============================== */}
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* ZOOM */}
+
+              <div>
+                <label className="text-xs text-slate-400">Zoom</label>
+
+                <input
+                  type="range"
+                  min="0.6"
+                  max="1.6"
+                  step="0.01"
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* OVERLAY */}
+
+              <div>
+                <label className="text-xs text-slate-400">
+                  Background Overlay
+                </label>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="0.7"
+                  step="0.01"
+                  value={overlay}
+                  onChange={(e) => setOverlay(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* POSITION X */}
+
+              <div>
+                <label className="text-xs text-slate-400">
+                  Horizontal Position
+                </label>
+
+                <input
+                  type="range"
+                  min="-200"
+                  max="200"
+                  value={posX}
+                  onChange={(e) => setPosX(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* POSITION Y */}
+
+              <div>
+                <label className="text-xs text-slate-400">
+                  Vertical Position
+                </label>
+
+                <input
+                  type="range"
+                  min="-200"
+                  max="200"
+                  value={posY}
+                  onChange={(e) => setPosY(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+
+            <div className="flex gap-3">
+              <button
+                onClick={resetControls}
+                className="px-4 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 text-white"
+              >
+                Reset
+              </button>
+
+              <button
+                onClick={saveViewerSettings}
+                className="px-4 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white"
+              >
+                Apply Viewer Settings
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ================= SOCIAL LINKS ================= */}
+      {/* ==============================
+            SOCIAL LINKS
+      ============================== */}
+
       <div className="space-y-6">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
           Social Links
@@ -137,46 +286,35 @@ export default function MediaSection({
 
         <div className="grid md:grid-cols-2 gap-6">
           {[
-            { key: "facebook", label: "Facebook URL", color: "blue" },
-            { key: "instagram", label: "Instagram URL", color: "pink" },
-            { key: "youtube", label: "YouTube URL", color: "red" },
-            { key: "whatsapp", label: "WhatsApp Link", color: "green" },
-          ].map((item) => {
-            const colorMap: any = {
-              blue: "from-blue-500 to-blue-600 shadow-blue-500/30",
-              pink: "from-pink-500 to-purple-600 shadow-pink-500/30",
-              red: "from-rose-500 to-red-600 shadow-red-500/30",
-              green: "from-emerald-500 to-green-600 shadow-emerald-500/30",
-            };
+            { key: "facebook", label: "Facebook URL" },
+            { key: "instagram", label: "Instagram URL" },
+            { key: "youtube", label: "YouTube URL" },
+            { key: "whatsapp", label: "WhatsApp Link" },
+          ].map((item) => (
+            <div key={item.key}>
+              <label className="block text-xs text-slate-400 mb-2">
+                {item.label}
+              </label>
 
-            return (
-              <div key={item.key}>
-                <label className="block text-xs text-slate-400 mb-2">
-                  {item.label}
-                </label>
-
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                    <div
-                      className={`w-7 h-7 flex items-center justify-center rounded-md bg-gradient-to-br ${colorMap[item.color]} text-white shadow-md`}
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                    </div>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-md bg-indigo-600 text-white">
+                    <LinkIcon className="w-4 h-4" />
                   </div>
-
-                  <input
-                    type="text"
-                    value={data.socialLinks?.[item.key] || ""}
-                    onChange={(e) =>
-                      onChange(`socialLinks.${item.key}`, e.target.value)
-                    }
-                    placeholder={item.label}
-                    className="w-full pl-14 pr-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                  />
                 </div>
+
+                <input
+                  type="text"
+                  value={data.socialLinks?.[item.key] || ""}
+                  onChange={(e) =>
+                    onChange(`socialLinks.${item.key}`, e.target.value)
+                  }
+                  placeholder={item.label}
+                  className="w-full pl-14 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-sm text-white"
+                />
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </section>

@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircleIcon,
   ClipboardDocumentIcon,
@@ -14,10 +14,11 @@ import {
   ArrowRightIcon,
   CalendarDaysIcon,
   ShareIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { FireIcon } from "@heroicons/react/24/solid";
 import confetti from "canvas-confetti";
-
+import AlertModal from "@/components/ui/AlertModal";
 import { secureFetch } from "@/lib/secureFetch";
 
 const myConfetti = confetti.create(undefined, {
@@ -27,26 +28,29 @@ const myConfetti = confetti.create(undefined, {
 
 export default function PaymentSuccess() {
   const searchParams = useSearchParams();
-  const regId = searchParams.get("regId");
-
+  const orderId = searchParams.get("orderId");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
-  const [registration, setRegistration] = useState<any>(null);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [ticketIndex, setTicketIndex] = useState(0);
+  const registration = registrations[ticketIndex];
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">(
     "desktop",
   );
   useEffect(() => {
-    if (!regId) return;
+    if (!orderId) return;
 
     const fetchRegistration = async () => {
       try {
-        const res = await fetch(`/api/get-registration?regId=${regId}`);
+        const res = await fetch(`/api/get-registration?orderId=${orderId}`);
         const data = await res.json();
 
         if (data.success) {
-          setRegistration(data.data);
+          setRegistrations(data.data);
           triggerConfetti();
         }
       } catch (err) {
@@ -65,8 +69,16 @@ export default function PaymentSuccess() {
       setDeviceType("desktop");
     }
     fetchRegistration();
-  }, [regId]);
+  }, [orderId]);
+  useEffect(() => {
+    if (!registrations.length) return;
 
+    const timer = setTimeout(() => {
+      downloadAllRunnerQR();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [registrations]);
   const copyToClipboard = (text: string | null, type: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -95,37 +107,337 @@ export default function PaymentSuccess() {
     fire(0.1, { spread: 120, startVelocity: 45 });
   };
 
-  const downloadQRAsPNG = () => {
-    if (!qrRef.current) return;
+  const downloadQRAsPNG = async () => {
+    if (!registration) return;
 
-    const svg = qrRef.current.querySelector("svg");
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1920;
+
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    const img = new Image();
-    const svgBlob = new Blob([svgData], {
-      type: "image/svg+xml;charset=utf-8",
-    });
+    ctx.textAlign = "center";
 
-    const url = URL.createObjectURL(svgBlob);
+    /* ---------- WHITE BACKGROUND ---------- */
 
-    img.onload = () => {
-      canvas.width = img.width * 2;
-      canvas.height = img.height * 2;
-      ctx?.scale(2, 2);
-      ctx?.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 1080, 1920);
 
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `${registration.registrationId}.png`;
-      link.click();
-    };
+    /* ---------- PREMIUM BORDER ---------- */
 
-    img.src = url;
+    ctx.strokeStyle = "rgba(220,38,38,0.25)";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(40, 40, 1000, 1840);
+
+    ctx.strokeStyle = "rgba(0,0,0,0.06)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(60, 60, 960, 1800);
+
+    /* ---------- VECTOR STYLE PATTERN ---------- */
+
+    ctx.strokeStyle = "rgba(220,38,38,0.08)";
+    ctx.lineWidth = 4;
+
+    for (let i = 0; i < 12; i++) {
+      ctx.beginPath();
+      ctx.arc(540, 400 + i * 150, 420, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    /* ---------- LOAD IMAGE HELPER ---------- */
+
+    const loadImage = (src: string) =>
+      new Promise<HTMLImageElement>((resolve) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => resolve(img);
+      });
+
+    /* ---------- RACELINE LOGO ---------- */
+
+    const logo = await loadImage("/logo/raceline-in.png");
+
+    const logoWidth = 300;
+    const logoHeight = (logo.height / logo.width) * logoWidth;
+
+    ctx.drawImage(logo, 540 - logoWidth / 2, 100, logoWidth, logoHeight);
+
+    /* ---------- EVENT NAME ---------- */
+
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 68px 'Inter', sans-serif";
+
+    ctx.fillText(
+      registration.eventName?.slice(0, 22) || "MARATHON EVENT",
+      540,
+      340,
+    );
+
+    /* ---------- RUNNER NAME ---------- */
+
+    const fullName = `${registration.participant?.firstName || ""} ${
+      registration.participant?.lastName || ""
+    }`.trim();
+
+    ctx.font = "bold 70px sans-serif";
+    ctx.fillText(fullName.toUpperCase(), 540, 520);
+
+    /* ---------- CATEGORY ---------- */
+
+    ctx.fillStyle = "#dc2626";
+    ctx.font = "42px sans-serif";
+
+    ctx.fillText(registration.category.toUpperCase(), 540, 600);
+
+    /* ---------- DATE ---------- */
+
+    ctx.fillStyle = "#333";
+    ctx.font = "36px sans-serif";
+
+    if (formattedDate) {
+      ctx.fillText(formattedDate, 540, 660);
+    }
+
+    /* ---------- REGISTRATION ID ---------- */
+
+    ctx.font = "28px monospace";
+    ctx.fillText(`#${registration.registrationId}`, 540, 720);
+
+    /* ---------- QR CONTAINER ---------- */
+
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0,0,0,0.15)";
+    ctx.shadowBlur = 30;
+
+    ctx.fillRect(360, 820, 360, 360);
+
+    ctx.shadowBlur = 0;
+
+    /* ---------- QR CODE ---------- */
+
+    const qrData = await QRCode.toDataURL(qrValue);
+    const qrImg = await loadImage(qrData);
+
+    ctx.drawImage(qrImg, 400, 860, 280, 280);
+
+    /* ---------- QR LABEL ---------- */
+
+    ctx.fillStyle = "#555";
+    ctx.font = "30px sans-serif";
+
+    ctx.fillText("SCAN AT RACE CHECK-IN", 540, 1260);
+
+    /* ---------- MOTIVATION ---------- */
+
+    ctx.fillStyle = "#dc2626";
+    ctx.font = "bold 54px sans-serif";
+
+    ctx.fillText("ALL THE BEST!", 540, 1480);
+
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 36px sans-serif";
+
+    ctx.fillText("RACELINE INDIA", 540, 1560);
+
+    /* ---------- DIVIDER ---------- */
+
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(200, 1650);
+    ctx.lineTo(880, 1650);
+    ctx.stroke();
+
+    /* ---------- WEBSITE ---------- */
+
+    ctx.fillStyle = "#dc2626";
+    ctx.font = "bold 32px sans-serif";
+
+    ctx.fillText("www.racelineindia.com", 540, 1700);
+
+    /* ---------- DOWNLOAD ---------- */
+
+    const link = document.createElement("a");
+    link.download = `${registration.registrationId}-race-ticket.png`;
+    link.href = canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadAllRunnerQR = async () => {
+    try {
+      const loadImage = (src: string) =>
+        new Promise<HTMLImageElement>((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(img);
+        });
+
+      const logo = await loadImage("/logo/raceline-in.png");
+
+      for (const runner of registrations) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1080;
+        canvas.height = 1920;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas failed");
+
+        ctx.textAlign = "center";
+
+        /* ---------- WHITE BACKGROUND ---------- */
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        /* ---------- PREMIUM BORDER ---------- */
+
+        ctx.strokeStyle = "rgba(220,38,38,0.25)";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(40, 40, 1000, 1840);
+
+        ctx.strokeStyle = "rgba(0,0,0,0.06)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(60, 60, 960, 1800);
+
+        /* ---------- VECTOR PATTERN ---------- */
+
+        ctx.strokeStyle = "rgba(220,38,38,0.08)";
+        ctx.lineWidth = 4;
+
+        for (let i = 0; i < 12; i++) {
+          ctx.beginPath();
+          ctx.arc(540, 400 + i * 150, 420, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        /* ---------- LOGO ---------- */
+
+        const logoWidth = 300;
+        const logoHeight = (logo.height / logo.width) * logoWidth;
+
+        ctx.drawImage(logo, 540 - logoWidth / 2, 100, logoWidth, logoHeight);
+
+        /* ---------- EVENT NAME ---------- */
+
+        ctx.fillStyle = "#111";
+        ctx.font = "bold 68px sans-serif";
+
+        ctx.fillText(
+          runner.eventName?.slice(0, 22) || "MARATHON EVENT",
+          540,
+          340,
+        );
+
+        /* ---------- RUNNER NAME ---------- */
+
+        const runnerName = `${runner.participant?.firstName || ""} ${
+          runner.participant?.lastName || ""
+        }`.trim();
+
+        ctx.font = "bold 70px sans-serif";
+        ctx.fillText(runnerName.toUpperCase(), 540, 520);
+
+        /* ---------- CATEGORY ---------- */
+
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "42px sans-serif";
+
+        ctx.fillText((runner.category || "").toUpperCase(), 540, 600);
+
+        /* ---------- DATE ---------- */
+
+        ctx.fillStyle = "#333";
+        ctx.font = "36px sans-serif";
+
+        if (formattedDate) {
+          ctx.fillText(formattedDate, 540, 660);
+        }
+
+        /* ---------- REGISTRATION ID ---------- */
+
+        ctx.font = "28px monospace";
+        ctx.fillText(`#${runner.registrationId}`, 540, 720);
+
+        /* ---------- QR BOX ---------- */
+
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(0,0,0,0.15)";
+        ctx.shadowBlur = 30;
+
+        ctx.fillRect(360, 820, 360, 360);
+
+        ctx.shadowBlur = 0;
+
+        /* ---------- QR CODE ---------- */
+
+        const runnerQR = `${baseUrl}/checkin/${runner.registrationId}`;
+        const qrData = await QRCode.toDataURL(runnerQR);
+
+        const qrImg = await loadImage(qrData);
+
+        ctx.drawImage(qrImg, 400, 860, 280, 280);
+
+        /* ---------- QR LABEL ---------- */
+
+        ctx.fillStyle = "#555";
+        ctx.font = "30px sans-serif";
+
+        ctx.fillText("SCAN AT RACE CHECK-IN", 540, 1260);
+
+        /* ---------- MOTIVATION ---------- */
+
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "bold 54px sans-serif";
+
+        ctx.fillText("ALL THE BEST!", 540, 1480);
+
+        ctx.fillStyle = "#111";
+        ctx.font = "bold 36px sans-serif";
+
+        ctx.fillText("RACELINE INDIA", 540, 1560);
+
+        /* ---------- DIVIDER ---------- */
+
+        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(200, 1650);
+        ctx.lineTo(880, 1650);
+        ctx.stroke();
+
+        /* ---------- WEBSITE ---------- */
+
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "bold 32px sans-serif";
+
+        ctx.fillText("www.racelineindia.com", 540, 1700);
+
+        /* ---------- DOWNLOAD ---------- */
+
+        const link = document.createElement("a");
+        link.download = `${runner.registrationId}-race-ticket.png`;
+        link.href = canvas.toDataURL("image/png");
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        await new Promise((r) => setTimeout(r, 900));
+      }
+    } catch (err) {
+      console.error(err);
+
+      setModalMessage(
+        "Automatic ticket download failed. Please download each QR manually.",
+      );
+
+      setModalOpen(true);
+    }
   };
   const getEventJSDate = (): Date | null => {
     const raw = registration?.eventDate;
@@ -210,7 +522,7 @@ export default function PaymentSuccess() {
     );
   }
 
-  if (!registration) {
+  if (!registrations.length) {
     return (
       <div className="min-h-screen flex items-center justify-center text-red-600">
         Registration not found
@@ -234,122 +546,100 @@ export default function PaymentSuccess() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // helper function to safely load images
-      const loadImage = (src: string): Promise<HTMLImageElement | null> => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = () => resolve(img);
-          img.onerror = () => {
-            console.warn("Image failed to load:", src);
-            resolve(null);
-          };
-        });
-      };
+      ctx.textAlign = "center";
 
-      /* ---------------- BACKGROUND ---------------- */
+      /* ---------- WHITE BACKGROUND ---------- */
 
-      const bg = await loadImage("/story-bg.jpg");
-
-      if (bg) {
-        ctx.drawImage(bg, 0, 0, 1080, 1920);
-      } else {
-        const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
-        gradient.addColorStop(0, "#111111");
-        gradient.addColorStop(1, "#7f1d1d");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 1080, 1920);
-      }
-
-      /* ---------------- OVERLAY ---------------- */
-
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, 1080, 1920);
 
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#ffffff";
+      /* ---------- VECTOR RIBBON DESIGN ---------- */
 
-      /* ---------------- LOGO ---------------- */
+      ctx.strokeStyle = "rgba(220,38,38,0.08)";
+      ctx.lineWidth = 6;
 
-      const logo = await loadImage("/logo/raceline-in.png");
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
 
-      if (logo) {
-        const maxWidth = 320;
-        const scale = maxWidth / logo.width;
+        ctx.moveTo(-200, 300 + i * 320);
 
-        const logoWidth = logo.width * scale;
-        const logoHeight = logo.height * scale;
+        ctx.bezierCurveTo(
+          400,
+          150 + i * 320,
+          700,
+          450 + i * 320,
+          1280,
+          280 + i * 320,
+        );
 
-        ctx.drawImage(logo, (1080 - logoWidth) / 2, 60, logoWidth, logoHeight);
+        ctx.stroke();
       }
 
-      /* ---------------- EVENT TITLE ---------------- */
+      /* ---------- EVENT TITLE ---------- */
 
-      const eventTitle = registration?.eventName?.toUpperCase() || "MARATHON";
+      const eventTitle = registration?.eventName || "MARATHON EVENT";
 
-      ctx.font = "bold 90px sans-serif";
-      ctx.fillText(eventTitle.slice(0, 22), 540, 420);
+      ctx.fillStyle = "#111";
+      ctx.font = "bold 84px sans-serif";
 
-      /* ---------------- BADGE ---------------- */
+      ctx.fillText(eventTitle.toUpperCase().slice(0, 22), 540, 340);
+
+      /* ---------- RUNNER NAME ---------- */
+
+      const fullName = `${registration?.participant?.firstName || ""} ${
+        registration?.participant?.lastName || ""
+      }`.trim();
+
+      ctx.font = "bold 110px sans-serif";
+      ctx.fillText(fullName.toUpperCase(), 540, 720);
+
+      /* ---------- CATEGORY ---------- */
+
+      ctx.fillStyle = "#dc2626";
+      ctx.font = "56px sans-serif";
+
+      ctx.fillText((registration?.category || "").toUpperCase(), 540, 840);
+
+      /* ---------- DATE ---------- */
+
+      ctx.fillStyle = "#555";
+      ctx.font = "46px sans-serif";
+
+      ctx.fillText(formattedDate || "", 540, 920);
+
+      /* ---------- MOTIVATION ---------- */
+
+      ctx.fillStyle = "#111";
+      ctx.font = "bold 88px sans-serif";
+
+      ctx.fillText("THE START LINE", 540, 1260);
+      ctx.fillText("IS WAITING", 540, 1360);
+
+      /* ---------- HASHTAG ---------- */
 
       ctx.fillStyle = "#16a34a";
-      ctx.fillRect(360, 600, 360, 70);
+      ctx.font = "bold 54px sans-serif";
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 30px sans-serif";
-      ctx.fillText("OFFICIAL RUNNER", 540, 645);
+      ctx.fillText("#RunWithRaceline", 540, 1500);
 
-      /* ---------------- RUNNER NAME ---------------- */
+      /* ---------- FOOTER LINE ---------- */
 
-      ctx.font = "bold 70px sans-serif";
-      ctx.fillText(fullName.toUpperCase(), 540, 840);
+      ctx.strokeStyle = "rgba(0,0,0,0.1)";
+      ctx.lineWidth = 2;
 
-      /* ---------------- CATEGORY ---------------- */
+      ctx.beginPath();
+      ctx.moveTo(220, 1650);
+      ctx.lineTo(860, 1650);
+      ctx.stroke();
 
-      ctx.font = "40px sans-serif";
-      ctx.fillText(registration.category.toUpperCase(), 540, 920);
+      /* ---------- WEBSITE ---------- */
 
-      /* ---------------- DATE ---------------- */
+      ctx.fillStyle = "#dc2626";
+      ctx.font = "bold 40px sans-serif";
 
-      ctx.font = "34px sans-serif";
-      ctx.fillText(formattedDate, 540, 980);
+      ctx.fillText("racelineindia.com", 540, 1750);
 
-      /* ---------------- MOTIVATION ---------------- */
-
-      ctx.font = "bold 60px sans-serif";
-      ctx.fillText("THE START LINE", 540, 1240);
-      ctx.fillText("IS WAITING", 540, 1320);
-
-      /* ---------------- HASHTAG ---------------- */
-
-      ctx.font = "bold 44px sans-serif";
-      ctx.fillText("#RunWithRaceline", 540, 1450);
-
-      /* ---------------- QR LABEL ---------------- */
-
-      ctx.font = "28px sans-serif";
-      ctx.fillText("SCAN FOR RACE DETAILS", 540, 1550);
-
-      /* ---------------- QR CODE ---------------- */
-
-      const qrData = await QRCode.toDataURL(
-        "https://www.racelineindia.com/events",
-      );
-
-      const qrImg = await loadImage(qrData);
-
-      if (qrImg) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(420, 1580, 240, 240);
-        ctx.drawImage(qrImg, 440, 1600, 200, 200);
-      }
-
-      /* ---------------- WEBSITE ---------------- */
-
-      ctx.font = "30px sans-serif";
-      ctx.fillText("www.racelineindia.com", 540, 1860);
-
-      /* ---------------- DOWNLOAD ---------------- */
+      /* ---------- DOWNLOAD ---------- */
 
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve),
@@ -380,7 +670,12 @@ export default function PaymentSuccess() {
       console.error("Story generation failed:", err);
     }
   };
+  const totalRunners = registrations.length;
 
+  const totalAmount = registrations.reduce(
+    (sum, r) => sum + (r.amount || 0),
+    0,
+  );
   return (
     <div className="bg-[#f8f7f3] flex justify-center px-4 py-8">
       <motion.div
@@ -395,15 +690,16 @@ export default function PaymentSuccess() {
               You're officially in the race!
             </div>
 
-            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-md">
+            <span className="text-sm bg-green-600 text-white px-2 py-1 rounded-md">
               Raceline India
             </span>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_10px_40px_rgba(0,0,0,0.08)] backdrop-blur-sm">
-          <div className="grid lg:grid-cols-2">
+          <div className="grid lg:grid-cols-[1.4fr_1fr]">
             {/* LEFT */}
             <div className="p-6 space-y-4">
+              {/* HEADER */}
               {/* HEADER */}
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
@@ -411,16 +707,24 @@ export default function PaymentSuccess() {
                 </div>
 
                 <div className="flex-1">
-                  <h1 className="text-base  text-gray-900">
-                    Registration Confirmed
-                  </h1>
+                  <div className="flex items-center gap-2 text-gray-900">
+                    <h1 className="text-md font-semibold">
+                      Registration Confirmed
+                    </h1>
 
-                  <p className="text-xs text-gray-500">{fullName}</p>
+                    <span className="text-gray-300">|</span>
+
+                    <span className="text-sm font-medium text-gray-700 truncate">
+                      {registration.eventName}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-500 mt-0.5">{fullName}</p>
                 </div>
               </div>
 
               {/* EVENT INFO */}
-              <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+              <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                 <div className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-md">
                   <TicketIcon className="w-4 h-4 text-gray-500" />
                   {registration.category}
@@ -436,11 +740,6 @@ export default function PaymentSuccess() {
                   {registration.amount}
                 </div>
               </div>
-
-              {/* EVENT NAME */}
-              <h2 className="text-sm font-semibold text-gray-900 bg-gray-100 px-3 py-1.5 rounded-md inline-block">
-                {registration.eventName}
-              </h2>
 
               {/* REGISTRATION ID */}
               <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
@@ -458,21 +757,28 @@ export default function PaymentSuccess() {
                   onClick={() =>
                     copyToClipboard(registration.registrationId, "reg")
                   }
-                  className="p-1.5 rounded-md hover:bg-white transition"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-white transition text-xs"
                 >
-                  <ClipboardDocumentIcon className="w-4 h-4 text-gray-500" />
+                  {copied === "reg" ? (
+                    <>
+                      <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                      <span className="text-green-600 font-medium">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardDocumentIcon className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-500">Copy</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              {/* ACTION BUTTONS */}
-              {/* ACTIONS SECTION */}
+              {/* SHARE SECTION */}
               <div className="space-y-3">
-                {/* SHARE SECTION TITLE */}
                 <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
                   Share your race
                 </p>
 
-                {/* INSTAGRAM SHARE */}
                 <button
                   onClick={generateStoryCard}
                   className="w-full bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium shadow hover:opacity-90 transition"
@@ -481,7 +787,6 @@ export default function PaymentSuccess() {
                   Share to Instagram Story
                 </button>
 
-                {/* REMINDER TITLE */}
                 <p className="text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
                   Add race reminder
                 </p>
@@ -490,7 +795,7 @@ export default function PaymentSuccess() {
                   <a
                     href={generateGoogleCalendarLinkWithReminder()}
                     target="_blank"
-                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     <CalendarDaysIcon className="w-4 h-4 text-blue-600" />
                     Google
@@ -498,7 +803,7 @@ export default function PaymentSuccess() {
 
                   <button
                     onClick={downloadICSCalendar}
-                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     <CalendarDaysIcon className="w-4 h-4 text-gray-800" />
                     Apple
@@ -506,25 +811,58 @@ export default function PaymentSuccess() {
 
                   <button
                     onClick={downloadICSCalendar}
-                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="bg-white border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     <CalendarDaysIcon className="w-4 h-4 text-sky-600" />
                     Outlook
                   </button>
                 </div>
 
-                {/* NAVIGATION */}
+                {/* PREMIUM SUMMARY FOOTER */}
+                <div className="mt-6 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                  {/* TOTAL RUNNERS */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-gray-200">
+                      <TicketIcon className="w-4 h-4 text-gray-600" />
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">
+                        Total Runners
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {totalRunners}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* TOTAL PAID */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-gray-200">
+                      <ReceiptPercentIcon className="w-4 h-4 text-green-600" />
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">
+                        Total Paid
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        ₹ {totalAmount}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <Link
                     href="/"
-                    className="bg-gray-100 text-gray-800 py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-gray-200"
+                    className="bg-gray-100 text-gray-800 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:bg-gray-200"
                   >
                     ← Back Home
                   </Link>
 
                   <Link
                     href="/events"
-                    className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-slate-800 transition"
+                    className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:bg-slate-800 transition"
                   >
                     Explore Events
                     <ArrowRightIcon className="w-4 h-4" />
@@ -534,74 +872,134 @@ export default function PaymentSuccess() {
             </div>
 
             {/* RIGHT QR */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="border-l border-gray-200 flex items-center justify-center p-6"
-            >
-              <div
-                ref={qrRef}
-                className="relative w-full max-w-xs bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] overflow-hidden"
-              >
-                {/* TOP HEADER */}
-                <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white text-center py-4">
-                  <p className="text-[11px] tracking-wider opacity-80">
-                    DIGITAL RACE ENTRY
-                  </p>
+            {/* RIGHT QR */}
+            <motion.div className="border-l border-gray-200 flex items-center justify-center px-4 py-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={registration?.registrationId}
+                  drag="x"
+                  dragElastic={0.25}
+                  dragMomentum={false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(e, info) => {
+                    if (
+                      info.offset.x < -50 &&
+                      ticketIndex < registrations.length - 1
+                    ) {
+                      setTicketIndex((prev) => prev + 1);
+                    }
 
-                  <p className="text-xs font-mono mt-1">
-                    #{registration.registrationId}
-                  </p>
-                </div>
+                    if (info.offset.x > 50 && ticketIndex > 0) {
+                      setTicketIndex((prev) => prev - 1);
+                    }
+                  }}
+                  initial={{ opacity: 0, x: 80 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -80 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex flex-col items-center"
+                >
+                  {/* TICKET CARD */}
+                  <div
+                    ref={qrRef}
+                    className="relative w-[260px] bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden"
+                  >
+                    {/* HEADER */}
+                    <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-orange-500 to-red-600 text-white text-center py-4">
+                      <div className="absolute inset-0 opacity-20 animate-pulse bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]"></div>
 
-                {/* TICKET CUT HOLES */}
-                <div className="absolute -left-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
-                <div className="absolute -right-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
+                      <p className="text-[11px] tracking-wider opacity-80">
+                        DIGITAL RACE ENTRY
+                      </p>
 
-                {/* QR SECTION */}
-                <div className="px-6 py-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="relative flex justify-center"
-                    >
-                      {/* Glow effect */}
-                      <div className="absolute inset-0 rounded-2xl blur-xl animate-pulse"></div>
+                      <p className="text-sm font-mono mt-1">
+                        #{registration.registrationId}
+                      </p>
 
-                      {/* QR container */}
-                      <div className="relative bg-white border border-gray-200 p-3 rounded-xl shadow-md">
-                        <QRCodeCanvas value={qrValue} size={160} />
+                      <div className="mt-1 text-[10px] uppercase tracking-wider opacity-80">
+                        Official Runner
                       </div>
-                    </motion.div>
+                    </div>
+
+                    {/* CUT HOLES */}
+                    <div className="absolute -left-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
+                    <div className="absolute -right-3 top-28 w-6 h-6 bg-gray-100 rounded-full"></div>
+
+                    {/* QR */}
+                    <div className="px-6 py-6 text-center">
+                      <div className="flex justify-center mb-4">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.4 }}
+                          className="relative flex justify-center"
+                        >
+                          <div className="absolute inset-0 rounded-2xl blur-2xl animate-pulse"></div>
+
+                          <div className="relative bg-white border border-gray-200 p-3 rounded-xl shadow-md">
+                            <QRCodeCanvas value={qrValue} size={150} />
+                          </div>
+                        </motion.div>
+                      </div>
+
+                      <div className="mt-3 text-[10px] text-gray-400 uppercase tracking-wide">
+                        Present this at race check-in
+                      </div>
+
+                      {registrations.length > 1 && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          ← Swipe for next runner →
+                        </p>
+                      )}
+                    </div>
+
+                    {/* DIVIDER */}
+                    <div className="border-t border-dashed border-gray-200"></div>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="p-4 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={downloadQRAsPNG}
+                        className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-medium hover:bg-slate-800 transition"
+                      >
+                        <ArrowDownTrayIcon className="w-4 h-4" />
+                        QR
+                      </button>
+
+                      <a
+                        href={`/api/download-receipt?id=${registration.registrationId}`}
+                        className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg transition"
+                      >
+                        <ReceiptPercentIcon className="w-4 h-4 text-green-600" />
+                        Receipt
+                      </a>
+                    </div>
                   </div>
 
-                  <p className="text-xs text-gray-500">Scan at race check-in</p>
-                </div>
+                  {/* RUNNER COUNT */}
+                  {registrations.length > 1 && (
+                    <div className="text-sm text-gray-500 mt-2">
+                      Runner {ticketIndex + 1} of {registrations.length}
+                    </div>
+                  )}
 
-                {/* DIVIDER */}
-                <div className="border-t border-dashed border-gray-200"></div>
-
-                {/* ACTION BUTTONS */}
-                <div className="p-4 flex flex-col gap-2">
-                  <button
-                    onClick={downloadQRAsPNG}
-                    className="bg-slate-700 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-medium hover:bg-slate-800 transition"
-                  >
-                    Download QR
-                  </button>
-
-                  <a
-                    href={`/api/download-receipt?id=${registration.registrationId}`}
-                    className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg transition"
-                  >
-                    <ReceiptPercentIcon className="w-4 h-4 text-green-600" />
-                    Download Receipt
-                  </a>
-                </div>
-              </div>
+                  {/* DOT INDICATOR */}
+                  {registrations.length > 1 && (
+                    <div className="flex justify-center gap-1 mt-2">
+                      {registrations.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1.5 rounded-full transition-all ${
+                            i === ticketIndex
+                              ? "w-5 bg-gray-800"
+                              : "w-2 bg-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
           </div>
         </div>
@@ -674,6 +1072,12 @@ export default function PaymentSuccess() {
           </div>
         </div>
       </motion.div>
+      <AlertModal
+        open={modalOpen}
+        title="QR Download Failed"
+        message={modalMessage}
+        onClose={() => setModalOpen(false)}
+      />
     </div>
   );
 }

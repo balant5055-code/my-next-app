@@ -10,7 +10,7 @@ import MediaSection from "./MediaSection";
 import ReviewSubmitSection from "./ReviewSubmitSection";
 import { secureFetch } from "@/lib/secureFetch";
 import EventInclusionsSection from "./EventInclusionsSection";
-
+import KitDistributionSection from "./KitDistributionSection";
 import {
   CheckIcon,
   InformationCircleIcon,
@@ -29,6 +29,7 @@ type Tab =
   | "basic"
   | "organizer"
   | "registration"
+  | "kit"
   | "inclusions"
   | "categories"
   | "media"
@@ -38,14 +39,20 @@ interface Category {
   title: string;
   distance: string;
   price: string;
+
+  earlyBirdPrice?: string;
+  earlyBirdEnd?: string;
+
   minAge: string;
   maxAge: string;
   maxSeats: string;
+  unlimited?: boolean;
 }
 
 interface CreateEventForm {
   name: string;
   slug: string;
+  tagline: string;
   eventType: string;
 
   date: string;
@@ -78,7 +85,11 @@ interface CreateEventForm {
   medicalNote: string;
 
   bannerURL: string;
-
+  kitDistribution: {
+    date: string;
+    venue: string;
+    time: string;
+  };
   categories: Category[];
   // ✅ ADD THIS
   inclusions: {
@@ -138,6 +149,11 @@ export default function CreateEventLayout() {
       refundPolicy: "",
       medicalNote: "",
       bannerURL: "",
+      kitDistribution: {
+        date: "",
+        venue: "",
+        time: "",
+      },
       categories: [],
       inclusions: {
         apparel: [],
@@ -212,6 +228,7 @@ export default function CreateEventLayout() {
 
   const handleSubmit = async () => {
     localStorage.removeItem("eventDraft");
+
     if (!validateForm()) {
       setActiveTab("basic");
       return;
@@ -219,11 +236,24 @@ export default function CreateEventLayout() {
 
     try {
       setLoading(true);
-      const payload = { ...formData, status };
+
+      /* CREATE FORM DATA */
+
+      const form = new FormData();
+
+      /* attach event data */
+
+      form.append("data", JSON.stringify(formData));
+
+      /* attach poster file */
+
+      if (bannerFile) {
+        form.append("banner", bannerFile);
+      }
+
       const res = await secureFetch("/api/admin/create-event", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: form,
       });
 
       const json = await res.json();
@@ -270,6 +300,7 @@ export default function CreateEventLayout() {
                 label: "Registration",
                 icon: CalendarDaysIcon,
               },
+              { key: "kit", label: "Kit Distribution", icon: Squares2X2Icon },
               { key: "inclusions", label: "Inclusions", icon: Squares2X2Icon },
               { key: "categories", label: "Categories", icon: Squares2X2Icon },
               { key: "media", label: "Media", icon: PhotoIcon },
@@ -370,6 +401,10 @@ export default function CreateEventLayout() {
             />
           )}
 
+          {activeTab === "kit" && (
+            <KitDistributionSection data={formData} onChange={updateField} />
+          )}
+
           {activeTab === "inclusions" && (
             <EventInclusionsSection data={formData} onChange={updateField} />
           )}
@@ -404,6 +439,7 @@ export default function CreateEventLayout() {
           {activeTab === "review" && (
             <ReviewSubmitSection
               data={formData}
+              bannerPreview={bannerPreview}
               onSubmit={handleSubmit}
               loading={loading}
               onEdit={(tab) => setActiveTab(tab as Tab)}

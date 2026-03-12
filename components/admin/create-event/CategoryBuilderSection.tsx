@@ -8,6 +8,10 @@ interface Category {
   title: string;
   distance: string;
   price: string;
+
+  earlyBirdPrice?: string;
+  earlyBirdEnd?: string;
+  cutOffTime?: string;
   minAge: string;
   maxAge: string;
   maxSeats: string;
@@ -25,6 +29,10 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "2KM Fun Run",
     distance: "2",
     price: "300",
+
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "5",
     maxAge: "60",
     maxSeats: "999",
@@ -34,6 +42,9 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "3KM Kids Run",
     distance: "3",
     price: "500",
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "5",
     maxAge: "14",
     maxSeats: "999",
@@ -43,6 +54,9 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "5KM Fit Run",
     distance: "5",
     price: "800",
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "12",
     maxAge: "100",
     maxSeats: "999",
@@ -52,6 +66,9 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "10KM Pro Run",
     distance: "10",
     price: "1000",
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "16",
     maxAge: "100",
     maxSeats: "999",
@@ -61,6 +78,9 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "21KM Half Marathon",
     distance: "21",
     price: "1500",
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "18",
     maxAge: "100",
     maxSeats: "999",
@@ -70,6 +90,9 @@ const DEFAULT_CATEGORY_TEMPLATES: Record<string, Category> = {
     title: "42KM Full Marathon",
     distance: "42",
     price: "2000",
+    earlyBirdPrice: "",
+    earlyBirdEnd: "",
+    cutOffTime: "01:00",
     minAge: "18",
     maxAge: "100",
     maxSeats: "999",
@@ -107,6 +130,10 @@ export default function CategoryBuilderSection({
         title: "",
         distance: "",
         price: "",
+
+        earlyBirdPrice: "",
+        earlyBirdEnd: "",
+        cutOffTime: "",
         minAge: "",
         maxAge: "",
         maxSeats: "",
@@ -318,6 +345,7 @@ export default function CategoryBuilderSection({
                     <label className="block text-xs text-slate-400 mb-2">
                       Price (₹)
                     </label>
+
                     <input
                       type="number"
                       value={cat.price}
@@ -354,6 +382,58 @@ export default function CategoryBuilderSection({
                       />
                       Unlimited Seats
                     </label>
+                  </div>
+                  {/* EARLY BIRD SECTION */}
+                  <div className="col-span-2 md:col-span-3 grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs text-indigo-400 mb-2">
+                        Early Bird Price (₹)
+                      </label>
+
+                      <input
+                        type="number"
+                        value={cat.earlyBirdPrice || ""}
+                        onChange={(e) =>
+                          updateCategory(
+                            index,
+                            "earlyBirdPrice",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Optional"
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-indigo-400 mb-2">
+                        Early Bird Ends
+                      </label>
+
+                      <input
+                        type="date"
+                        value={cat.earlyBirdEnd || ""}
+                        onChange={(e) =>
+                          updateCategory(index, "earlyBirdEnd", e.target.value)
+                        }
+                        className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Cut-Off Time
+                    </label>
+
+                    <input
+                      type="time"
+                      value={cat.cutOffTime || ""}
+                      onChange={(e) =>
+                        updateCategory(index, "cutOffTime", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
                   </div>
 
                   {/* Min Age */}

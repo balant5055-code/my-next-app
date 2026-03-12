@@ -122,11 +122,15 @@ export default function ChipMappingClient({ eventId }: Props) {
     let result = [...data];
     // SEARCH
     if (search) {
-      result = result.filter(
-        (item) =>
-          item.name?.toLowerCase().includes(search.toLowerCase()) ||
-          item.bibNumber?.toString().includes(search),
-      );
+      result = result.filter((item) => {
+        const fullName =
+          `${item.participant?.firstName ?? ""} ${item.participant?.lastName ?? ""}`.toLowerCase();
+
+        return (
+          fullName.includes(search.toLowerCase()) ||
+          item.bibNumber?.toString().includes(search)
+        );
+      });
     }
     // STATUS FILTER
     if (statusFilter === "ASSIGNED") {
@@ -173,7 +177,12 @@ export default function ChipMappingClient({ eventId }: Props) {
     const res = await secureFetch("/api/admin/chip-mapping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId, registrationId, chipCode: chip }),
+      body: JSON.stringify({
+        eventId,
+        registrationId,
+        chipCode: chip,
+        bibNumber: chip,
+      }),
     });
     const result = await res.json();
     if (!res.ok) {

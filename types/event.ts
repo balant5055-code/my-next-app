@@ -9,6 +9,8 @@ export interface Category {
   bookedSeats: number;
   status?: "open" | "closed";
   waitlistEnabled?: boolean;
+  earlyBirdPrice: any;
+  cutOffTime: any;
 }
 
 export interface Inclusions {
@@ -24,6 +26,7 @@ export interface EventData {
   id: string;
   name: string;
   slug: string;
+  tagline?: string;
   bannerURL: string;
 
   eventType?: string;
@@ -51,5 +54,11 @@ export interface EventData {
     start?: Date;
     end?: Date;
     status?: string;
+  };
+
+  kitDistribution?: {
+    date?: string;
+    venue?: string;
+    time?: string;
   };
 }

@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-
+import { bucket } from "@/lib/firebaseAdmin";
 export async function POST(req: NextRequest) {
   try {
     /* ===============================
@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
        📦 2️⃣ PARSE & VALIDATE BODY
     =============================== */
 
-    const body = await req.json();
+    const formData = await req.formData();
+
+    const bannerFile = formData.get("banner") as File;
+
+    const body = JSON.parse(formData.get("data") as string);
 
     if (!body.name || !body.slug || !body.date) {
       return NextResponse.json(
@@ -58,6 +62,25 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "");
 
+    let bannerURL = "";
+
+    if (bannerFile) {
+      const buffer = Buffer.from(await bannerFile.arrayBuffer());
+
+      const filePath = `event_posters/${normalizedSlug}/poster.webp`;
+
+      const file = bucket.file(filePath);
+
+      await file.save(buffer, {
+        metadata: {
+          contentType: bannerFile.type,
+        },
+      });
+
+      await file.makePublic();
+
+      bannerURL = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+    }
     /* ===============================
        📅 4️⃣ DATE VALIDATION
     =============================== */
@@ -126,11 +149,17 @@ export async function POST(req: NextRequest) {
         title: String(cat.title),
         distance: String(cat.distance),
         price: Number(cat.price) || 0,
+        cutOffTime: cat.cutOffTime || "",
+        earlyBirdPrice: cat.earlyBirdPrice ? Number(cat.earlyBirdPrice) : null,
+
+        earlyBirdEnd: cat.earlyBirdEnd
+          ? Timestamp.fromDate(new Date(cat.earlyBirdEnd))
+          : null,
         minAge: Number(cat.minAge) || 0,
         maxAge: Number(cat.maxAge) || 100,
         maxSeats,
+        unlimited: Boolean(cat.unlimited),
         bookedSeats: 0,
-
         // 🎽 SERVER GENERATED BIB
         bibStart,
         bibEnd,
@@ -151,6 +180,7 @@ export async function POST(req: NextRequest) {
     const eventPayload = {
       name: String(body.name).trim(),
       slug: normalizedSlug,
+      tagline: body.tagline || "",
       eventType: body.eventType || "marathon",
 
       date: Timestamp.fromDate(eventDate),
@@ -187,8 +217,13 @@ export async function POST(req: NextRequest) {
       refundPolicy: body.refundPolicy || "",
       medicalNote: body.medicalNote || "",
 
-      bannerURL: body.bannerURL || "",
+      bannerURL: bannerURL,
 
+      kitDistribution: {
+        date: body.kitDistribution?.date || "",
+        venue: body.kitDistribution?.venue || "",
+        time: body.kitDistribution?.time || "",
+      },
       categories: formattedCategories,
 
       inclusions: {

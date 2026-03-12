@@ -2,7 +2,8 @@
 
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import { UserIcon, PhoneIcon } from "@heroicons/react/24/outline";
-
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { FIELD_HELP } from "@/lib/formFieldHelp";
 interface Props {
   form: any;
   errors: Record<string, string>;
@@ -58,9 +59,10 @@ export default function EmergencyContact({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* NAME */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
             Emergency Contact Name{" "}
             {!skipEmergency && <span className="text-red-500">*</span>}
+            <InfoTooltip text={FIELD_HELP.emergencyName} />
           </label>
 
           <div
@@ -83,9 +85,10 @@ export default function EmergencyContact({
 
         {/* NUMBER */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
             Emergency Contact Number{" "}
             {!skipEmergency && <span className="text-red-500">*</span>}
+            <InfoTooltip text={FIELD_HELP.emergencyNumber} />
           </label>
 
           <div

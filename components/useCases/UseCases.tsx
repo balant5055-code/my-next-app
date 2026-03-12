@@ -9,7 +9,8 @@ import {
   AcademicCapIcon,
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
-
+import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
 const useCases = [
   {
     title: "Marathons & Walkathons",
@@ -38,6 +39,7 @@ const useCases = [
 ];
 
 export default function UseCases() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white mt-20">
       <div className="max-w-7xl mx-auto px-4">

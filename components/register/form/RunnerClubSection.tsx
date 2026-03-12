@@ -2,7 +2,8 @@
 
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import { useMemo, useRef, useEffect } from "react";
-
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { FIELD_HELP } from "@/lib/formFieldHelp";
 import {
   UsersIcon,
   ChevronDownIcon,
@@ -17,20 +18,19 @@ interface Props {
   setForm: any;
   errors: Record<string, string>;
   handleChange: (e: any) => void;
-
   runnerSearch: string;
   setRunnerSearch: (v: string) => void;
-
   showRunnerDropdown: boolean;
   setShowRunnerDropdown: (v: boolean) => void;
-
   dropdownRef: any;
-
   showTerms: boolean;
   setShowTerms: (v: boolean) => void;
-
   isProcessing: boolean;
   formError: string;
+  applyCoupon: () => void;
+  couponLoading: boolean;
+  couponApplied: boolean;
+  couponMessage: string;
 }
 
 export default function RunnerClubSection({
@@ -47,6 +47,10 @@ export default function RunnerClubSection({
   setShowTerms,
   isProcessing,
   formError,
+  applyCoupon,
+  couponLoading,
+  couponApplied,
+  couponMessage,
 }: Props) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +88,22 @@ export default function RunnerClubSection({
       document.body.style.overflow = "";
     };
   }, [showRunnerDropdown]);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowRunnerDropdown(false);
+      }
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef, setShowRunnerDropdown]);
   return (
     <section className="space-y-6">
       {/* HEADER */}
@@ -111,26 +130,52 @@ export default function RunnerClubSection({
         {/* COUPON */}
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
             Coupon Code
+            <InfoTooltip text={FIELD_HELP.couponCode} />
           </label>
 
-          <AnimatedInput
-            name="couponCode"
-            value={form.couponCode}
-            placeholder="Enter coupon code"
-            onChange={handleChange}
-            icon={<TagIcon className="h-4 w-4" />}
-          />
+          <div className="relative">
+            <AnimatedInput
+              name="couponCode"
+              value={form.couponCode}
+              placeholder="Enter coupon code"
+              onChange={handleChange}
+              icon={<TagIcon className="h-4 w-4" />}
+            />
+
+            <button
+              type="button"
+              onClick={applyCoupon}
+              disabled={couponLoading}
+              className="absolute right-2 top-1/2 -translate-y-1/2 
+    px-3 py-1.5 rounded-md text-xs font-semibold 
+    bg-[var(--color-orange-500)] text-white 
+    hover:bg-[var(--color-orange-600)] 
+    disabled:bg-gray-400 transition"
+            >
+              {couponLoading ? "..." : "Apply"}
+            </button>
+          </div>
+
+          {couponMessage && (
+            <p
+              className={`text-xs mt-1 ${
+                couponApplied ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {couponMessage}
+            </p>
+          )}
         </div>
 
         {/* RUNNER CLUB */}
 
         <div className="space-y-1.5" ref={dropdownRef}>
-          <label className="text-sm font-medium text-gray-700">
-            Runner Club
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Running Club
+            <InfoTooltip text={FIELD_HELP.runnerClub} />
           </label>
-
           <div className="relative">
             {/* SELECT BUTTON */}
 
@@ -213,8 +258,9 @@ export default function RunnerClubSection({
 
       {form.runnerClub === "Others" && (
         <div className="space-y-1.5 md:col-span-2">
-          <label className="text-sm font-medium text-gray-700">
-            Runner Club Name
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Other Running Club
+            <InfoTooltip text={FIELD_HELP.runnerClubOther} />
           </label>
 
           <AnimatedInput
@@ -231,54 +277,64 @@ export default function RunnerClubSection({
 
       {/* DECLARATIONS */}
 
-      <div className="space-y-3 text-sm">
+      <div className="space-y-4 text-sm">
         {/* MEDICAL FITNESS */}
 
-        <label className="flex items-start gap-2 text-gray-600 cursor-pointer">
+        <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:border-orange-300 cursor-pointer transition">
           <input
             type="checkbox"
             name="medicallyFit"
-            checked={form.medicallyFit}
+            checked={!!form.medicallyFit}
             onChange={handleChange}
-            className="mt-1 accent-[var(--color-orange-500)]"
+            className="mt-[3px] shrink-0 accent-[var(--color-orange-500)]"
           />
 
-          <span>
-            I confirm that I am medically fit to participate in this event and
-            understand that participation involves physical activity and risk.
-          </span>
+          <div className="flex items-start gap-1 leading-relaxed text-gray-700">
+            <span>
+              I confirm that I am medically fit to participate in this event and
+              understand that participation involves physical activity and
+              associated risks.
+            </span>
+
+            <InfoTooltip text={FIELD_HELP.medicallyFit} />
+          </div>
         </label>
 
         <FieldError error={errors.medicallyFit} />
 
         {/* TERMS */}
 
-        <label className="flex items-start gap-2 text-gray-600 cursor-pointer">
+        <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:border-orange-300 cursor-pointer transition">
           <input
             type="checkbox"
             name="agree"
-            checked={form.agree}
+            checked={!!form.agree}
             onChange={handleChange}
-            className="mt-1 accent-[var(--color-orange-500)]"
+            className="mt-[3px] shrink-0 accent-[var(--color-orange-500)]"
           />
 
-          <span>
-            I have read and accept the{" "}
-            <span
-              onClick={() => setShowTerms(true)}
-              className="text-blue-600 underline cursor-pointer"
-            >
-              Terms and Conditions
-            </span>
+          <div className="flex flex-col leading-relaxed text-gray-700">
+            <div className="flex flex-wrap items-center gap-1">
+              <span>I have read and accept the</span>
+
+              <span
+                onClick={() => setShowTerms(true)}
+                className="text-blue-600 underline cursor-pointer"
+              >
+                Terms & Conditions
+              </span>
+
+              <InfoTooltip text={FIELD_HELP.agree} />
+            </div>
+
             <p className="text-xs text-gray-500 mt-1">
-              * Additional payment gateway charges may apply
+              * Additional payment gateway charges may apply.
             </p>
-          </span>
+          </div>
         </label>
 
         <FieldError error={errors.agree} />
       </div>
-
       {/* SUBMIT */}
 
       {formError && (

@@ -1,6 +1,7 @@
 import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 
 if (
   !process.env.FIREBASE_PROJECT_ID ||
@@ -20,8 +21,13 @@ const app =
   getApps().length === 0
     ? initializeApp({
         credential: cert(serviceAccount),
+        storageBucket: "event-platform-d496c.firebasestorage.app",
       })
     : getApp();
 
 export const adminDb = getFirestore(app);
 export const adminAuth = getAuth(app);
+
+export const bucket = getStorage(app).bucket(
+  "event-platform-d496c.firebasestorage.app",
+);

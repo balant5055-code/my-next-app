@@ -1,152 +1,141 @@
-"use client";
+/* gOGOGLE seo 
+After deploying, test here:🔗 https://search.google.com/test/rich-results
+Enter:https://racelineindia.com/events/chennai-marathon
+You should see:
+✔ Event detected */
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { EventData } from "@/types/event";
+import { Metadata } from "next";
+import EventPage from "./EventPage";
 
-/* COMPONENTS */
-import EventHero from "@/components/event/EventHero";
-import EventStats from "@/components/event/EventStats";
-import EventRegistrationProgress from "@/components/event/EventRegistrationProgress";
-import CategoryCards from "@/components/event/CategoryCards";
-import EventInclusions from "@/components/event/EventInclusions";
-import EventAbout from "@/components/event/EventAbout";
-import RaceSchedule from "@/components/event/RaceSchedule";
-import EventLocation from "@/components/event/EventLocation";
-import ImportantInfo from "@/components/event/ImportantInfo";
-import StickyRegisterCard from "@/components/event/StickyRegisterCard";
-import MobileRegisterBar from "@/components/event/MobileRegisterBar";
-import EventPageSkeleton from "./loading";
-/* ================= PAGE ================= */
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://racelineindia.com";
 
-export default function EventPage() {
-  const params = useParams();
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+async function getEvent(slug: string) {
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-  const [event, setEvent] = useState<EventData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const res = await fetch(`${base}/api/events/${slug}`, {
+    next: { revalidate: 60 },
+  });
 
-  useEffect(() => {
-    if (!slug) return;
+  if (!res.ok) return null;
 
-    const fetchEvent = async () => {
-      try {
-        const res = await fetch(`/api/events/${slug}`, { cache: "no-store" });
+  return res.json();
+}
 
-        const data = await res.json();
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
 
-        if (!res.ok) {
-          console.error("API ERROR:", data);
-          setEvent(null);
-          return;
-        }
+  const event = await getEvent(slug);
 
-        const raw = data;
-
-        const formattedEvent: EventData = {
-          id: raw.id,
-          name: raw.name ?? "",
-          slug: raw.slug ?? "",
-          bannerURL: raw.bannerURL ?? "",
-          eventType: raw.eventType ?? "Event",
-          venue: raw.venue ?? "",
-          city: raw.city ?? "",
-          mapLink: raw.mapLink ?? "",
-          gateOpen: raw.gateOpen ?? "",
-          raceStart: raw.raceStart ?? "",
-          description: raw.description ?? "",
-          medicalNote: raw.medicalNote ?? "",
-          maxParticipants: raw.maxParticipants ?? 0,
-          categories: raw.categories ?? [],
-          inclusions: raw.inclusions ?? {},
-          date: raw.date?.seconds ? new Date(raw.date.seconds * 1000) : null,
-
-          registration: {
-            start: raw.registration?.start?.seconds
-              ? new Date(raw.registration.start.seconds * 1000)
-              : undefined,
-
-            end: raw.registration?.end?.seconds
-              ? new Date(raw.registration.end.seconds * 1000)
-              : undefined,
-
-            status: raw.registration?.status ?? "closed",
-          },
-        };
-
-        setEvent(formattedEvent);
-      } catch (err) {
-        console.error("Error loading event:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvent();
-  }, [slug]);
-
-  if (loading) {
-    return <EventPageSkeleton />;
-  }
   if (!event) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B1220] text-white">
-        Event not found
-      </div>
-    );
+    return {
+      title: "Event Not Found | Raceline India",
+    };
   }
 
-  /* ================= PAGE ================= */
+  const title = `${event.name} | Raceline India`;
+
+  const description =
+    event.description?.slice(0, 150) ||
+    "Join this exciting race event organized by Raceline India.";
+
+  const image = event.bannerURL || `${SITE_URL}/api/og/events/${event.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${SITE_URL}/events/${event.slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE_URL}/events/${event.slug}`,
+      siteName: "Raceline India",
+      images: [{ url: image, width: 1200, height: 630 }],
+      type: "website",
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+  };
+}
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  const event = await getEvent(slug);
+
+  const jsonLd = event
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Event",
+
+        name: event.name,
+
+        description:
+          event.description ||
+          "Join this exciting race event organized by Raceline India.",
+
+        startDate: event.date,
+        endDate: event.date,
+
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+
+        image: [event.bannerURL],
+
+        location: {
+          "@type": "Place",
+          name: event.venue,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: event.city,
+            addressCountry: "IN",
+          },
+        },
+
+        organizer: {
+          "@type": "Organization",
+          name: "Raceline India",
+          url: "https://racelineindia.com",
+          logo: "https://racelineindia.com/logo/raceline-in.png",
+        },
+
+        offers: {
+          "@type": "Offer",
+          url: `https://racelineindia.com/events/${event.slug}`,
+          priceCurrency: "INR",
+          price: event.categories?.[0]?.price ?? 0,
+          availability: "https://schema.org/InStock",
+          validFrom: event.registration?.start,
+        },
+      }
+    : null;
 
   return (
     <>
-      <main>
-        {/* HERO */}
-        <EventHero event={event} />
-        {/* CATEGORY + LOCATION */}
-        <section className="bg-[#f8f7f3] py-10">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-              {/* LEFT - Categories */}
-              <CategoryCards event={event} />
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd),
+          }}
+        />
+      )}
 
-              {/* RIGHT - Location */}
-              <EventLocation event={event} />
-            </div>
-          </div>
-        </section>
-        {/* EVENT INCLUSIONS */}
-        <EventInclusions inclusions={event.inclusions} />
-
-        {/* MAIN CONTENT */}
-        <section className="bg-[#f8f7f3] py-10">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              {/* LEFT CONTENT */}
-              <div className="lg:col-span-2 space-y-8">
-                <EventAbout event={event} />
-
-                <RaceSchedule event={event} />
-
-                <ImportantInfo event={event} />
-              </div>
-
-              {/* SIDEBAR */}
-              <div className="lg:col-span-1">
-                <StickyRegisterCard event={event} />
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* QUICK STATS */}
-        <EventStats event={event} />
-
-        {/* REGISTRATION PROGRESS */}
-        {/*  <EventRegistrationProgress event={event} /> */}
-      </main>
-
-      {/* MOBILE REGISTER BAR */}
-      <MobileRegisterBar event={event} />
+      <EventPage />
     </>
   );
 }

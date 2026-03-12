@@ -92,12 +92,12 @@ export default function ChipMappingTable({
 
                     {/* BIB */}
                     <td className="px-5 py-3 text-center font-semibold text-indigo-400 tracking-wide sticky left-0 bg-slate-900 z-10">
-                      {reg.bibNumber}
+                      {reg.bibNumber || reg.participant?.bibNumber || "-"}
                     </td>
 
                     {/* Name */}
                     <td className="px-5 py-3 text-slate-200 font-medium">
-                      {reg.name || "-"}
+                      {reg.participant?.firstName} {reg.participant?.lastName}
                     </td>
 
                     {/* Chip */}

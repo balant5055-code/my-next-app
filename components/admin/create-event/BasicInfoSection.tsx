@@ -18,6 +18,7 @@ interface Props {
   data: {
     name: string;
     slug: string;
+    tagline: string;
     eventType: string;
     date: string;
     raceStart: string;
@@ -88,7 +89,27 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
             <p className="text-xs text-rose-400 mt-1">{errors.name}</p>
           )}
         </div>
+        {/* Event Tagline */}
+        <div>
+          <label className="block text-sm text-slate-300 mb-2">
+            Event Tagline
+          </label>
 
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <div className="w-7 h-7 flex items-center justify-center rounded-md bg-gradient-to-br from-yellow-500 to-orange-500 shadow-md shadow-yellow-500/30">
+                <TagIcon className="w-4 h-4 text-white" />
+              </div>
+            </div>
+
+            <input
+              value={data.tagline || ""}
+              onChange={(e) => onChange("tagline", e.target.value)}
+              placeholder="Save Lakes Save Water"
+              className="w-full pl-14 pr-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
+            />
+          </div>
+        </div>
         {/* Slug */}
         <div>
           <label className="block text-sm text-slate-300 mb-2">

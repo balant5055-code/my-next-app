@@ -74,6 +74,7 @@ h2 {
 }
 
 body {
+  -webkit-overflow-scrolling: touch;
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: "Inter_18pt-Medium";
@@ -125,15 +126,10 @@ body {
    TITLE DECORATION
    =============================== */
 .border-title {
-  background: url(https://wedesignthemes.com/html/fitness/images/title-pattern.png)
-    repeat-x scroll 0 5px transparent;
-  display: block;
-}
-
-.border-title span {
-  background: #ffffff;
-  padding: 0 15px;
-  color: var(--color-orange-500);
+  background-image: url("/images/global/title-bg.png");
+  background-position: center;
+  background-repeat: repeat-x;
+  height: 25px;
 }
 html {
   scroll-behavior: smooth;
@@ -293,4 +289,84 @@ html {
 
 .animate-speedStreak {
   animation: speedStreak 6s linear infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@keyframes trackMove {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-120px);
+  }
+}
+
+.animate-track {
+  animation: trackMove 40s linear infinite;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradientMove {
+  background-size: 200% 200%;
+  animation: gradientMove 6s ease infinite;
+}
+@keyframes spotlight {
+  0% {
+    transform: translateX(-120%) rotate(12deg);
+  }
+  100% {
+    transform: translateX(120%) rotate(12deg);
+  }
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes medalGlow {
+  0% {
+    box-shadow: 0 0 0px rgba(255, 60, 60, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(255, 60, 60, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0px rgba(255, 60, 60, 0.6);
+  }
+}
+
+@keyframes raceStreak {
+  0% {
+    transform: translateX(-120%) rotate(12deg);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(120%) rotate(12deg);
+    opacity: 0;
+  }
 }

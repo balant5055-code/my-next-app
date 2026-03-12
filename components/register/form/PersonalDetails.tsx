@@ -4,7 +4,8 @@ import AnimatedInput from "@/components/ui/AnimatedInput";
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import AnimatedRadioGroup from "@/components/ui/AnimatedRadioGroup";
 import DateOfBirthInput from "@/components/ui/DateOfBirthInput";
-
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { FIELD_HELP } from "@/lib/formFieldHelp";
 import {
   UserIcon,
   IdentificationIcon,
@@ -16,9 +17,17 @@ interface Props {
   form: any;
   errors: Record<string, string>;
   handleChange: (e: any) => void;
+  categories: any[];
+  runnerIndex: number;
 }
 
-function PersonalDetails({ form, errors, handleChange }: Props) {
+function PersonalDetails({
+  form,
+  errors,
+  handleChange,
+  categories,
+  runnerIndex,
+}: Props) {
   const FieldError = ({ error }: { error?: string }) => {
     if (!error) return null;
     return <p className="text-xs text-red-600 mt-1">{error}</p>;
@@ -27,26 +36,82 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
   return (
     <section className="space-y-6">
       {/* HEADER */}
-      <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)] text-sm font-semibold">
-          1
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center bg-gray-50 rounded-lg px-5 py-4 gap-3">
+        {/* LEFT SIDE */}
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          {/* ICON BADGE */}
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl 
+  bg-red-50 text-[var(--color-orange-500)] ring-1 ring-red-100"
+          >
+            <UserIcon className="h-5 w-5" />
+          </div>
 
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            Personal Details
-          </h2>
-          <p className="text-xs text-gray-500">Tell us about the runner</p>
+          {/* TITLE */}
+          <div className="min-w-0">
+            <h2 className="text-[15px] text-gray-900">
+              Personal{" "}
+              <span className="text-[var(--color-orange-500)]">Details</span>
+            </h2>
+
+            <p className="text-xs text-gray-500 mt-[2px]">
+              Tell us about the runner
+            </p>
+          </div>
         </div>
+        {/* CATEGORY DROPDOWN */}
+        {runnerIndex > 0 && (
+          <div className="md:w-[220px] ml-auto">
+            <AnimatedSelect
+              name="categoryId"
+              value={form.categoryId}
+              className="text-sm"
+              icon={<TicketIcon className="h-4 w-4 text-gray-400" />}
+              onChange={(e: any) => {
+                const selected = categories.find(
+                  (c) => c.id === e.target.value,
+                );
+
+                if (!selected) return;
+
+                handleChange({
+                  target: { name: "categoryId", value: selected.id },
+                });
+
+                handleChange({
+                  target: { name: "categoryTitle", value: selected.title },
+                });
+
+                handleChange({
+                  target: {
+                    name: "categoryDistance",
+                    value: selected.distance,
+                  },
+                });
+
+                handleChange({
+                  target: { name: "categoryPrice", value: selected.price },
+                });
+              }}
+            >
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.title}
+                </option>
+              ))}
+            </AnimatedSelect>
+          </div>
+        )}
       </div>
-
       {/* CONTENT */}
-      <div className="space-y-5">
+      <div className="space-y-6">
         {/* FIRST + LAST */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              First Name <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              First Name
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.firstName} />
             </label>
 
             <AnimatedInput
@@ -62,8 +127,10 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Last Name <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Last Name
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.lastName} />
             </label>
 
             <AnimatedInput
@@ -82,8 +149,10 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
         {/* DOB + GENDER */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Date of Birth <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Date of Birth
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.dob} />
             </label>
 
             <DateOfBirthInput
@@ -97,8 +166,10 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Biological Gender <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Biological Gender
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.gender} />
             </label>
 
             <AnimatedRadioGroup
@@ -116,8 +187,10 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
         {/* BLOOD + BIB NAME */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Blood Group <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Blood Group
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.bloodGroup} />
             </label>
 
             <AnimatedSelect
@@ -142,8 +215,10 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Name to appear on Race Bib <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Name to appear on Race Bib
+              <span className="text-red-500">*</span>
+              <InfoTooltip text={FIELD_HELP.bibName} />
             </label>
 
             <AnimatedInput
@@ -158,15 +233,17 @@ function PersonalDetails({ form, errors, handleChange }: Props) {
             <FieldError error={errors.bibName} />
 
             <p className="text-xs text-gray-400">
-              {form.bibName.length}/12 characters
+              {form?.bibName?.length || 0}/12 characters
             </p>
           </div>
         </div>
 
         {/* TSHIRT */}
-        <div className="space-y-1.5 max-w-sm">
-          <label className="text-sm font-medium text-gray-700">
-            T-Shirt Size <span className="text-red-500">*</span>
+        <div className="space-y-1.5 md:max-w-xs">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            T-Shirt Size
+            <span className="text-red-500">*</span>
+            <InfoTooltip text={FIELD_HELP.tshirtSize} />
           </label>
 
           <AnimatedSelect

@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useState, useRef } from "react"; // ✅ FIX: added useRef
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { MapPinIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import AnimatedInput from "@/components/ui/AnimatedInput";
@@ -20,6 +19,14 @@ import RunnerClubSection from "@/components/register/form/RunnerClubSection";
 import FormProgress from "@/components/register/FormProgress";
 import RegisterPageSkeleton from "./loading";
 import EventTermsContent from "@/components/legal/EventTermsContent";
+import Breadcrumb from "@/components/ui/Breadcrumb";
+import { BreadcrumbItem } from "@/types/breadcrumb";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/solid";
 import {
   UserIcon,
   PhoneIcon,
@@ -33,7 +40,10 @@ import {
   ChevronDownIcon,
   TagIcon,
   ArrowRightIcon,
+  PlusIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
+
 interface Category {
   id: string;
   title: string;
@@ -61,7 +71,60 @@ interface EventData {
     };
   };
 }
+interface RunnerForm {
+  categoryId: string;
+  categoryTitle: string;
+  categoryDistance: string;
+  categoryPrice: number;
 
+  firstName: string;
+  lastName: string;
+  dob: string;
+  gender: string;
+  bloodGroup: string;
+  bibName: string;
+  tshirtSize: string;
+  address: string;
+  state: string;
+  pincode: string;
+  phone: string;
+  email: string;
+  emergencyName: string;
+  emergencyNumber: string;
+  couponCode: string;
+  runnerClub: string;
+  runnerClubOther: string;
+  agree: boolean;
+  bibNumber: string;
+  medicallyFit: boolean;
+}
+const emptyRunner: RunnerForm = {
+  categoryId: "",
+  categoryTitle: "",
+  categoryDistance: "",
+  categoryPrice: 0,
+
+  firstName: "",
+  lastName: "",
+  dob: "",
+  gender: "",
+  bloodGroup: "",
+  bibName: "",
+  tshirtSize: "",
+  address: "",
+  state: "",
+  pincode: "",
+  phone: "",
+  email: "",
+  emergencyName: "",
+  emergencyNumber: "",
+  couponCode: "",
+  runnerClub: "",
+  runnerClubOther: "",
+  agree: false,
+  bibNumber: "",
+  medicallyFit: false,
+};
 export default function RegisterPage() {
   const params = useParams();
   const router = useRouter();
@@ -75,10 +138,22 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const cat = event?.categories?.find((c) => c.title === selectedCat) ?? null;
+  useEffect(() => {
+    if (!cat) return;
+
+    setCouponApplied(false);
+    setDiscountAmount(0);
+    setCouponMessage("");
+  }, [selectedCat]);
   const [showTerms, setShowTerms] = useState(false);
   const [showRunnerDropdown, setShowRunnerDropdown] = useState(false);
   const [runnerSearch, setRunnerSearch] = useState("");
   const [formError, setFormError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [couponMessage, setCouponMessage] = useState("");
   const searchParams = useSearchParams();
   const [popup, setPopup] = useState<{
     open: boolean;
@@ -97,13 +172,40 @@ export default function RegisterPage() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const lastStepRef = useRef(0);
 
+  const breadcrumbItems = useMemo<BreadcrumbItem[]>(() => {
+    const items: BreadcrumbItem[] = [
+      { label: "Home", href: "/" },
+      { label: "Events", href: "/events" },
+      {
+        label: event?.name || "Event",
+        href: event ? `/events/${event.slug}` : "/events",
+      },
+      {
+        label: "Register",
+        href: event ? `/events/${event.slug}/register` : "#",
+      },
+    ];
+
+    if (selectedCat) {
+      items.push({ label: selectedCat });
+    }
+
+    return items;
+  }, [event, selectedCat]);
+
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
-
     if (!el) return;
 
-    const yOffset = -80; // adjust for sticky header
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const navbar = document.getElementById("site-navbar");
+    const progress = document.getElementById("form-progress");
+
+    const navbarHeight = navbar?.offsetHeight || 0;
+    const progressHeight = progress?.offsetHeight || 0;
+
+    const offset = navbarHeight + progressHeight + 20;
+
+    const y = el.getBoundingClientRect().top + window.scrollY - offset;
 
     window.scrollTo({
       top: y,
@@ -112,148 +214,146 @@ export default function RegisterPage() {
   };
   // ✅ FIX: add ref for click outside
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    for (let i = 0; i < participants.length; i++) {
+      const runner = participants[i];
+      const newErrors: Record<string, string> = {};
 
-    // 🔹 Required Fields
-    if (!form.firstName) newErrors.firstName = "First name is required";
-    if (!form.lastName) newErrors.lastName = "Last name is required";
-    if (!form.gender) newErrors.gender = "Please select gender";
-    if (!form.bloodGroup) newErrors.bloodGroup = "Please select blood group";
-    if (!form.bibName) newErrors.bibName = "Bib name is required";
-    if (form.bibName && form.bibName.length > 12) {
-      newErrors.bibName = "Bib name cannot exceed 12 characters";
-    }
-    if (!form.tshirtSize) newErrors.tshirtSize = "Please select T-shirt size";
-    if (!form.address) newErrors.address = "Address is required";
-    //if (!form.state) newErrors.state = "State is required";
-    if (!form.pincode) {
-      newErrors.pincode = "Pincode is required";
-    } else if (!/^[1-9][0-9]{5}$/.test(form.pincode)) {
-      newErrors.pincode = "Enter valid 6 digit pincode";
-    }
-    if (!form.phone) {
-      newErrors.phone = "WhatsApp number is required";
-    } else if (!/^[6-9]\d{9}$/.test(form.phone)) {
-      newErrors.phone = "Enter valid 10 digit mobile number";
-    }
-    // EMAIL VALIDATION
-    if (!emailOptional && form.email) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-        newErrors.email = "Enter a valid email address";
+      if (!runner.firstName) newErrors.firstName = "First name is required";
+      if (!runner.lastName) newErrors.lastName = "Last name is required";
+      if (!runner.gender) newErrors.gender = "Please select gender";
+      if (!runner.bloodGroup)
+        newErrors.bloodGroup = "Please select blood group";
+      if (!runner.bibName) newErrors.bibName = "Bib name is required";
+      if (!runner.tshirtSize)
+        newErrors.tshirtSize = "Please select T-shirt size";
+      if (!runner.address) newErrors.address = "Address is required";
+
+      if (!runner.state) newErrors.state = "State is required";
+
+      if (!runner.pincode) {
+        newErrors.pincode = "Pincode is required";
+      } else if (!/^[1-9][0-9]{5}$/.test(runner.pincode)) {
+        newErrors.pincode = "Enter valid 6 digit pincode";
       }
-    }
-    // 🔥 Emergency Validation
-    if (!skipEmergency) {
-      if (!form.emergencyName)
-        newErrors.emergencyName = "Emergency contact name is required";
 
-      if (!form.emergencyNumber) {
-        newErrors.emergencyNumber = "Emergency contact number is required";
-      } else if (!/^[6-9]\d{9}$/.test(form.emergencyNumber)) {
-        newErrors.emergencyNumber = "Enter valid 10 digit mobile number";
+      if (!runner.phone) {
+        newErrors.phone = "WhatsApp number is required";
+      } else if (!/^[6-9]\d{9}$/.test(runner.phone)) {
+        newErrors.phone = "Enter valid 10 digit mobile number";
       }
-    }
-    if (!form.medicallyFit)
-      newErrors.medicallyFit = "You must confirm medical fitness";
 
-    if (!form.agree) newErrors.agree = "You must accept terms and conditions";
+      if (!runner.medicallyFit)
+        newErrors.medicallyFit = "You must confirm medical fitness";
 
-    // 🔥 STATE VALIDATION (FINAL CORRECT VERSION)
+      if (!runner.agree)
+        newErrors.agree = "You must accept terms and conditions";
 
-    if (!form.state) {
-      newErrors.state = "State is required";
-    } else if (
-      event?.rules?.stateRules &&
-      event.rules.stateRules.allowAllIndia === false &&
-      event.rules.stateRules.allowedStates?.length > 0 &&
-      !event.rules.stateRules.allowedStates.includes(form.state)
-    ) {
-      newErrors.state = `Registration is allowed only for: ${event.rules.stateRules.allowedStates.join(", ")}`;
-    }
+      // 🔴 IF ERROR FOUND
+      if (Object.keys(newErrors).length > 0) {
+        // switch to runner with error
+        setCurrentRunner(i);
 
-    // 🔥 DOB VALIDATION (FINAL SAFE VERSION)
+        // set errors for THAT runner
+        setErrors(newErrors);
 
-    // 🔥 DOB VALIDATION (FINAL CORRECT VERSION)
+        // scroll to error
+        setTimeout(() => {
+          scrollToError(newErrors);
+        }, 120);
 
-    if (!form.dob) {
-      newErrors.dob = "Please select Date of Birth.";
-    } else if (cat && event?.date) {
-      const normalizeDate = (date: Date) =>
-        new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-      const birthDate = normalizeDate(new Date(form.dob));
-
-      if (isNaN(birthDate.getTime())) {
-        newErrors.dob = "Invalid date selected.";
-      } else {
-        const eventDate = normalizeDate(event.date);
-
-        const minAge = Number(cat.minAge);
-        const maxAge = Number(cat.maxAge);
-
-        const minEligibleDOB = normalizeDate(
-          new Date(
-            eventDate.getFullYear() - minAge,
-            eventDate.getMonth(),
-            eventDate.getDate(),
-          ),
-        );
-
-        const maxEligibleDOB = normalizeDate(
-          new Date(
-            eventDate.getFullYear() - maxAge,
-            eventDate.getMonth(),
-            eventDate.getDate(),
-          ),
-        );
-
-        // 🔥 TOO YOUNG
-        if (!isNaN(minAge) && birthDate > minEligibleDOB) {
-          newErrors.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minEligibleDOB.toLocaleDateString("en-GB")}.`;
-        }
-
-        // 🔥 TOO OLD
-        else if (!isNaN(maxAge) && birthDate < maxEligibleDOB) {
-          newErrors.dob = `Maximum age for ${cat.title} is ${maxAge} years as on the event date.`;
-        }
+        return false;
       }
     }
 
-    setErrors(newErrors);
-
-    // 🔥 Scroll to first error automatically
-    if (Object.keys(newErrors).length > 0) {
-      scrollToError(newErrors);
-      return false;
-    }
-
+    // no errors
+    setErrors({});
     return true;
   };
-
+  const isRunnerComplete = (runner: RunnerForm): boolean => {
+    return Boolean(
+      runner.firstName &&
+      runner.lastName &&
+      runner.gender &&
+      runner.bloodGroup &&
+      runner.bibName &&
+      runner.tshirtSize &&
+      runner.address &&
+      runner.state &&
+      runner.pincode &&
+      runner.phone &&
+      runner.medicallyFit &&
+      runner.agree,
+    );
+  };
   const [hydrated, setHydrated] = useState(false);
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    dob: "",
-    gender: "",
-    bloodGroup: "",
-    bibName: "",
-    tshirtSize: "",
-    address: "",
-    state: "",
-    pincode: "",
-    phone: "",
-    email: "",
-    emergencyName: "",
-    emergencyNumber: "",
-    couponCode: "",
-    runnerClub: "",
-    runnerClubOther: "",
-    agree: false,
-    bibNumber: "",
-    medicallyFit: false,
-  });
+  const [participants, setParticipants] = useState<RunnerForm[]>([]);
+  const [currentRunner, setCurrentRunner] = useState(0);
+  const updateRunner = (index: number, data: Partial<RunnerForm>) => {
+    setParticipants((prev) => {
+      const updated = [...prev];
 
+      updated[index] = {
+        ...updated[index],
+        ...data,
+      };
+
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    if (!event) return;
+
+    setParticipants((prev) =>
+      prev.map((runner) => {
+        if (runner.categoryId) return runner;
+
+        const defaultCategory = event.categories.find(
+          (c) => c.title === selectedCat,
+        );
+
+        if (!defaultCategory) return runner;
+
+        return {
+          ...runner,
+          categoryId: defaultCategory.id,
+          categoryTitle: defaultCategory.title,
+          categoryDistance: defaultCategory.distance,
+          categoryPrice: defaultCategory.price,
+        };
+      }),
+    );
+  }, [event, selectedCat]);
+  // SAFE fallback
+  const form = participants[currentRunner] ?? emptyRunner;
+  const fields = [
+    form.firstName,
+    form.lastName,
+    form.dob,
+    form.gender,
+    form.bloodGroup,
+    form.bibName,
+    form.tshirtSize,
+    form.address,
+    form.state,
+    form.pincode,
+    form.phone,
+  ];
+  const completedFields = fields.filter(Boolean).length;
+  const completionPercent = Math.round((completedFields / fields.length) * 100);
+  const setForm = (
+    data: Partial<RunnerForm> | ((prev: RunnerForm) => RunnerForm),
+  ) => {
+    if (typeof data === "function") {
+      setParticipants((prev) => {
+        const updated = [...prev];
+        updated[currentRunner] = data(updated[currentRunner]);
+        return updated;
+      });
+    } else {
+      updateRunner(currentRunner, data);
+    }
+  };
   useEffect(() => {
     if (!form.dob || !cat || !event?.date) return;
 
@@ -299,7 +399,6 @@ export default function RegisterPage() {
       return updated;
     });
   }, [form.dob, cat, event?.date]);
-
   useEffect(() => {
     const saved = localStorage.getItem("race_registration_form");
 
@@ -307,12 +406,9 @@ export default function RegisterPage() {
       try {
         const parsed = JSON.parse(saved);
 
-        setForm((prev) => ({
-          ...prev,
-          ...parsed,
-          medicallyFit: parsed.medicallyFit ?? false,
-          agree: parsed.agree ?? false,
-        }));
+        // only restore if user already added a runner before
+        setParticipants(parsed.participants || []);
+        setCurrentRunner(0);
       } catch {
         console.error("Failed to restore saved form");
       }
@@ -320,7 +416,6 @@ export default function RegisterPage() {
 
     setHydrated(true);
   }, []);
-
   useEffect(() => {
     if (!event?.categories?.length) return;
 
@@ -328,9 +423,30 @@ export default function RegisterPage() {
       categoryFromURL &&
       event.categories.some((c) => c.title === categoryFromURL)
     ) {
+      const selected = event.categories.find(
+        (c) => c.title === categoryFromURL,
+      );
+
+      if (!selected) return;
+
       setSelectedCat(categoryFromURL);
+
+      // ✅ CREATE FIRST RUNNER IF EMPTY
+      setParticipants((prev) => {
+        if (prev.length > 0) return prev;
+
+        return [
+          {
+            ...emptyRunner,
+            categoryId: selected.id,
+            categoryTitle: selected.title,
+            categoryDistance: selected.distance,
+            categoryPrice: selected.price,
+          },
+        ];
+      });
     } else {
-      setSelectedCat(null); // ✅ do NOT auto select
+      setSelectedCat(null);
     }
   }, [event, categoryFromURL]);
   useEffect(() => {
@@ -374,7 +490,6 @@ export default function RegisterPage() {
 
     fetchEvent();
   }, [slug]);
-
   // ✅ FIX: CLICK-OUTSIDE HANDLER (NEW)
   useEffect(() => {
     if (selectedCat !== null) return;
@@ -395,9 +510,34 @@ export default function RegisterPage() {
       behavior: "smooth",
     });
   }, [selectedCat]);
-
   const handleCategorySelect = (title: string) => {
+    const selected = event?.categories?.find((c) => c.title === title);
+    if (!selected) return;
+
     setSelectedCat(title);
+
+    // ✅ Update category for ALL runners
+    setParticipants((prev) => {
+      if (prev.length === 0) {
+        return [
+          {
+            ...emptyRunner,
+            categoryId: selected.id,
+            categoryTitle: selected.title,
+            categoryDistance: selected.distance,
+            categoryPrice: selected.price,
+          },
+        ];
+      }
+
+      return prev.map((runner) => ({
+        ...runner,
+        categoryId: selected.id,
+        categoryTitle: selected.title,
+        categoryDistance: selected.distance,
+        categoryPrice: selected.price,
+      }));
+    });
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("category", title);
@@ -405,16 +545,31 @@ export default function RegisterPage() {
     router.replace(`/events/${slug}/register?${params.toString()}`, {
       scroll: false,
     });
+
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 150);
   };
   useEffect(() => {
     if (!selectedCat || !formRef.current) return;
 
-    formRef.current.scrollIntoView({
+    const navbar = document.getElementById("site-navbar");
+    const navbarHeight = navbar?.offsetHeight || 80;
+
+    const y =
+      formRef.current.getBoundingClientRect().top +
+      window.scrollY -
+      navbarHeight -
+      16;
+
+    window.scrollTo({
+      top: y,
       behavior: "smooth",
-      block: "start",
     });
   }, [selectedCat]);
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -434,7 +589,20 @@ export default function RegisterPage() {
       emergencyNumber: "Emergency contact number is required",
     };
     const { name, value, type, checked } = e.target as any;
+    if (name === "categoryId") {
+      const selectedCategory = event?.categories.find((c) => c.id === value);
 
+      if (!selectedCategory) return;
+
+      updateRunner(currentRunner, {
+        categoryId: selectedCategory.id,
+        categoryTitle: selectedCategory.title,
+        categoryDistance: selectedCategory.distance,
+        categoryPrice: selectedCategory.price,
+      });
+
+      return;
+    }
     let fieldValue = type === "checkbox" ? checked : value;
 
     /* ================= NUMERIC INPUT RESTRICTION ================= */
@@ -462,10 +630,37 @@ export default function RegisterPage() {
     if (name === "couponCode") {
       fieldValue = value.toUpperCase();
     }
-    setForm((prev) => ({
-      ...prev,
+    updateRunner(currentRunner, {
       [name]: fieldValue,
-    }));
+    } as Partial<RunnerForm>);
+
+    // shared fields auto copy
+    const sharedFields = [
+      "address",
+      "state",
+      "pincode",
+      "emergencyName",
+      "emergencyNumber",
+      "runnerClub",
+      "runnerClubOther",
+    ];
+
+    if (sharedFields.includes(name)) {
+      setParticipants((prev) =>
+        prev.map((runner, i) => {
+          if (i === currentRunner) return runner;
+
+          if (!runner[name as keyof RunnerForm]) {
+            return {
+              ...runner,
+              [name]: fieldValue,
+            };
+          }
+
+          return runner;
+        }),
+      );
+    }
 
     // 🔥 DOB LIVE VALIDATION
     if (name === "dob" && cat && event?.date) {
@@ -532,6 +727,7 @@ export default function RegisterPage() {
           "bibName",
           "tshirtSize",
           "address",
+          "state",
           "pincode",
           "phone",
           "emergencyName",
@@ -553,13 +749,80 @@ export default function RegisterPage() {
 
     setFormError("");
   };
-
   const FieldError = ({ error }: { error?: string }) => {
     if (!error) return null;
 
     return <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>;
   };
+  const addRunner = () => {
+    setParticipants((prev) => {
+      if (prev.length >= 10) return prev;
 
+      const defaultCategory = event?.categories?.find(
+        (c) => c.title === selectedCat,
+      );
+
+      const newRunner: RunnerForm = {
+        ...emptyRunner,
+
+        categoryId: defaultCategory?.id || "",
+        categoryTitle: defaultCategory?.title || "",
+        categoryDistance: defaultCategory?.distance || "",
+        categoryPrice: defaultCategory?.price || 0,
+
+        address: prev[0]?.address ?? "",
+        state: prev[0]?.state ?? "",
+        pincode: prev[0]?.pincode ?? "",
+
+        emergencyName: prev[0]?.emergencyName ?? "",
+        emergencyNumber: prev[0]?.emergencyNumber ?? "",
+
+        runnerClub: prev[0]?.runnerClub ?? "",
+        runnerClubOther: prev[0]?.runnerClubOther ?? "",
+      };
+
+      const updated = [...prev, newRunner];
+
+      setCurrentRunner(updated.length - 1);
+
+      return updated;
+    });
+  };
+  const removeRunner = (index: number) => {
+    if (index === 0) return; // never remove lead runner
+
+    setParticipants((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+
+      return updated.length ? updated : [emptyRunner];
+    });
+
+    setCurrentRunner((prev) => {
+      if (prev === index) return 0;
+      if (prev > index) return prev - 1;
+      return prev;
+    });
+  };
+  const copyToAllRunners = () => {
+    setParticipants((prev) => {
+      const source = prev[currentRunner];
+
+      return prev.map((runner, i) => {
+        if (i === currentRunner) return runner;
+
+        return {
+          ...runner,
+          address: source.address,
+          state: source.state,
+          pincode: source.pincode,
+          emergencyName: source.emergencyName,
+          emergencyNumber: source.emergencyNumber,
+          runnerClub: source.runnerClub,
+          runnerClubOther: source.runnerClubOther,
+        };
+      });
+    });
+  };
   const loadRazorpay = () => {
     return new Promise<boolean>((resolve) => {
       if ((window as any).Razorpay) {
@@ -574,7 +837,6 @@ export default function RegisterPage() {
       document.body.appendChild(script);
     });
   };
-
   const scrollToError = (errorsObj: Record<string, string>) => {
     const firstErrorKey = Object.keys(errorsObj)[0];
 
@@ -584,16 +846,75 @@ export default function RegisterPage() {
       `[name="${firstErrorKey}"], #${firstErrorKey}`,
     ) as HTMLElement | null;
 
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
+    if (!element) return;
+
+    const paymentBarHeight = 90;
+
+    const y =
+      element.getBoundingClientRect().top +
+      window.scrollY -
+      paymentBarHeight -
+      40;
+
+    window.scrollTo({
+      top: y,
+      behavior: "smooth",
+    });
+
+    element.focus();
+  };
+  const applyCoupon = async () => {
+    if (!form.couponCode) {
+      setCouponMessage("Enter coupon code");
+      return;
+    }
+
+    if (!event || !cat) {
+      setCouponMessage("Select category first");
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponMessage("");
+
+      const res = await fetch("/api/validate-coupon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          couponCode: form.couponCode,
+          eventId: event.id,
+          categoryTitle: cat?.title,
+          runnerClub: form.runnerClub,
+          phone: form.phone,
+          price: cat?.price,
+        }),
       });
 
-      element.focus();
+      const data = await res.json();
+
+      if (data.valid) {
+        setCouponApplied(true);
+        setDiscountAmount(data.discountAmount);
+        setFinalPrice(data.finalPrice);
+
+        setCouponMessage(`₹${data.discountAmount} discount applied`);
+      } else {
+        setCouponApplied(false);
+        setDiscountAmount(0);
+        setFinalPrice(cat.price);
+
+        setCouponMessage(data.message || "Invalid coupon");
+      }
+    } catch (err) {
+      console.error(err);
+      setCouponMessage("Failed to apply coupon");
+    } finally {
+      setCouponLoading(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // 🚫 Prevent double click
@@ -621,9 +942,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // ✅ If everything valid → start processing
-    setIsProcessing(true);
-
     try {
       // 5️⃣ Load Razorpay SDK
       const sdkLoaded = await loadRazorpay();
@@ -642,12 +960,40 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           eventId: event.id,
-          categoryId: cat.id,
-          participant: {
-            ...form,
-            selectedCategory: cat.title,
-            distance: cat.distance,
-          },
+          couponCode: form.couponCode,
+          participants: participants.map((p) => ({
+            firstName: p.firstName || "",
+            lastName: p.lastName || "",
+
+            categoryId: p.categoryId || "",
+            categoryTitle: p.categoryTitle || "",
+            categoryDistance: p.categoryDistance || "",
+
+            gender: p.gender || "",
+            dob: p.dob || "",
+            bloodGroup: p.bloodGroup || "",
+
+            bibName: p.bibName || "",
+            tshirtSize: p.tshirtSize || "",
+
+            address: p.address || "",
+            state: p.state || "",
+            pincode: p.pincode || "",
+
+            phone: p.phone || "",
+            email: p.email || "",
+
+            emergencyName: p.emergencyName || "",
+            emergencyNumber: p.emergencyNumber || "",
+
+            runnerClub: p.runnerClub || "",
+            runnerClubOther: p.runnerClubOther || "",
+
+            medicallyFit: p.medicallyFit || false,
+            agree: p.agree || false,
+
+            bibNumber: p.bibNumber || "",
+          })),
         }),
       });
       if (!res.ok) {
@@ -676,8 +1022,8 @@ export default function RegisterPage() {
         order_id: order.order.id,
 
         handler: async function (response: any) {
-          // 🔒 Lock UI
           setVerifyingPayment(true);
+
           try {
             const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
@@ -688,23 +1034,19 @@ export default function RegisterPage() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-
                 eventId: event.id,
-                categoryId: cat.id,
-                formData: {
-                  ...form,
-                  selectedCategory: cat.title,
-                  distance: cat.distance,
-                },
+                participants,
               }),
             });
 
             const verifyData = await verifyRes.json();
 
             if (verifyData.success) {
-              // 🔥 Clear saved registration form
               localStorage.removeItem("race_registration_form");
-              window.location.href = `/payment/success?regId=${verifyData.registrationId}`;
+
+              setTimeout(() => {
+                window.location.href = `/payment/success?orderId=${verifyData.orderId}`;
+              }, 400);
             } else {
               setFormError(verifyData.message || "Verification failed.");
               setIsProcessing(false);
@@ -746,7 +1088,7 @@ export default function RegisterPage() {
   };
   useEffect(() => {
     if (skipEmergency) {
-      setForm((prev) => ({
+      setForm((prev: any) => ({
         ...prev,
         emergencyName: "",
         emergencyNumber: "",
@@ -811,28 +1153,64 @@ export default function RegisterPage() {
       step = 5;
 
     setCurrentStep(step);
-  }, [form, errors, skipEmergency]);
-
+  }, [
+    form.firstName,
+    form.lastName,
+    form.dob,
+    form.gender,
+    form.bloodGroup,
+    form.bibName,
+    form.tshirtSize,
+    form.address,
+    form.state,
+    form.pincode,
+    form.phone,
+    form.emergencyName,
+    form.emergencyNumber,
+    form.runnerClub,
+    errors,
+    skipEmergency,
+  ]);
   useEffect(() => {
+    // ❌ DO NOT scroll if no runner exists
+    if (participants.length === 0) return;
+
     if (currentStep > lastStepRef.current) {
-      if (currentStep === 1) scrollToSection("address-section");
-      if (currentStep === 2) scrollToSection("contact-section");
-      if (currentStep === 3) scrollToSection("emergency-section");
-      if (currentStep === 4) scrollToSection("runner-section");
+      setTimeout(() => {
+        if (currentStep === 1) scrollToSection("address-section");
+        if (currentStep === 2) scrollToSection("contact-section");
+        if (currentStep === 3) scrollToSection("emergency-section");
+        if (currentStep === 4) scrollToSection("runner-section");
+      }, 120);
     }
 
     lastStepRef.current = currentStep;
-  }, [currentStep]);
-
+  }, [currentStep, participants.length]);
   useEffect(() => {
     if (!hydrated) return;
 
+    if (participants.length === 0) return;
+
     const timer = setTimeout(() => {
-      localStorage.setItem("race_registration_form", JSON.stringify(form));
+      localStorage.setItem(
+        "race_registration_form",
+        JSON.stringify({ participants }),
+      );
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [form, hydrated]);
+  }, [participants, currentRunner, hydrated]);
+  const pricing = useMemo(() => {
+    const total = participants.reduce((sum, p) => {
+      return sum + (p.categoryPrice || 0);
+    }, 0);
+
+    const discount = couponApplied ? discountAmount : 0;
+
+    return {
+      finalTotal: Math.max(total - discount, 0),
+    };
+  }, [participants, couponApplied, discountAmount]);
 
   if (loading) {
     return <RegisterPageSkeleton />;
@@ -855,259 +1233,475 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="bg-[#F3F6FB] min-h-screen py-10">
-      {verifyingPayment && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999]">
-          <div className="bg-white rounded-xl p-8 shadow-xl text-center space-y-4">
-            <div className="animate-spin h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
-
-            <h2 className="text-lg font-semibold text-gray-900">
-              Verifying Payment
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              Please wait while we confirm your registration.
-            </p>
-          </div>
-        </div>
-      )}
-      <PopupModal
-        open={popup.open}
-        message={popup.message}
-        type={popup.type}
-        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+    <main className="relative min-h-screen py-10  overflow-hidden">
+      {/* spotlight background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 0%, rgba(239,68,68,0.08), transparent 60%)",
+        }}
       />
-      {showTerms && (
-        <div
-          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
-          onClick={() => setShowTerms(false)}
-        >
-          <div
-            className="bg-white max-w-2xl w-full mx-4 p-6 rounded-2xl shadow-xl
-                 max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">
-                Race Line India – Event Terms and Conditions
-              </h2>
-              <button
-                onClick={() => setShowTerms(false)}
-                className="text-gray-500 hover:text-red-600 text-xl font-bold"
-              >
-                ✖
-              </button>
-            </div>
+      <div className="relative">
+        {verifyingPayment && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[999]">
+            <div className="bg-white rounded-xl p-8 shadow-xl text-center space-y-4">
+              <div className="animate-spin h-10 w-10 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
 
-            {/* CONTENT */}
-            <EventTermsContent />
-            {/* FOOTER */}
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowTerms(false)}
-                className="bg-[var(--color-orange-500)] text-white px-5 py-2
-                     rounded-lg hover:opacity-90 transition"
-              >
-                I Understand & Close
-              </button>
+              <h2 className="text-lg font-semibold text-gray-900">
+                RaceLine India - Verifying Payment
+              </h2>
+
+              <p className="text-sm text-gray-500">
+                Please wait while we confirm your registration.
+              </p>
             </div>
           </div>
-        </div>
-      )}
-
-      <div className="max-w-6xl mx-auto px-4 space-y-8">
-        {/* HEADER */}
-        <EventHeader event={event} />
-        {/* CATEGORY SELECTOR */}
-        <div ref={categoryRef}>
-          {!selectedCat ? (
-            <CategorySelector
-              categories={event.categories}
-              selectedCat={selectedCat}
-              handleCategorySelect={handleCategorySelect}
-              cat={cat}
-              isProcessing={isProcessing}
-            />
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <TicketIcon className="h-5 w-5 text-gray-500" />
-
-                <div>
-                  <p className="text-sm text-gray-500">Selected Category</p>
-                  <p className="font-semibold text-gray-900">
-                    {cat?.title} • {cat?.distance}
-                  </p>
-                </div>
+        )}
+        <PopupModal
+          open={popup.open}
+          message={popup.message}
+          type={popup.type}
+          onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+        />
+        {showTerms && (
+          <div
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50"
+            onClick={() => setShowTerms(false)}
+          >
+            <div
+              className="bg-white max-w-2xl w-full mx-4 p-6 rounded-2xl shadow-xl
+                 max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* HEADER */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Race Line India – Event Terms and Conditions
+                </h2>
+                <button
+                  onClick={() => setShowTerms(false)}
+                  className="text-gray-500 hover:text-red-600 text-xl font-bold"
+                >
+                  ✖
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  if (!isProcessing) {
-                    setSelectedCat(null);
-                  }
-                }}
-                className={`text-sm font-semibold ${
-                  isProcessing
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-orange-600 hover:underline"
-                }`}
-              >
-                Change
-              </button>
+              {/* CONTENT */}
+              <EventTermsContent />
+              {/* FOOTER */}
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowTerms(false)}
+                  className="bg-[var(--color-orange-500)] text-white px-5 py-2
+                     rounded-lg hover:opacity-90 transition"
+                >
+                  I Understand & Close
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-
-        {selectedCat && (
-          <>
-            <FormProgress currentStep={currentStep} />
-            <div ref={formRef} className="scroll-mt-[260px]">
-              <RegistrationForm handleSubmit={handleSubmit}>
-                <div id="personal-section">
-                  <PersonalDetails
-                    form={form}
-                    errors={errors}
-                    handleChange={handleChange}
-                  />
-                </div>
-
-                <div id="address-section">
-                  <AddressDetails
-                    form={form}
-                    errors={errors}
-                    handleChange={handleChange}
-                  />
-                </div>
-
-                <div id="contact-section">
-                  <ContactDetails
-                    form={form}
-                    errors={errors}
-                    handleChange={handleChange}
-                    emailOptional={emailOptional}
-                    setEmailOptional={setEmailOptional}
-                  />
-                </div>
-
-                <div id="emergency-section">
-                  <EmergencyContact
-                    form={form}
-                    errors={errors}
-                    handleChange={handleChange}
-                    skipEmergency={skipEmergency}
-                    setSkipEmergency={setSkipEmergency}
-                  />
-                </div>
-
-                <div id="runner-section">
-                  <RunnerClubSection
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    handleChange={handleChange}
-                    runnerSearch={runnerSearch}
-                    setRunnerSearch={setRunnerSearch}
-                    showRunnerDropdown={showRunnerDropdown}
-                    setShowRunnerDropdown={setShowRunnerDropdown}
-                    dropdownRef={dropdownRef}
-                    showTerms={showTerms}
-                    setShowTerms={setShowTerms}
-                    isProcessing={isProcessing}
-                    formError={formError}
-                  />
-                </div>
-              </RegistrationForm>
-            </div>
-
-            {/* PAYMENT BAR */}
-            <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-sm z-50">
-              {/* your payment bar code */}
-            </div>
-          </>
+          </div>
         )}
 
-        {/* STICKY PAYMENT BAR */}
-        {/* PAYMENT BAR */}
-        {/* PAYMENT BAR */}
-        {/* PAYMENT BAR */}
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-sm z-50">
-          <div className="max-w-6xl mx-auto px-4 py-3">
-            {/* DESKTOP */}
-            <div className="hidden md:flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <TicketIcon className="h-5 w-5 text-gray-400" />
+        <div className="max-w-5xl mx-auto px-4 pb-32 space-y-6">
+          {/* BREADCRUMB */}
+          <Breadcrumb items={breadcrumbItems} />
 
+          {/* HEADER */}
+          <EventHeader event={event} />
+          {/* CATEGORY SELECTOR */}
+          <div
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+            ref={categoryRef}
+          >
+            {!selectedCat ? (
+              <CategorySelector
+                categories={event.categories}
+                selectedCat={selectedCat}
+                handleCategorySelect={handleCategorySelect}
+                cat={cat}
+                isProcessing={isProcessing}
+                eventSlug={event.slug}
+              />
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-6 py-4 border-b border-gray-100 flex items-center justify-between"
+              >
+                {/* LEFT */}
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {cat?.title || "Select Category"}
-                  </span>
+                  {/* ICON BADGE */}
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-50">
+                    <TicketIcon className="h-5 w-5 text-orange-600" />
+                  </div>
 
-                  {cat?.distance && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-medium">
-                      {cat.distance}
-                    </span>
+                  {/* TEXT */}
+                  <div className="flex flex-col">
+                    <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">
+                      Selected Category
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">
+                        {cat?.title}
+                      </p>
+
+                      {cat?.distance && (
+                        <span className="text-[11px] px-2 py-[2px] rounded-md bg-green-100 text-green-700 font-semibold">
+                          {cat.distance}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CHANGE BUTTON */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    if (!isProcessing) setSelectedCat(null);
+                  }}
+                  disabled={isProcessing}
+                  className={`flex items-center gap-1 text-sm font-semibold transition
+    ${
+      isProcessing
+        ? "text-gray-400 cursor-not-allowed"
+        : "text-orange-600 hover:text-orange-700"
+    }`}
+                >
+                  <PencilSquareIcon className="w-4 h-4" />
+                  Change
+                </motion.button>
+              </motion.div>
+            )}
+          </div>
+          {selectedCat && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+              {/* FORM TITLE */}
+              <div className="text-center px-6 pt-6 pb-5 border-b border-gray-100">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+                  Runner{" "}
+                  <span className="text-[var(--color-orange-500)]">
+                    Registration
+                  </span>
+                </h1>
+
+                <p className="text-sm text-gray-500 mt-2">
+                  Complete the form below to register for the event
+                </p>
+                <div className="w-16 h-[3px] bg-[var(--color-orange-500)] mx-auto mt-3 rounded-full"></div>
+              </div>
+
+              <FormProgress
+                currentStep={currentStep}
+                completionPercent={completionPercent}
+                runnerName={
+                  participants.length === 0
+                    ? "No Runner Added"
+                    : form.firstName || form.lastName
+                      ? `${form.firstName || ""} ${form.lastName || ""}`.trim()
+                      : `Runner ${currentRunner + 1}`
+                }
+                scrollToSection={scrollToSection}
+              />
+
+              {/* RUNNER SWITCHER */}
+              {/* When NO runners exist */}
+              <div className="px-6 py-4 border-b border-gray-100">
+                {/* Title */}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-gray-500 tracking-wide uppercase">
+                    Runners
+                  </h3>
+
+                  <span className="text-[11px] text-gray-400">
+                    {participants.length}/10
+                  </span>
+                </div>
+
+                {/* Runner Tabs */}
+                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
+                  {participants.map((runner, index) => {
+                    const runnerName =
+                      runner.firstName || runner.lastName
+                        ? `${runner.firstName || ""} ${runner.lastName || ""}`.trim()
+                        : index === 0
+                          ? "Lead Runner"
+                          : `Runner ${index + 1}`;
+
+                    const isComplete = isRunnerComplete(runner);
+
+                    return (
+                      <div
+                        key={index}
+                        className="relative flex items-center group shrink-0"
+                      >
+                        {/* Runner Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentRunner(index);
+                            setErrors({});
+                          }}
+                          className={`flex items-center gap-2 px-1 pb-2 text-sm transition-all duration-150 whitespace-nowrap
+            ${
+              currentRunner === index
+                ? "text-gray-700 font-semibold"
+                : "text-gray-500 hover:text-gray-600"
+            }`}
+                        >
+                          {/* Avatar */}
+                          <UserIcon className="h-4 w-4 text-gray-400 shrink-0" />
+
+                          {/* Name */}
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <span>{runnerName}</span>
+
+                            {runner.categoryDistance && (
+                              <span className="text-[10px] px-1.5 py-[1px] rounded bg-green-100 text-green-700 font-semibold">
+                                {runner.categoryDistance}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Incomplete indicator */}
+                          {!isComplete && (
+                            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full ml-1" />
+                          )}
+                        </button>
+
+                        {/* Active underline */}
+                        {currentRunner === index && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-300 rounded-full" />
+                        )}
+
+                        {/* Remove Runner */}
+                        {participants.length > 1 && index !== 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeRunner(index);
+                            }}
+                            className="
+                ml-1
+                text-gray-400 hover:text-gray-600
+                transition
+                cursor-pointer
+                opacity-70 md:opacity-0 md:group-hover:opacity-100
+              "
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Add Runner */}
+                  {participants.length < 10 && (
+                    <button
+                      onClick={addRunner}
+                      className="
+          flex items-center gap-1
+          text-sm text-gray-500 hover:text-gray-700
+          transition
+          shrink-0
+          whitespace-nowrap
+        "
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      Add Runner
+                    </button>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <span className="text-lg font-bold text-gray-900">
-                  ₹{cat?.price ?? 0}
-                </span>
+              <div ref={formRef} className="px-6 py-6 space-y-8">
+                <RegistrationForm handleSubmit={handleSubmit}>
+                  <div id="personal-section">
+                    <PersonalDetails
+                      form={form}
+                      errors={errors}
+                      handleChange={handleChange}
+                      categories={event.categories}
+                      runnerIndex={currentRunner}
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  form="registration-form"
-                  disabled={!selectedCat || isProcessing}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white transition
-          ${
-            isProcessing
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700"
-          }`}
-                >
-                  {isProcessing ? "Processing..." : "Proceed to Payment"}
+                  <div id="address-section">
+                    <AddressDetails
+                      form={form}
+                      errors={errors}
+                      handleChange={handleChange}
+                    />
+                  </div>
 
-                  {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
-                </button>
+                  <div id="contact-section">
+                    <ContactDetails
+                      form={form}
+                      errors={errors}
+                      handleChange={handleChange}
+                      emailOptional={emailOptional}
+                      setEmailOptional={setEmailOptional}
+                    />
+                  </div>
+
+                  <div id="emergency-section">
+                    <EmergencyContact
+                      form={form}
+                      errors={errors}
+                      handleChange={handleChange}
+                      skipEmergency={skipEmergency}
+                      setSkipEmergency={setSkipEmergency}
+                    />
+                  </div>
+
+                  <div id="runner-section">
+                    <RunnerClubSection
+                      form={form}
+                      setForm={setForm}
+                      errors={errors}
+                      handleChange={handleChange}
+                      runnerSearch={runnerSearch}
+                      setRunnerSearch={setRunnerSearch}
+                      showRunnerDropdown={showRunnerDropdown}
+                      setShowRunnerDropdown={setShowRunnerDropdown}
+                      dropdownRef={dropdownRef}
+                      showTerms={showTerms}
+                      setShowTerms={setShowTerms}
+                      isProcessing={isProcessing}
+                      formError={formError}
+                      applyCoupon={applyCoupon}
+                      couponLoading={couponLoading}
+                      couponApplied={couponApplied}
+                      couponMessage={couponMessage}
+                    />
+                  </div>
+                </RegistrationForm>
               </div>
             </div>
+          )}
 
-            {/* MOBILE */}
-            <div className="flex md:hidden flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TicketIcon className="h-4 w-4 text-gray-400" />
+          {/* STICKY PAYMENT BAR */}
+          {/* PAYMENT BAR */}
+          {selectedCat && (
+            <div
+              id="payment-bar"
+              className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-sm z-50"
+            >
+              <div className="max-w-6xl mx-auto px-4 py-3">
+                {/* DESKTOP */}
+                <div className="hidden md:flex items-center justify-between">
+                  {/* LEFT SIDE */}
+                  <div className="flex items-center gap-3">
+                    <TicketIcon className="h-5 w-5 text-gray-400" />
 
-                  <span className="text-sm font-semibold text-gray-900">
-                    {cat?.title || "Select Category"}
-                  </span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {cat?.title || "Select Category"}
+                        </span>
+
+                        {cat?.distance && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-medium">
+                            {cat.distance}
+                          </span>
+                        )}
+                      </div>
+
+                      {participants.length > 1 && (
+                        <span className="text-xs text-gray-500">
+                          Runner {currentRunner + 1} of {participants.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* RIGHT SIDE */}
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <span className="text-base font-bold text-gray-900">
+                        ₹{pricing.finalTotal}
+                      </span>
+
+                      {participants.length > 1 && (
+                        <div className="text-xs text-gray-500">
+                          {participants.length} runners registered
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      form="registration-form"
+                      disabled={!selectedCat || isProcessing}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-200
+  ${
+    isProcessing
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-gradient-to-r from-[var(--color-orange-500)] to-red-500 hover:from-[var(--color-orange-600)] hover:to-red-600 shadow-sm hover:shadow"
+  }`}
+                    >
+                      {isProcessing ? "Processing..." : "Proceed to Payment"}
+
+                      {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
-                <span className="text-base font-bold text-gray-900">
-                  ₹{cat?.price ?? 0}
-                </span>
-              </div>
+                {/* MOBILE */}
+                <div className="flex md:hidden flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TicketIcon className="h-4 w-4 text-gray-400" />
 
-              <button
-                type="submit"
-                form="registration-form"
-                disabled={isProcessing}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold text-white transition
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {cat?.title || "Select Category"}
+                        </span>
+
+                        {participants.length > 1 && (
+                          <span className="text-[11px] text-gray-500">
+                            Runner {currentRunner + 1} / {participants.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-base font-bold text-gray-900">
+                        ₹{pricing.finalTotal}
+                      </span>
+
+                      {participants.length > 1 && (
+                        <div className="text-xs text-gray-500">
+                          {participants.length} runners registered
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    form="registration-form"
+                    disabled={isProcessing}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold text-white transition
         ${
           isProcessing
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-green-600 hover:bg-green-700"
         }`}
-              >
-                {isProcessing ? "Processing..." : "Proceed to Payment"}
+                  >
+                    {isProcessing ? "Processing..." : "Proceed to Payment"}
 
-                {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
-              </button>
+                    {!isProcessing && <ArrowRightIcon className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </main>

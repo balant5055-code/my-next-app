@@ -1,13 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDaysIcon,
   CreditCardIcon,
   ChartBarIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
-
+import SectionHeader from "@/components/ui/SectionHeader";
+import { TrophyIcon } from "@heroicons/react/24/solid";
 const steps = [
   {
     step: "01",
@@ -36,24 +38,25 @@ const steps = [
 ];
 
 export default function HowItWorks() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white">
       <div className="max-w-7xl mx-auto px-4 mt-20">
         {/* Heading (UNCHANGED STYLE) */}
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-14 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>How It Works — Simple for Everyone</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
-            A simple workflow to launch and manage sports events effortlessly.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="How It Works — Simple for Everyone"
+            subtitle=" A simple workflow to launch and manage sports events effortlessly."
+          />
         </motion.div>
 
         {/* Steps */}

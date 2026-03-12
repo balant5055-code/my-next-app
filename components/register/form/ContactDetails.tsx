@@ -2,6 +2,8 @@
 
 import AnimatedInput from "@/components/ui/AnimatedInput";
 import { PhoneIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { FIELD_HELP } from "@/lib/formFieldHelp";
 
 interface Props {
   form: any;
@@ -43,8 +45,10 @@ export default function ContactDetails({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* PHONE */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            WhatsApp Number <span className="text-red-500">*</span>
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Mobile Number (WhatsApp)
+            <span className="text-red-500">*</span>
+            <InfoTooltip text={FIELD_HELP.phone} />
           </label>
 
           <AnimatedInput
@@ -64,9 +68,10 @@ export default function ContactDetails({
         {/* EMAIL */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
               Email ID{" "}
               {!emailOptional && <span className="text-red-500">*</span>}
+              <InfoTooltip text={FIELD_HELP.email} />
             </label>
 
             <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">

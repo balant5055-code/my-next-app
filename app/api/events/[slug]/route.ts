@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 
@@ -6,11 +8,12 @@ export async function GET(req: Request) {
     const { pathname } = new URL(req.url);
     const slug = pathname.split("/").pop();
 
-    if (!slug) {
+    // Validate slug
+    if (!slug || typeof slug !== "string" || slug.length > 120) {
       return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
     }
 
-    // Query by slug field
+    // Query event by slug
     const snap = await adminDb
       .collection("events")
       .where("slug", "==", slug)
@@ -23,13 +26,14 @@ export async function GET(req: Request) {
 
     const doc = snap.docs[0];
 
+    // Return full event document
     return NextResponse.json({
       id: doc.id,
       ...doc.data(),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("EVENT API ERROR:", error);
 
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

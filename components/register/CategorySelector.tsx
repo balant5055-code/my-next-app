@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   TrophyIcon,
@@ -7,8 +7,9 @@ import {
   UserIcon,
   TicketIcon,
   FireIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
-
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 interface Category {
   id?: string;
   title: string;
@@ -28,6 +29,7 @@ interface Props {
   handleCategorySelect: (title: string) => void;
   cat?: Category | null;
   isProcessing?: boolean;
+  eventSlug: string;
 }
 
 export default function CategorySelector({
@@ -35,13 +37,13 @@ export default function CategorySelector({
   selectedCat,
   isProcessing,
   handleCategorySelect,
+  eventSlug,
 }: Props) {
-  /* SAFELY NORMALIZE CATEGORIES */
+  const router = useRouter();
   const safeCategories: Category[] = Array.isArray(categories)
     ? categories
     : Object.values(categories || {});
 
-  /* SORT OPEN FIRST */
   const sortedCategories = [...safeCategories].sort((a, b) => {
     if (a.status === "closed" && b.status !== "closed") return 1;
     if (a.status !== "closed" && b.status === "closed") return -1;
@@ -49,13 +51,12 @@ export default function CategorySelector({
   });
 
   return (
-    <div className="bg-white/80 backdrop-blur-md p-5 rounded-xl shadow-md">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
       {/* HEADER */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="flex items-center gap-3 mb-5"
+        className="flex items-center gap-3 mb-6"
       >
         <div className="p-2 rounded-lg bg-orange-50">
           <TrophyIcon className="w-5 h-5 text-orange-600" />
@@ -63,112 +64,124 @@ export default function CategorySelector({
 
         <div>
           <h2 className="text-lg font-semibold text-gray-800">Race Category</h2>
-          <p className="text-xs text-gray-500">
+
+          <p className="mt-1 text-xs text-gray-500">
             Select your preferred race distance
           </p>
         </div>
       </motion.div>
 
       {/* CATEGORY LIST */}
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {sortedCategories.map((c, index) => {
           const isSelected = selectedCat === c.title;
           const isClosed = c.status === "closed";
+          const seatsLeft = c.maxSeats - (c.bookedSeats || 0);
 
           return (
             <motion.div
-              key={c.id || `${c.title}-${c.distance}-${index}`}
-              whileTap={!isClosed ? { scale: 0.98 } : undefined}
-              whileHover={!isClosed ? { scale: 1.01 } : undefined}
-              transition={{ duration: 0.15 }}
+              key={c.id || `${c.title}-${index}`}
+              whileHover={!isClosed ? { y: -4, scale: 1.02 } : undefined}
+              whileTap={!isClosed ? { scale: 0.97 } : undefined}
+              transition={{ duration: 0.18 }}
               onClick={() => {
                 if (!isClosed && !isProcessing) {
                   handleCategorySelect(c.title);
                 }
               }}
-              className={`relative rounded-lg px-4 py-3 transition-all
-              ${
-                isClosed
-                  ? "bg-gray-100 opacity-60 cursor-not-allowed"
-                  : isSelected
-                    ? "bg-green-50 shadow-sm cursor-pointer"
-                    : "bg-gradient-to-b from-white to-gray-50 hover:shadow-sm cursor-pointer"
-              }`}
+              className={`
+            relative rounded-xl border p-4 cursor-pointer transition-all
+            ${
+              isClosed
+                ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
+                : isSelected
+                  ? "border-orange-500 bg-orange-50 shadow-md"
+                  : "border-gray-200 bg-white hover:border-orange-300 hover:shadow-md"
+            }
+            `}
             >
-              {/* SELECTION INDICATOR */}
-              {isSelected && !isClosed && (
-                <motion.div
-                  layoutId="categoryIndicator"
-                  className="absolute left-0 top-0 h-full w-1 bg-green-600 rounded-l-lg"
-                />
+              {/* SELECTED INDICATOR */}
+              {isSelected && (
+                <CheckCircleIcon className="absolute top-3 right-3 w-5 h-5 text-orange-500" />
               )}
 
               {/* POPULAR BADGE */}
               {c.popular && !isClosed && (
-                <div className="absolute -top-2 right-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center gap-1 shadow">
+                <div className="absolute -top-2 left-3 text-[10px] px-2 py-[2px] rounded-full bg-orange-500 text-white flex items-center gap-1 shadow">
                   <FireIcon className="w-3 h-3" />
                   Popular
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-6 items-center gap-2 text-sm">
-                {/* TITLE */}
-                <div className="flex items-center gap-2 col-span-2 md:col-span-2">
-                  <div
-                    className={`w-4 h-4 rounded-full flex items-center justify-center
-                    ${
-                      isClosed
-                        ? "bg-gray-400"
-                        : isSelected
-                          ? "bg-green-600"
-                          : "bg-gray-300"
-                    }`}
-                  >
-                    {isSelected && !isClosed && (
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    )}
-                  </div>
-
-                  <span className="font-semibold text-gray-800">{c.title}</span>
+              {/* DISTANCE */}
+              <div className="flex items-center gap-3">
+                {/* ICON BADGE */}
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-50">
+                  <MapPinIcon className="w-4 h-4 text-orange-500" />
                 </div>
 
                 {/* DISTANCE */}
-                <div className="flex items-center gap-1 text-gray-600">
-                  <MapPinIcon className="w-4 h-4" />
-                  {c.distance}
-                </div>
+                <div className="flex items-end gap-1">
+                  <span className="text-2xl font-bold text-gray-900 leading-none">
+                    {c.distance}
+                  </span>
 
-                {/* AGE */}
-                <div className="flex items-center gap-1 text-gray-600">
-                  <UserIcon className="w-4 h-4" />
-                  {c.minAge}-{c.maxAge}
-                </div>
-
-                {/* SEATS */}
-                <div className="flex items-center gap-1 text-gray-500">
-                  <TicketIcon className="w-4 h-4" />
-                  {c.bookedSeats || 0}/{c.maxSeats}
-                </div>
-
-                {/* PRICE */}
-                <div className="text-right font-semibold">
-                  {isClosed ? (
-                    <span className="text-red-600 text-sm">Closed</span>
-                  ) : (
-                    <span className="text-orange-600">₹{c.price}</span>
-                  )}
+                  <span className="text-xs font-semibold text-gray-500 tracking-wide mb-[2px]">
+                    KM
+                  </span>
                 </div>
               </div>
 
-              {/* CLOSED MESSAGE */}
-              {isClosed && (
-                <div className="mt-2 text-xs font-semibold text-red-600">
-                  Registration closed
+              {/* TITLE */}
+              <div className="text-xs text-gray-500 mt-1">{c.title}</div>
+
+              {/* PRICE */}
+              <div className="mt-3 text-sm font-semibold text-orange-600">
+                {isClosed ? "Closed" : `₹${c.price}`}
+              </div>
+
+              {/* SEATS */}
+              {!isClosed && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <TicketIcon className="w-3 h-3" />
+                      {c.bookedSeats || 0}/{c.maxSeats}
+                    </span>
+
+                    <span>{c.maxSeats - (c.bookedSeats || 0)} left</span>
+                  </div>
+
+                  {/* PROGRESS BAR */}
+
+                  <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${((c.bookedSeats || 0) / c.maxSeats) * 100}%`,
+                      }}
+                      transition={{ duration: 0.6 }}
+                      className="h-full bg-orange-500"
+                    />
+                  </div>
                 </div>
               )}
             </motion.div>
           );
         })}
+      </div>
+
+      <div className="mt-6 w-full flex justify-center">
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.03, x: -2 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => router.push(`/events/${eventSlug}`)}
+          className="cursor-pointer w-full md:w-auto md:px-8 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          Back to Event
+        </motion.button>
       </div>
     </div>
   );

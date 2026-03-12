@@ -48,9 +48,11 @@ export async function secureFetch(
   /* Get fresh ID token */
   const token = await user.getIdToken();
 
+  const isFormData = options.body instanceof FormData;
+
   const headers = {
-    "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
 

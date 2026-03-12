@@ -39,7 +39,7 @@ export default function AnimatedInput({
       <input
         type={type}
         name={name}
-        value={value}
+        value={value ?? ""}
         required={required}
         disabled={disabled}
         inputMode={inputMode}

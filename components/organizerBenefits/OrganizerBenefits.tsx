@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+
 import {
   CheckCircleIcon,
   CreditCardIcon,
@@ -9,7 +10,9 @@ import {
   ArrowDownTrayIcon,
   TableCellsIcon,
 } from "@heroicons/react/24/outline";
-
+import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { TrophyIcon } from "@heroicons/react/24/solid";
 const benefits = [
   { title: "No Excel Sheets or Manual Follow-ups", icon: TableCellsIcon },
   { title: "Automatic Payment Tracking", icon: CreditCardIcon },
@@ -23,26 +26,27 @@ const benefits = [
 ];
 
 export default function OrganizerBenefits() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white">
       <div className="max-w-7xl mx-auto px-4 mt-16 md:mt-20">
         {/* Heading (UNCHANGED STYLE) */}
+
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12 md:mb-16 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>Powerful Benefits for Organizers</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
-            Everything you need to run events smoothly — without the stress.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="Powerful Benefits for Organizers"
+            subtitle="Everything you need to run events smoothly — without the stress."
+          />
         </motion.div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
           {/* LEFT CONTENT */}
           <motion.div

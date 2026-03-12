@@ -10,7 +10,7 @@ import {
   ArrowDownTrayIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
-
+import { LinkIcon, CheckIcon } from "@heroicons/react/24/outline";
 import {
   DevicePhoneMobileIcon,
   GlobeAltIcon,
@@ -37,16 +37,15 @@ export default function EventHero({ event }: Props) {
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarRef = useRef<HTMLDivElement | null>(null);
   const eventDate = event.date ? new Date(event.date) : null;
-
-  const background =
-    event.bannerURL ||
-    "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=1600";
+  const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const background = event.bannerURL || "/ONLINE_POSTER.jpg";
 
   useEffect(() => {
-    if (!eventDate) return;
+    if (!registrationEnd) return;
 
     const interval = setInterval(() => {
-      const diff = eventDate.getTime() - Date.now();
+      const diff = registrationEnd.getTime() - Date.now();
 
       if (diff <= 0) return;
 
@@ -85,12 +84,48 @@ export default function EventHero({ event }: Props) {
     );
   };
 
-  const downloadPoster = () => {
-    const link = document.createElement("a");
-    link.href = background;
-    link.download = `${event.slug}.jpg`;
-    link.click();
+  const downloadPoster = async () => {
+    try {
+      const response = await fetch(background);
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${event.slug}-poster.jpg`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+
+      setDownloaded(true);
+
+      setTimeout(() => {
+        setDownloaded(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Poster download failed:", error);
+    }
   };
+  const copyEventLink = async () => {
+    try {
+      const url = `${window.location.origin}/events/${event.slug}`;
+
+      await navigator.clipboard.writeText(url);
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+  };
+
   const getCalendarLinks = () => {
     if (!eventDate) return {};
 
@@ -148,7 +183,9 @@ END:VCALENDAR`;
     link.click();
   };
   const calendar = getCalendarLinks();
-
+  const registrationEnd = event.registration?.end
+    ? new Date(event.registration.end)
+    : null;
   return (
     <section className="bg-white pt-8 pb-10">
       <div className="max-w-6xl mx-auto px-5">
@@ -167,13 +204,23 @@ END:VCALENDAR`;
 
             {/* title */}
 
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold tracking-tight leading-tight">
+            <h1
+              className="text-3xl md:text-3xl font-bold tracking-tight
+bg-gradient-to-r from-orange-500 via-red-500 to-orange-500
+bg-clip-text text-transparent animate-gradientMove"
+            >
               <span className="text-gray-900">{event.name.split(" ")[0]} </span>
 
               <span className="bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 bg-[length:200%_100%] bg-clip-text text-transparent animate-gradientMove">
                 {event.name.split(" ").slice(1).join(" ")}
               </span>
             </h1>
+
+            {event.tagline && (
+              <p className="mt-1 text-sm md:text-base text-gray-600 font-medium">
+                {event.tagline}
+              </p>
+            )}
           </div>
 
           {/* animated underline */}
@@ -282,7 +329,11 @@ END:VCALENDAR`;
                 {/* urgency label */}
 
                 <div className="text-[11px] font-medium text-orange-600 flex items-center gap-1">
-                  ⏳ Registration closes in
+                  ⏳ Registration closes on{" "}
+                  {registrationEnd?.toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </div>
 
                 {/* timer */}
@@ -298,25 +349,32 @@ END:VCALENDAR`;
               {/* ACTION AREA */}
               {/* ACTION BAR */}
 
-              <div className="w-full lg:w-auto flex flex-col md:flex-row md:items-center md:justify-between lg:justify-end gap-2 md:gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                {/* PRIMARY CTA */}
                 <motion.a
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                   href={`/events/${event.slug}/register`}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto px-5 py-2.5 rounded-lg text-white font-semibold bg-gradient-to-r from-orange-500 to-red-500 shadow-md whitespace-nowrap"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold
+    bg-gradient-to-r from-orange-500 to-red-500 shadow-md hover:shadow-lg
+    transition whitespace-nowrap"
                 >
                   <ClockIcon className="w-4 h-4" />
                   Register Now
                 </motion.a>
 
-                <div className="flex w-full md:w-auto gap-2">
+                {/* SECONDARY ACTIONS */}
+                <div className="flex items-center gap-2">
+                  {/* CALENDAR */}
                   <div className="relative" ref={calendarRef}>
                     <button
                       onClick={() => setShowCalendar((prev) => !prev)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50 transition shadow-sm"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg
+        border border-gray-200 bg-white text-gray-700 text-sm
+        hover:bg-gray-50 transition"
                     >
                       <CalendarDaysIcon className="w-4 h-4 text-orange-500" />
-                      Add to Calendar
+                      <span className="hidden sm:inline">Calendar</span>
                     </button>
 
                     {showCalendar && (
@@ -354,20 +412,48 @@ END:VCALENDAR`;
                     )}
                   </div>
 
+                  {/* SHARE */}
                   <button
                     onClick={shareEvent}
-                    className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
+                    className="flex items-center justify-center w-9 h-9 rounded-lg
+      border border-gray-200 bg-white text-gray-700
+      hover:bg-gray-50 transition"
                   >
                     <ShareIcon className="w-4 h-4" />
-                    Share
+                  </button>
+
+                  {/* POSTER */}
+                  <button
+                    onClick={downloadPoster}
+                    className={`flex items-center justify-center w-9 h-9 rounded-lg border transition
+  ${
+    downloaded
+      ? "border-green-300 bg-green-50 text-green-600"
+      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+  }`}
+                  >
+                    {downloaded ? (
+                      <CheckIcon className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                    )}
                   </button>
 
                   <button
-                    onClick={downloadPoster}
-                    className="flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
+                    onClick={copyEventLink}
+                    className={`flex items-center justify-center w-9 h-9 rounded-lg
+  border transition
+  ${
+    copied
+      ? "border-green-300 bg-green-50 text-green-600"
+      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+  }`}
                   >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                    Poster
+                    {copied ? (
+                      <CheckIcon className="w-4 h-4" />
+                    ) : (
+                      <LinkIcon className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>

@@ -26,7 +26,7 @@ export default function ContactSection() {
           >
             <h2
               id="contact-heading"
-              className="text-3xl md:text-4xl font-bold text-gray-900"
+              className="text-3xl md:text-3xl font-bold text-gray-900"
             >
               Ready to Organize Your{" "}
               <span className="text-orange-500">Next Sports Event?</span>

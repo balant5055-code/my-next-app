@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,18 +34,20 @@ export async function GET(req: NextRequest) {
 
     const snapshot = await query.get();
 
+    const hasNext = snapshot.docs.length > pageSize;
     const docs = snapshot.docs.slice(0, pageSize);
 
-    const nextCursor =
-      snapshot.docs.length > pageSize ? snapshot.docs[pageSize - 1].id : null;
+    const nextCursor = hasNext ? docs[docs.length - 1].id : null;
+
+    const data = docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     return NextResponse.json({
-      data: docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })),
+      data,
       nextCursor,
-      hasNext: snapshot.docs.length > pageSize,
+      hasNext,
     });
   } catch (error) {
     console.error("Pagination Error:", error);
@@ -55,10 +57,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { eventId, registrationId, chipCode } = await req.json();
+    const { eventId, registrationId, chipCode, bibNumber } = await req.json();
 
     if (!eventId || !registrationId) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // 🔐 Get logged-in admin from Firebase token
+    const authHeader = req.headers.get("authorization");
+    let adminEmail = "unknown";
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ")[1];
+      const decoded = await adminAuth.verifyIdToken(token);
+      adminEmail = decoded.email || decoded.uid;
     }
 
     await adminDb
@@ -66,6 +78,10 @@ export async function POST(req: NextRequest) {
       .doc(registrationId)
       .update({
         chipCode: chipCode || null,
+        bibNumber: bibNumber || null,
+        "participant.bibNumber": bibNumber || null,
+        bibAssignedAt: new Date(),
+        bibAssignedBy: adminEmail,
       });
 
     return NextResponse.json({ success: true });

@@ -2,7 +2,9 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-
+import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { TrophyIcon } from "@heroicons/react/24/solid";
 const partners = [
   {
     name: "Running Club",
@@ -31,27 +33,28 @@ const partners = [
 ];
 
 export default function TrustedBy() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white mt-20">
       <div className="max-w-7xl mx-auto px-4">
         {/* Heading (YOUR STYLE) */}
+
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>Trusted by Event Organizers</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
-            Running clubs, cycling communities, schools and corporate fitness
-            programs trust Raceline to manage their sports events.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="Trusted by Event Organizers"
+            subtitle="Running clubs, cycling communities, schools and corporate fitness
+            programs trust Raceline to manage their sports events."
+          />
         </motion.div>
-
         {/* Logo Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
           {partners.map((partner, index) => (

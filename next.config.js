@@ -10,6 +10,12 @@ const nextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+
+      // FOR Reading IMAGE FROM FIREBASE STORAGE
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+      },
     ],
   },
 };

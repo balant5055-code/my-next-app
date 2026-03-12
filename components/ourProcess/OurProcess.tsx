@@ -48,29 +48,32 @@ const steps = [
     border: "border-pink-500",
   },
 ];
-
+import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { TrophyIcon } from "@heroicons/react/24/solid";
 export default function OurProcess() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white overflow-hidden mt-16 md:mt-20">
       <div className="max-w-6xl mx-auto px-4">
         {/* Heading */}
+
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12 md:mb-16 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>Our Event Registration & Race Timing Process</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
-            A simple workflow for organizers to launch and manage sports events
-            with our platform.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="Our Event Registration & Race Timing Process"
+            subtitle="A simple workflow for organizers to launch and manage sports events
+            with our platform."
+          />
         </motion.div>
-
         {/* Steps Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 md:gap-8">
           {steps.map((step, index) => {

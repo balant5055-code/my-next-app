@@ -9,7 +9,8 @@ import {
   TrophyIcon,
   PhotoIcon,
 } from "@heroicons/react/24/outline";
-
+import { useEffect, useRef, useState } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
 const experiences = [
   {
     title: "Mobile-Friendly Registration",
@@ -52,26 +53,26 @@ const experiences = [
 ];
 
 export default function ParticipantExperience() {
+  const headingRef = useRef<HTMLDivElement | null>(null);
   return (
     <div className="bg-white">
       <div className="max-w-7xl mx-auto px-4 mt-20">
         {/* Header */}
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>A Smooth Experience for Every Participant</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-3xl text-gray-600 max-w-2xl mx-auto tan">
-            Designed to make participation effortless from start to finish.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="A Smooth Experience for Every Participant"
+            subtitle=" Designed to make participation effortless from start to finish."
+          />
         </motion.div>
-
         {/* Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {experiences.map((item, index) => {

@@ -2,20 +2,19 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import fs from "fs";
 import path from "path";
-
+let cachedFontBytes: Buffer | null = null;
+let cachedLogoBytes: Buffer | null = null;
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+    if (!id || typeof id !== "string" || id.length > 40) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
-
     // 🔥 ONLY read from registrations_flat (fast & clean)
     const docSnap = await adminDb
       .collection("registrations_flat")
@@ -30,7 +29,12 @@ export async function GET(req: Request) {
     }
 
     const data = docSnap.data();
-
+    if (data?.status !== "CONFIRMED") {
+      return NextResponse.json(
+        { error: "Receipt not available" },
+        { status: 403 },
+      );
+    }
     // ==============================
     // PDF GENERATION
     // ==============================
@@ -48,9 +52,16 @@ export async function GET(req: Request) {
       "Inter_18pt-Medium.ttf",
     );
 
-    const fontBytes = fs.readFileSync(fontPath);
-    const font = await pdfDoc.embedFont(fontBytes);
+    let font: any;
+    if (!cachedFontBytes && fs.existsSync(fontPath)) {
+      cachedFontBytes = fs.readFileSync(fontPath);
+    }
 
+    if (cachedFontBytes) {
+      font = await pdfDoc.embedFont(cachedFontBytes);
+    } else {
+      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    }
     let y = height - 60;
 
     // ==============================
@@ -63,9 +74,12 @@ export async function GET(req: Request) {
       "raceline-in.png",
     );
 
-    if (fs.existsSync(logoPath)) {
-      const logoBytes = fs.readFileSync(logoPath);
-      const logoImage = await pdfDoc.embedPng(logoBytes);
+    if (!cachedLogoBytes && fs.existsSync(logoPath)) {
+      cachedLogoBytes = fs.readFileSync(logoPath);
+    }
+
+    if (cachedLogoBytes) {
+      const logoImage = await pdfDoc.embedPng(cachedLogoBytes);
       const scaled = logoImage.scale(0.35);
 
       page.drawImage(logoImage, {
@@ -75,7 +89,6 @@ export async function GET(req: Request) {
         height: scaled.height,
       });
     }
-
     page.drawText("RACELINE INDIA", {
       x: width - 220,
       y: y - 5,
@@ -165,7 +178,7 @@ export async function GET(req: Request) {
     drawRow("Registration ID", id);
     drawRow("Payment ID", data?.payment?.paymentId);
     drawRow("Order ID", data?.payment?.orderId);
-    drawRow("Amount Paid", `₹ ${data?.amount}`);
+    drawRow("Amount Paid", data?.amount ? `₹ ${data.amount}` : "₹ 0");
     drawRow("Status", data?.payment?.status || "SUCCESS");
 
     y -= 40;
@@ -196,6 +209,7 @@ export async function GET(req: Request) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename=receipt-${id}.pdf`,
+        "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
   } catch (error) {

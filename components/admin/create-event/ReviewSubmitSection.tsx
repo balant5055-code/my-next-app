@@ -2,11 +2,11 @@
 
 interface Props {
   data: any;
+  bannerPreview: string | null;
   onSubmit: () => void;
   loading?: boolean;
   onEdit: (tab: string) => void;
 }
-
 /* ================= VALIDATION ================= */
 function getWarnings(data: any) {
   const warnings: string[] = [];
@@ -32,6 +32,7 @@ function getWarnings(data: any) {
 
 export default function ReviewSubmitSection({
   data,
+  bannerPreview,
   onSubmit,
   loading,
 }: Props) {
@@ -182,12 +183,21 @@ export default function ReviewSubmitSection({
       )}
 
       {/* BANNER */}
-      {data.bannerURL && (
+      {(bannerPreview || data.bannerURL) && (
         <Card title="Event Poster">
-          <img
-            src={data.bannerURL}
-            className="rounded-xl border border-slate-700"
-          />
+          <div className="relative h-[420px] rounded-xl overflow-hidden border border-slate-700">
+            <img
+              src={bannerPreview || data.bannerURL}
+              className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-40"
+            />
+
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img
+                src={bannerPreview || data.bannerURL}
+                className="max-h-[380px] object-contain shadow-2xl"
+              />
+            </div>
+          </div>
         </Card>
       )}
 

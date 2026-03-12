@@ -11,7 +11,7 @@ import {
   ArrowUpTrayIcon,
   CpuChipIcon,
 } from "@heroicons/react/24/outline";
-
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 export default function EventLayout({
   children,
 }: {
@@ -51,6 +51,11 @@ export default function EventLayout({
       name: "Analytics",
       href: `/admin/events/${eventId}/analytics`,
       icon: ChartBarIcon,
+    },
+    {
+      name: "Certificate",
+      href: `/admin/events/${eventId}/certificate`,
+      icon: DocumentTextIcon,
     },
     {
       name: "Settings",

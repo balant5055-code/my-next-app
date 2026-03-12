@@ -4,6 +4,7 @@ import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { v4 as uuidv4 } from "uuid";
+import { validateCoupon } from "@/lib/coupons/validateCoupon";
 
 if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
   throw new Error("Razorpay keys not configured");
@@ -17,14 +18,19 @@ const razorpay = new Razorpay({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    if (JSON.stringify(body).length > 100000) {
+      throw new Error("Request too large");
+    }
 
-    const { eventId, categoryId, participant } = body;
+    const { eventId, participants } = body;
+    let couponCode = body.couponCode?.trim().toUpperCase();
 
     if (
       !eventId ||
-      !categoryId ||
-      !participant ||
-      typeof participant !== "object"
+      !participants ||
+      !Array.isArray(participants) ||
+      participants.length === 0 ||
+      participants.length > 10
     ) {
       return NextResponse.json(
         { error: "Invalid request data" },
@@ -36,10 +42,12 @@ export async function POST(req: Request) {
 
     const eventRef = adminDb.collection("events").doc(eventId);
 
-    let categoryPrice = 0;
+    let totalPrice = 0;
+    let categoryTitles: string[] = [];
     let eventName = "";
-    let categoryTitle = "";
-
+    let discountAmount = 0;
+    let appliedCoupon: string | null = null;
+    let freeEntry = false;
     /* TRANSACTION */
     await adminDb.runTransaction(async (tx) => {
       const eventSnap = await tx.get(eventRef);
@@ -49,10 +57,7 @@ export async function POST(req: Request) {
       }
 
       const event = eventSnap.data()!;
-
       eventName = event.name;
-
-      /* REGISTRATION WINDOW CHECK */
 
       const registration = event.registration;
 
@@ -61,7 +66,8 @@ export async function POST(req: Request) {
       }
 
       const now = new Date();
-
+      const categories = event.categories || [];
+      const seatCounter: Record<string, number> = {};
       const start = registration.start?.toDate?.() || registration.start;
       const end = registration.end?.toDate?.() || registration.end;
 
@@ -75,57 +81,103 @@ export async function POST(req: Request) {
         throw new Error("Registration closed");
       }
 
-      /* FIND CATEGORY */
+      for (const runner of participants) {
+        if (!runner.categoryId) {
+          throw new Error("Runner category missing");
+        }
+        const index = categories.findIndex(
+          (c: any) => c.id === runner.categoryId,
+        );
 
-      const categories = event.categories || [];
+        if (index === -1) {
+          throw new Error("Invalid category");
+        }
 
-      const index = categories.findIndex((c: any) => c.id === categoryId);
+        const category = categories[index];
+        if (typeof category.price !== "number") {
+          throw new Error("Invalid category pricing");
+        }
+        let price = category.price;
 
-      if (index === -1) {
-        throw new Error("Invalid category");
+        if (category.earlyBirdPrice && category.earlyBirdEnd) {
+          const earlyBirdEnd =
+            category.earlyBirdEnd?.toDate?.() ||
+            new Date(category.earlyBirdEnd);
+
+          if (now < earlyBirdEnd) {
+            price = category.earlyBirdPrice;
+          }
+        }
+
+        totalPrice += price;
+
+        if (category.status === "closed") {
+          throw new Error(`${category.title} category closed`);
+        }
+
+        const booked = Number(category.bookedSeats || 0);
+        const maxSeats = Number(category.maxSeats || 0);
+
+        const alreadyReserved = seatCounter[runner.categoryId] || 0;
+
+        if (maxSeats > 0 && booked + alreadyReserved + 1 > maxSeats) {
+          throw new Error(`${category.title} category fully booked`);
+        }
+
+        seatCounter[runner.categoryId] = alreadyReserved + 1;
+        //categories[index].bookedSeats = booked + 1;
+        //category.bookedSeats = categories[index].bookedSeats;
+
+        categoryTitles.push(category.title);
       }
 
-      const category = categories[index];
-
-      /* CATEGORY STATUS CHECK */
-
-      if (category.status === "closed") {
-        throw new Error("Category closed");
-      }
-
-      /* SEAT CHECK */
-
-      const booked = category.bookedSeats || 0;
-
-      if (booked >= category.maxSeats) {
-        throw new Error("This category is fully booked");
-      }
-
-      /* LOCK SEAT */
-
-      categories[index].bookedSeats = booked + 1;
-
-      tx.update(eventRef, { categories });
-
-      /* SAVE DB PRICE */
-
-      categoryPrice = category.price;
-      categoryTitle = category.title;
+      // no seat update here — seats reserved after payment verification
     });
+    /* APPLY COUPON IF PROVIDED */
+
+    if (couponCode) {
+      const couponResult = await validateCoupon({
+        couponCode,
+        eventId,
+        runnerClub: participants[0]?.runnerClub,
+        phone: participants[0]?.phone,
+        categoryTitle: categoryTitles.join(","),
+        price: totalPrice,
+      });
+
+      if (!couponResult.valid) {
+        throw new Error(couponResult.message);
+      }
+
+      discountAmount = couponResult.discountAmount ?? 0;
+      appliedCoupon = couponCode;
+      freeEntry = couponResult.freeEntry === true;
+
+      if (couponResult.finalPrice !== undefined) {
+        totalPrice = couponResult.finalPrice;
+      } else {
+        totalPrice = Math.max(totalPrice - discountAmount, 0);
+      }
+    }
 
     /* CREATE RAZORPAY ORDER */
-
     let order;
-
-    try {
-      order = await razorpay.orders.create({
-        amount: categoryPrice * 100,
-        currency: "INR",
-        receipt: `rli_${Date.now()}`,
-      });
-    } catch (err) {
-      console.error("RAZORPAY ORDER ERROR:", err);
-      throw new Error("Payment initialization failed");
+    if (freeEntry) {
+      order = {
+        id: "FREE_" + Date.now(),
+        amount: 0,
+      };
+    } else {
+      try {
+        order = await razorpay.orders.create({
+          amount: totalPrice * 100,
+          currency: "INR",
+          receipt: `rli_${uuidv4().slice(0, 8)}`,
+        });
+      } catch (err) {
+        console.error("RAZORPAY ORDER ERROR:", err);
+        throw new Error("Payment initialization failed");
+      }
     }
 
     const registrationId =
@@ -138,23 +190,24 @@ export async function POST(req: Request) {
       orderId: order.id,
 
       eventId,
-      categoryId,
-      categoryTitle,
 
-      participant,
+      participants,
+      categories: categoryTitles,
 
-      amount: categoryPrice,
+      amount: totalPrice,
+      discountAmount,
+      couponCode: appliedCoupon,
 
       status: "PENDING",
 
       createdAt: new Date(),
-
       expiresAt,
     });
 
     return NextResponse.json({
       order,
       registrationId,
+      freeEntry,
     });
   } catch (error: any) {
     console.error("CREATE ORDER ERROR:", error);
