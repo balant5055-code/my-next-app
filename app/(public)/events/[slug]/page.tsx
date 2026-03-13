@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import EventPage from "./EventPage";
 
-/* ================= DETECT DOMAIN ================= */
+/* ================= DOMAIN DETECTION ================= */
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -19,7 +19,7 @@ async function getEvent(slug: string) {
 
     if (!res.ok) return null;
 
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.error("Event fetch error:", err);
     return null;
@@ -31,9 +31,9 @@ async function getEvent(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
 
   const event = await getEvent(slug);
 
@@ -89,11 +89,13 @@ export async function generateMetadata({
 export default async function Page({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = params;
+  const { slug } = await params;
 
   const event = await getEvent(slug);
+
+  /* ================= JSON-LD ================= */
 
   const jsonLd = event
     ? {
@@ -150,6 +152,7 @@ export default async function Page({
             __html: JSON.stringify(jsonLd),
           }}
         />
+
       )}
 
       <EventPage />
