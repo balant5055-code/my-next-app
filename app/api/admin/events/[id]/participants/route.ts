@@ -47,7 +47,11 @@ export async function GET(
     const paymentStatus = searchParams.get("paymentStatus");
     const status = searchParams.get("status");
 
-    const sortField = searchParams.get("sortField") || "createdAt";
+    let sortField = searchParams.get("sortField") || "createdAt";
+
+    if (sortField === "bibNumber") {
+      sortField = "participant.bibNumber";
+    }
     const sortDirection =
       searchParams.get("sortDirection") === "asc" ? "asc" : "desc";
 
@@ -64,11 +68,13 @@ export async function GET(
     ====================================================== */
     const allowedSortFields = [
       "createdAt",
-      "bibNumber",
       "amount",
       "status",
-      "participant.distance",
+      "nameLowercase",
       "participant.phone",
+      "participant.categoryDistance",
+      "participant.bibNumber",
+      "bibNumber",
     ];
 
     if (!allowedSortFields.includes(sortField)) {
@@ -91,9 +97,12 @@ export async function GET(
 
     // Distance filter
     if (category && category !== "all") {
-      query = query.where("participant.distance", "==", category);
+      query = query.where(
+        "participant.categoryDistance",
+        "==",
+        String(category),
+      );
     }
-
     // Payment filter (method OR result)
     if (paymentStatus && paymentStatus !== "all") {
       const upper = paymentStatus.toUpperCase();
@@ -137,6 +146,8 @@ export async function GET(
    📊 8️⃣ FILTERED TOTAL COUNT
 ===================================================== */
 
+    const eventSnap = await adminDb.collection("events").doc(eventId).get();
+
     const countSnapshot = await query.count().get();
     const totalCount = countSnapshot.data().count;
     /* =====================================================
@@ -164,7 +175,9 @@ export async function GET(
         parsedValue = new Date(Number(lastValue));
       }
 
-      if (["bibNumber", "amount"].includes(sortField)) {
+      if (
+        ["bibNumber", "participant.bibNumber", "amount"].includes(sortField)
+      ) {
         parsedValue = Number(lastValue);
       }
 
@@ -195,15 +208,21 @@ export async function GET(
         registrationId: data.registrationId,
         eventId: data.eventId,
 
-        category: data.category,
+        category: participant.categoryDistance
+          ? `${participant.categoryDistance} KM`
+          : null,
+
         categoryId: data.categoryId,
 
         name: `${participant.firstName || ""} ${participant.lastName || ""}`.trim(),
+
         phone: participant.phone || null,
         email: participant.email || null,
-        distance: participant.distance || null,
 
-        bibNumber: data.bibNumber || null,
+        distance: participant.categoryDistance || null,
+
+        bibNumber: participant.bibNumber || null,
+
         amount: data.amount || 0,
 
         paymentStatus: payment.status || null,

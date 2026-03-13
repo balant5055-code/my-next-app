@@ -1,62 +1,77 @@
-/* gOGOGLE seo 
-After deploying, test here:🔗 https://search.google.com/test/rich-results
-Enter:https://racelineindia.com/events/chennai-marathon
-You should see:
-✔ Event detected */
-
 import { Metadata } from "next";
 import EventPage from "./EventPage";
 
+/* ================= DETECT DOMAIN ================= */
+
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://racelineindia.com";
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
+
+/* ================= FETCH EVENT ================= */
 
 async function getEvent(slug: string) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  try {
+    const res = await fetch(`${SITE_URL}/api/events/${slug}`, {
+      next: { revalidate: 60 },
+    });
 
-  const res = await fetch(`${base}/api/events/${slug}`, {
-    next: { revalidate: 60 },
-  });
+    if (!res.ok) return null;
 
-  if (!res.ok) return null;
-
-  return res.json();
+    return res.json();
+  } catch (err) {
+    console.error("Event fetch error:", err);
+    return null;
+  }
 }
+
+/* ================= SEO METADATA ================= */
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug } = params;
 
   const event = await getEvent(slug);
 
   if (!event) {
     return {
-      title: "Event Not Found | Raceline India",
+      title: "Event Not Found | Raceline",
+      description: "This event could not be found.",
     };
   }
 
-  const title = `${event.name} | Raceline India`;
-
+  const title = `${event.name} | Raceline`;
   const description =
-    event.description?.slice(0, 150) ||
-    "Join this exciting race event organized by Raceline India.";
+    event.description?.slice(0, 160) ||
+    "Join this exciting race event.";
 
-  const image = event.bannerURL || `${SITE_URL}/api/og/events/${event.slug}`;
+  const image =
+    event.bannerURL || `${SITE_URL}/api/og/events/${event.slug}`;
 
   return {
     title,
     description,
+
     alternates: {
       canonical: `${SITE_URL}/events/${event.slug}`,
     },
+
     openGraph: {
       title,
       description,
       url: `${SITE_URL}/events/${event.slug}`,
-      siteName: "Raceline India",
-      images: [{ url: image, width: 1200, height: 630 }],
+      siteName: "Raceline",
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+        },
+      ],
       type: "website",
     },
 
@@ -68,12 +83,15 @@ export async function generateMetadata({
     },
   };
 }
+
+/* ================= PAGE ================= */
+
 export default async function Page({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
-  const { slug } = await params;
+  const { slug } = params;
 
   const event = await getEvent(slug);
 
@@ -86,13 +104,14 @@ export default async function Page({
 
         description:
           event.description ||
-          "Join this exciting race event organized by Raceline India.",
+          "Join this exciting race event.",
 
         startDate: event.date,
         endDate: event.date,
 
         eventStatus: "https://schema.org/EventScheduled",
-        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+        eventAttendanceMode:
+          "https://schema.org/OfflineEventAttendanceMode",
 
         image: [event.bannerURL],
 
@@ -108,18 +127,16 @@ export default async function Page({
 
         organizer: {
           "@type": "Organization",
-          name: "Raceline India",
-          url: "https://racelineindia.com",
-          logo: "https://racelineindia.com/logo/raceline-in.png",
+          name: "Raceline",
+          url: SITE_URL,
         },
 
         offers: {
           "@type": "Offer",
-          url: `https://racelineindia.com/events/${event.slug}`,
+          url: `${SITE_URL}/events/${event.slug}`,
           priceCurrency: "INR",
           price: event.categories?.[0]?.price ?? 0,
           availability: "https://schema.org/InStock",
-          validFrom: event.registration?.start,
         },
       }
     : null;

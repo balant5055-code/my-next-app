@@ -43,21 +43,21 @@ export default function UseCases() {
   return (
     <div className="bg-white mt-20">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Heading (UNCHANGED STYLE) */}
+        {/* HEADER */}
         <motion.div
+          ref={headingRef}
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-14 text-center border-title"
+          className="mb-14 text-center"
         >
-          <h2 className="text-3xl md:text-3xl font-semibold text-gray-900 main-title">
-            <span>Events We Power</span>
-          </h2>
-
-          <p className="mt-3 text-2xl md:text-3xl lg:text-4xl text-gray-600 max-w-2xl mx-auto tan">
-            Choose your next experience and register instantly.
-          </p>
+          <SectionHeader
+            label="Race Results"
+            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            title="Events We Power"
+            subtitle="  Choose your next experience and register instantly."
+          />
         </motion.div>
 
         {/* Cards */}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { secureFetch } from "@/lib/secureFetch";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
 interface Props {
   eventId: string;
   onClose: () => void;
@@ -13,13 +14,23 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
   const [summary, setSummary] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
+
   const [previewData, setPreviewData] = useState<any | null>(null);
   const [previewDistance, setPreviewDistance] = useState<string | null>(null);
 
   const [checkingDistance, setCheckingDistance] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+
   const [history, setHistory] = useState<any[]>([]);
-  /* ================= LOAD SUMMARY ================= */
+
+  const [progress, setProgress] = useState<any | null>(null);
+
+  const [status, setStatus] = useState<{
+    type: "success" | "error" | "info" | null;
+    message: string;
+  }>({ type: null, message: "" });
+
+  /* ================= LOAD EVENT SNAPSHOT ================= */
 
   useEffect(() => {
     if (!eventId) return;
@@ -27,9 +38,6 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
     setLoading(true);
 
     const unsubscribe = onSnapshot(doc(db, "events", eventId), (snapshot) => {
-      console.log("Snapshot exists:", snapshot.exists());
-      console.log("Snapshot data:", snapshot.data());
-
       const eventData = snapshot.data();
 
       if (!eventData) {
@@ -37,9 +45,24 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
         return;
       }
 
-      /* ================= LOCK STATE ================= */
+      /* -------- LOCK STATE -------- */
 
       setIsLocked(eventData.bibGenerationLock?.locked || false);
+
+      /* -------- LIVE GENERATION PROGRESS -------- */
+
+      const progressData = eventData?.bibGenerationProgress;
+
+      if (progressData) {
+        setProgress({
+          distance: progressData.distance,
+          assigned: progressData.assigned || 0,
+        });
+      } else {
+        setProgress(null);
+      }
+
+      /* -------- CATEGORY SUMMARY -------- */
 
       const categories = eventData.categories || [];
       const logs = eventData.auditLogs || [];
@@ -50,17 +73,13 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
         const distance = cat.distance;
 
         const confirmed = cat.bookedSeats || 0;
-
         const assigned = (cat.nextBib || cat.bibStart) - cat.bibStart;
 
         const remaining = Math.max(confirmed - assigned, 0);
 
         const capacity = (cat.bibEnd || 0) - (cat.bibStart || 0) + 1;
-
         const available = capacity - assigned;
-        console.log("EVENT ID:", eventId);
-        console.log("CATEGORIES:", categories);
-        console.log("NEW SUMMARY:", newSummary);
+
         newSummary[distance] = {
           confirmed,
           assigned,
@@ -76,7 +95,7 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
 
       setSummary(newSummary);
 
-      /* ================= HISTORY ================= */
+      /* -------- HISTORY -------- */
 
       const batches = logs
         .filter((log: any) => log.action === "BIB_BATCH_GENERATED")
@@ -93,15 +112,13 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
 
     return () => unsubscribe();
   }, [eventId]);
+
   /* ================= UNDO ================= */
 
   const handleUndo = async () => {
-    const confirmAction = window.confirm(
-      "Are you sure you want to undo the last BIB batch?",
-    );
-    if (!confirmAction) return;
-
     try {
+      setStatus({ type: "info", message: "Undoing last BIB batch..." });
+
       const res = await secureFetch(`/api/admin/events/${eventId}/bib/undo`, {
         method: "POST",
       });
@@ -109,13 +126,17 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result.error);
+        setStatus({ type: "error", message: result.error });
         return;
       }
 
-      alert("Last batch undone successfully");
+      setStatus({
+        type: "success",
+        message: "Last batch undone successfully.",
+      });
     } catch (error) {
       console.error(error);
+      setStatus({ type: "error", message: "Undo failed." });
     }
   };
 
@@ -125,6 +146,8 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
     try {
       setCheckingDistance(distance);
       setPreviewData(null);
+
+      setStatus({ type: "info", message: "Checking participants..." });
 
       const res = await secureFetch(
         `/api/admin/events/${eventId}/bib/preview`,
@@ -138,19 +161,25 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result.error);
+        setStatus({ type: "error", message: result.error });
         return;
       }
 
       if (!result.preview) {
-        alert("No participants available for BIB assignment.");
+        setStatus({
+          type: "info",
+          message: "No participants pending BIB assignment.",
+        });
         return;
       }
 
       setPreviewDistance(distance);
       setPreviewData(result.preview);
+
+      setStatus({ type: null, message: "" });
     } catch (error) {
       console.error(error);
+      setStatus({ type: "error", message: "Preview failed." });
     } finally {
       setCheckingDistance(null);
     }
@@ -164,6 +193,11 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
     try {
       setGenerating(true);
 
+      setStatus({
+        type: "info",
+        message: "Generating BIB numbers. Please wait...",
+      });
+
       const res = await secureFetch(
         `/api/admin/events/${eventId}/bib/generate`,
         {
@@ -176,19 +210,43 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result.error);
+        setStatus({ type: "error", message: result.error });
         return;
       }
 
-      alert("BIB Generated Successfully");
+      setStatus({
+        type: "success",
+        message: `Assigned ${result.batch.totalAssigned} BIB numbers.`,
+      });
 
       setPreviewData(null);
       setPreviewDistance(null);
     } catch (error) {
       console.error(error);
+      setStatus({ type: "error", message: "Generation failed." });
     } finally {
       setGenerating(false);
     }
+  };
+
+  /* ================= STATUS BANNER ================= */
+
+  const StatusBanner = () => {
+    if (!status.type) return null;
+
+    const colors = {
+      success: "bg-green-500/20 text-green-400",
+      error: "bg-red-500/20 text-red-400",
+      info: "bg-blue-500/20 text-blue-400",
+    };
+
+    return (
+      <div
+        className={`mb-6 px-4 py-3 rounded-lg text-sm ${colors[status.type]}`}
+      >
+        {status.message}
+      </div>
+    );
   };
 
   /* ================= UI ================= */
@@ -198,52 +256,64 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
       <div className="bg-slate-900 w-[900px] max-h-[85vh] overflow-auto rounded-2xl p-8">
         <h2 className="text-2xl font-semibold mb-6">Bulk BIB Generator</h2>
 
+        <StatusBanner />
+
+        {/* -------- LIVE PROGRESS -------- */}
+
+        {progress && (
+          <div className="mb-6 bg-indigo-500/20 text-indigo-400 px-4 py-3 rounded-lg text-sm flex justify-between">
+            <span>Generating BIBs for {progress.distance} KM</span>
+            <span className="font-semibold">
+              {progress.assigned} runners processed
+            </span>
+          </div>
+        )}
+
         {loading ? (
-          <p>Loading...</p>
+          <p className="text-slate-400">Loading event data...</p>
         ) : (
           <div className="space-y-4">
-            {Object.keys(summary).length === 0 ? (
-              <p className="text-slate-400">No categories found</p>
-            ) : (
-              Object.keys(summary).map((distance) => {
-                const data = summary[distance];
+            {Object.keys(summary).map((distance) => {
+              const data = summary[distance];
 
-                return (
-                  <div
-                    key={distance}
-                    className="bg-slate-800 p-6 rounded-xl flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-lg font-medium">{distance} KM</p>
-                      <p className="text-sm text-slate-400">
-                        Confirmed: {data.confirmed} | Assigned: {data.assigned}{" "}
-                        | Remaining: {data.remaining}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Range: {data.rangeStart} - {data.rangeEnd} | Next:{" "}
-                        {data.nextBib}
-                      </p>
-                    </div>
+              return (
+                <div
+                  key={distance}
+                  className="bg-slate-800 p-6 rounded-xl flex justify-between items-center"
+                >
+                  <div>
+                    <p className="text-lg font-medium">{distance} KM</p>
 
-                    <button
-                      disabled={
-                        !data.canGenerate ||
-                        checkingDistance !== null ||
-                        isLocked
-                      }
-                      onClick={() => handlePreview(distance)}
-                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-40"
-                    >
-                      {isLocked
-                        ? "Another Admin Generating..."
-                        : checkingDistance === distance
-                          ? "Checking..."
-                          : "Generate BIB"}
-                    </button>
+                    <p className="text-sm text-slate-400">
+                      Confirmed: {data.confirmed} | Assigned: {data.assigned} |
+                      Remaining: {data.remaining}
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      Range: {data.rangeStart} - {data.rangeEnd} | Next:{" "}
+                      {data.nextBib}
+                    </p>
                   </div>
-                );
-              })
-            )}
+
+                  <button
+                    disabled={
+                      !data.canGenerate ||
+                      checkingDistance !== null ||
+                      isLocked ||
+                      progress !== null
+                    }
+                    onClick={() => handlePreview(distance)}
+                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl disabled:opacity-40"
+                  >
+                    {checkingDistance === distance
+                      ? "Checking..."
+                      : isLocked
+                        ? "Another Admin Generating..."
+                        : "Generate BIB"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -263,12 +333,6 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
                 </p>
                 <p>Next After Generation: {previewData.endBib + 1}</p>
               </div>
-
-              {previewData.willOverflow && (
-                <p className="text-red-400 font-semibold">
-                  ⚠ This exceeds allowed BIB range!
-                </p>
-              )}
 
               <div className="flex justify-end gap-4">
                 <button
@@ -292,55 +356,7 @@ export default function BibGeneratorModal({ eventId, onClose }: Props) {
             </div>
           </div>
         )}
-        {history.length > 0 && (
-          <div className="mt-12 border-t border-slate-700 pt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">BIB Batch History</h3>
-              <span className="text-xs text-slate-400">
-                {history.length} batches
-              </span>
-            </div>
 
-            <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
-              {history.map((batch) => (
-                <div
-                  key={batch.batchId}
-                  className="bg-gradient-to-r from-slate-800 to-slate-700 p-5 rounded-2xl border border-slate-600"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-white">
-                        {batch.distance} KM | {batch.fromBib} → {batch.toBib}
-                      </p>
-
-                      <p className="text-slate-400 text-sm mt-1">
-                        Total Assigned: {batch.totalAssigned}
-                      </p>
-
-                      <p className="text-xs text-slate-500 mt-1">
-                        {batch.generatedAt?._seconds
-                          ? new Date(
-                              batch.generatedAt._seconds * 1000,
-                            ).toLocaleString()
-                          : ""}
-                      </p>
-                    </div>
-
-                    {batch.undo ? (
-                      <span className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
-                        UNDONE
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
-                        ACTIVE
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         {/* ================= FOOTER ================= */}
 
         <div className="mt-8 flex justify-between items-center border-t border-slate-700 pt-6">

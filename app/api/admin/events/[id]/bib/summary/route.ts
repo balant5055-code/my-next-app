@@ -4,73 +4,73 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { requireRole } from "@/lib/requireRole";
 
+/* ---------------- DISTANCE NORMALIZER ---------------- */
+
+function normalizeDistance(value: any) {
+  if (!value) return "";
+  const match = String(value).match(/\d+/);
+  return match ? String(Number(match[0])) : "";
+}
+
+/* ---------------------------------------------------- */
+
 export async function GET(req: NextRequest, context: any) {
   try {
-    const { id } = await context.params; // 👈 IMPORTANT: await here
+    await requireRole(["SUPER_ADMIN", "EVENT_MANAGER"]);
+
+    const { id } = await context.params;
 
     if (!id) {
       return NextResponse.json({ error: "Event ID required" }, { status: 400 });
     }
 
-    const eventId = id;
-
     const eventRef = adminDb.collection("events").doc(id);
-    interface EventCategory {
-      id: string;
-      title: string;
-      distance: string;
-      bibStart?: number;
-      bibEnd?: number;
-      nextBib?: number;
-    }
 
-    interface EventData {
-      categories?: EventCategory[];
-    }
     const eventSnap = await eventRef.get();
 
     if (!eventSnap.exists) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    const eventData = eventSnap.data() as EventData;
+    const eventData = eventSnap.data();
 
-    if (!eventData) {
-      return NextResponse.json(
-        { error: "Event data missing" },
-        { status: 500 },
-      );
-    }
-
-    const categories = eventData.categories ?? [];
+    const categories = eventData?.categories || [];
 
     const summary: any = {};
 
     for (const category of categories) {
-      const distance = category.distance;
+      const distance = normalizeDistance(category.distance);
 
       const rangeStart = category.bibStart;
       const rangeEnd = category.bibEnd;
 
       if (!rangeStart || !rangeEnd) continue;
 
-      const confirmedSnap = await adminDb
+      /* ---------------- CONFIRMED COUNT ---------------- */
+
+      const confirmedAgg = await adminDb
         .collection("registrations_flat")
         .where("eventId", "==", id)
-        .where("participant.distance", "==", distance)
+        .where("participant.categoryDistance", "==", distance)
         .where("status", "==", "CONFIRMED")
+        .count()
         .get();
 
-      const confirmed = confirmedSnap.size;
+      const confirmed = confirmedAgg.data().count;
 
-      const assignedSnap = await adminDb
+      /* ---------------- ASSIGNED COUNT ---------------- */
+
+      const assignedAgg = await adminDb
         .collection("registrations_flat")
         .where("eventId", "==", id)
-        .where("participant.distance", "==", distance)
-        .where("bibNumber", ">", 0)
+        .where("participant.categoryDistance", "==", distance)
+        .where("participant.bibNumber", ">", 0)
+        .count()
         .get();
 
-      const assigned = assignedSnap.size;
+      const assigned = assignedAgg.data().count;
+
+      /* ---------------- CALCULATIONS ---------------- */
 
       const remaining = Math.max(confirmed - assigned, 0);
 
@@ -96,6 +96,7 @@ export async function GET(req: NextRequest, context: any) {
     });
   } catch (error: any) {
     console.error("BIB SUMMARY ERROR:", error);
+
     return NextResponse.json(
       { error: error.message || "Server error" },
       { status: 500 },

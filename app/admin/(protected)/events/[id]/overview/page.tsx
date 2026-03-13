@@ -69,6 +69,7 @@ interface EventData {
     participants: number;
     revenue: number;
   }[];
+  resultsPublished?: boolean;
 }
 const formatSafeDate = (value: any) => {
   if (!value) return "Date not set";
@@ -175,6 +176,7 @@ export default function EventOverviewPage() {
             participants: cat.bookedSeats || 0,
             revenue: (cat.bookedSeats || 0) * (cat.price || 0),
           })),
+          resultsPublished: data.resultsPublished || false,
         });
         setLoading(false);
       },
@@ -203,16 +205,8 @@ export default function EventOverviewPage() {
   /* ================= REAL-TIME DERIVED METRICS ================= */
 
   const categories = eventData.categories || [];
-
-  const totalParticipants = categories.reduce(
-    (sum, cat) => sum + (cat.bookedSeats || 0),
-    0,
-  );
-
-  const totalRevenue = categories.reduce(
-    (sum, cat) => sum + (cat.bookedSeats || 0) * (cat.price || 0),
-    0,
-  );
+  const totalParticipants = eventData.metrics?.totalParticipants || 0;
+  const totalRevenue = eventData.metrics?.totalRevenue || 0;
 
   const revenuePerParticipant =
     totalParticipants > 0 ? Math.round(totalRevenue / totalParticipants) : 0;
@@ -544,6 +538,7 @@ transition-colors duration-300"
           eventId={eventData.id}
           currentStatus={eventData.status}
           currentRegistrationStatus={eventData.registration?.status}
+          resultsPublished={eventData.resultsPublished || false}
           onStatusChange={(newStatus) =>
             setEventData((prev) =>
               prev ? { ...prev, status: newStatus } : prev,

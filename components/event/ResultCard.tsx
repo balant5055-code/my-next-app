@@ -18,7 +18,31 @@ type Props = {
   event: EventType;
   index: number;
 };
+const formatEventDate = (date: any) => {
+  if (!date) return "TBA";
 
+  // Firestore timestamp
+  if (date?.seconds) {
+    return new Date(date.seconds * 1000).toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  // Already JS Date
+  if (date instanceof Date) {
+    return date.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  // ISO string fallback
+  return new Date(date).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+  });
+};
 export default function ResultCard({ event, index }: Props) {
   return (
     <motion.div
@@ -29,7 +53,7 @@ export default function ResultCard({ event, index }: Props) {
     >
       <Link
         href={`/results/${event.slug || event.id}`}
-        className="group relative block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
       >
         {/* LIGHT STREAK */}
 
@@ -64,7 +88,7 @@ export default function ResultCard({ event, index }: Props) {
 
         {/* CONTENT */}
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 flex flex-col flex-1 space-y-4">
           {/* TITLE */}
 
           <h3 className="flex items-start gap-2 text-[16px] font-semibold text-gray-900">
@@ -85,10 +109,7 @@ export default function ResultCard({ event, index }: Props) {
             <div className="flex items-center gap-1">
               <CalendarDaysIcon className="h-4 w-4" />
 
-              {event.date?.toLocaleDateString("en-US", {
-                day: "numeric",
-                month: "short",
-              })}
+              {formatEventDate(event.date)}
             </div>
           </div>
 
@@ -142,10 +163,8 @@ export default function ResultCard({ event, index }: Props) {
 
           {/* CTA */}
 
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-xs text-gray-500">
-              Full leaderboard available
-            </span>
+          <div className="flex items-center justify-between pt-2 mt-auto">
+            <span className="text-xs text-gray-500">Full leaderboard</span>
 
             <div className="flex items-center gap-1 text-gray-900 font-semibold text-sm">
               View Results

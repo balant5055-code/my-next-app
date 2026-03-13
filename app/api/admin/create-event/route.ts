@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
       slug: normalizedSlug,
       tagline: body.tagline || "",
       eventType: body.eventType || "marathon",
-
+      eventFormat: body.eventFormat || "timed",
       date: Timestamp.fromDate(eventDate),
 
       gateOpen: body.gateOpen || "",

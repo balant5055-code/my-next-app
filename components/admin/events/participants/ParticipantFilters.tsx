@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase"; // your client firebase
+import { db } from "@/lib/firebase";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Props {
@@ -19,23 +19,25 @@ export default function ParticipantFilters({
   const [localSearch, setLocalSearch] = useState(filters.search || "");
   const [categories, setCategories] = useState<any[]>([]);
 
-  /* -------------------------------
+  /* =====================================================
      🔍 Debounced Search
-  -------------------------------- */
+  ===================================================== */
   useEffect(() => {
     const timer = setTimeout(() => {
+      const trimmed = localSearch.trim();
+
       setFilters((prev: any) => ({
         ...prev,
-        search: localSearch,
+        search: trimmed,
       }));
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [localSearch]);
+  }, [localSearch, setFilters]);
 
-  /* -------------------------------
+  /* =====================================================
      🔥 Real-time Categories Listener
-  -------------------------------- */
+  ===================================================== */
   useEffect(() => {
     if (!eventId) return;
 
@@ -45,8 +47,7 @@ export default function ParticipantFilters({
       const eventData = snap.data();
       const cats = eventData.categories || [];
 
-      // sort by numeric distance
-      const sorted = cats.sort(
+      const sorted = [...cats].sort(
         (a: any, b: any) => Number(a.distance) - Number(b.distance),
       );
 
@@ -56,6 +57,9 @@ export default function ParticipantFilters({
     return () => unsub();
   }, [eventId]);
 
+  /* =====================================================
+     📤 Export CSV
+  ===================================================== */
   const handleExport = async () => {
     try {
       const params = new URLSearchParams();
@@ -66,6 +70,9 @@ export default function ParticipantFilters({
       if (filters.paymentStatus !== "all")
         params.append("paymentStatus", filters.paymentStatus);
       if (filters.status !== "all") params.append("status", filters.status);
+
+      // export full filtered dataset
+      params.append("export", "true");
 
       const res = await fetch(
         `/api/admin/events/${eventId}/participants/export?${params.toString()}`,
@@ -90,24 +97,47 @@ export default function ParticipantFilters({
     }
   };
 
+  const clearSearch = () => {
+    setLocalSearch("");
+    setFilters((prev: any) => ({
+      ...prev,
+      search: "",
+    }));
+  };
+
+  const activeFiltersCount = Object.values(filters).filter(
+    (v) => v !== "all" && v !== "",
+  ).length;
+
   return (
     <div className="sticky top-0 z-40 mb-6">
       <div className="rounded-xl border border-slate-800 bg-slate-900 px-5 py-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* LEFT SIDE */}
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Search */}
+            {/* SEARCH */}
             <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
+
               <input
                 type="text"
-                placeholder="Search participants..."
+                placeholder="Search name, phone, email or BIB..."
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
-                className="h-9 w-64 bg-slate-950 border border-slate-800 rounded-md px-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-600 transition"
+                className="h-9 w-64 bg-slate-950 border border-slate-800 rounded-md pl-8 pr-7 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-600 transition"
               />
+
+              {localSearch && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            {/* Distance */}
+            {/* DISTANCE */}
             <select
               value={filters.category}
               onChange={(e) =>
@@ -119,14 +149,15 @@ export default function ParticipantFilters({
               className="h-9 bg-slate-950 border border-slate-800 rounded-md px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-slate-600 transition"
             >
               <option value="all">All Distances</option>
+
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.distance}>
-                  {cat.distance}KM
+                  {cat.distance} KM
                 </option>
               ))}
             </select>
 
-            {/* Payment */}
+            {/* PAYMENT */}
             <select
               value={filters.paymentStatus}
               onChange={(e) =>
@@ -143,7 +174,7 @@ export default function ParticipantFilters({
               <option value="FAILED">Failed</option>
             </select>
 
-            {/* Status */}
+            {/* STATUS */}
             <select
               value={filters.status}
               onChange={(e) =>
@@ -162,45 +193,25 @@ export default function ParticipantFilters({
 
           {/* RIGHT SIDE */}
           <div className="flex items-center gap-3">
-            {/* Premium Active Filters Badge */}
-            {Object.values(filters).filter((v) => v !== "all" && v !== "")
-              .length > 0 && (
-              <div className="group relative">
-                <div
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full 
-      bg-slate-800/80 backdrop-blur-md 
-      border border-slate-700 
-      text-xs font-medium text-slate-200
-      transition-all duration-300 
-      hover:border-indigo-500/40 
-      hover:shadow-md hover:shadow-indigo-900/20"
-                >
-                  {/* Count Circle */}
-                  <span className="flex items-center justify-center h-5 w-5 text-[11px] font-semibold rounded-full bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-500/30">
-                    {
-                      Object.values(filters).filter(
-                        (v) => v !== "all" && v !== "",
-                      ).length
-                    }
-                  </span>
-
-                  <span className="tracking-wide text-slate-300">
-                    Active Filters
-                  </span>
-                </div>
-
-                {/* Subtle Premium Glow */}
-                <div className="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08),transparent_60%)]" />
+            {/* ACTIVE FILTER BADGE */}
+            {activeFiltersCount > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-200">
+                <span className="flex items-center justify-center h-5 w-5 rounded-full bg-indigo-500/20 text-indigo-400 text-[11px] font-semibold">
+                  {activeFiltersCount}
+                </span>
+                Active Filters
               </div>
             )}
+
+            {/* EXPORT */}
             <button
               onClick={handleExport}
-              className="h-9 px-4 text-xs font-medium rounded-md 
-  bg-emerald-600 hover:bg-emerald-700 transition text-white"
+              className="h-9 px-4 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-700 transition text-white"
             >
               Export CSV
             </button>
 
+            {/* RESET */}
             <button
               onClick={() =>
                 setFilters({

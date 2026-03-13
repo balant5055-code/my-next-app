@@ -25,6 +25,7 @@ interface Props {
     venue: string;
     city: string;
     mapLink: string;
+    eventFormat: "timed" | "non-timed" | "fun-run" | "awareness";
   };
   errors: Record<string, string>;
   onChange: (name: string, value: string) => void;
@@ -51,6 +52,10 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
   useEffect(() => {
     if (!data.raceStart) {
       onChange("raceStart", "05:00");
+    }
+
+    if (!data.eventFormat) {
+      onChange("eventFormat", "timed");
     }
   }, []);
 
@@ -160,7 +165,31 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
             </select>
           </div>
         </div>
+        {/* Event Format */}
+        <div>
+          <label className="block text-sm text-slate-300 mb-2">
+            Event Format
+          </label>
 
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <div className="w-7 h-7 flex items-center justify-center rounded-md bg-gradient-to-br from-red-500 to-rose-500 shadow-md shadow-red-500/30">
+                <TagIcon className="w-4 h-4 text-white" />
+              </div>
+            </div>
+
+            <select
+              value={data.eventFormat || "timed"}
+              onChange={(e) => onChange("eventFormat", e.target.value)}
+              className="w-full pl-14 pr-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 transition appearance-none"
+            >
+              <option value="timed">Timed</option>
+              <option value="non-timed">Non-Timed</option>
+              <option value="fun-run">Fun Run</option>
+              <option value="awareness">Awareness Run</option>
+            </select>
+          </div>
+        </div>
         {/* Event Date */}
         <div>
           <label className="block text-sm text-slate-300 mb-2">

@@ -100,6 +100,7 @@ interface CreateEventForm {
     support: string[];
     awards: string[];
   };
+  eventFormat: "timed" | "non-timed" | "fun-run" | "awareness";
 }
 
 /* ============================= */
@@ -155,6 +156,7 @@ export default function CreateEventLayout() {
         time: "",
       },
       categories: [],
+      eventFormat: "timed",
       inclusions: {
         apparel: [],
         timing: [],

@@ -10,28 +10,42 @@ export interface BreadcrumbItem {
 
 interface Props {
   items: BreadcrumbItem[];
+  showHome?: boolean;
 }
 
-export default function Breadcrumb({ items }: Props) {
+export default function Breadcrumb({ items, showHome = true }: Props) {
   return (
-    <nav className="flex items-center gap-2 text-sm flex-wrap">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center flex-wrap gap-1 text-sm text-gray-600 mb-6"
+    >
+      {showHome && (
+        <>
+          <Link
+            href="/"
+            className="flex items-center gap-1 hover:text-gray-900 transition"
+          >
+            <HomeIcon className="w-4 h-4" />
+          </Link>
+
+          <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+        </>
+      )}
+
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
 
         return (
-          <div key={index} className="flex items-center gap-2">
-            {/* HOME ICON */}
-            {index === 0 && <HomeIcon className="w-4 h-4 text-red-700" />}
-
+          <div key={index} className="flex items-center gap-1">
             {!isLast && item.href ? (
               <Link
                 href={item.href}
-                className="text-red-700 hover:text-red-900 font-medium transition"
+                className="hover:text-gray-900 transition font-medium"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-900 font-semibold">{item.label}</span>
+              <span className="font-semibold text-gray-900">{item.label}</span>
             )}
 
             {!isLast && <ChevronRightIcon className="w-4 h-4 text-gray-400" />}

@@ -11,6 +11,7 @@ interface Props {
   eventId: string;
   currentStatus: string;
   currentRegistrationStatus: string;
+  resultsPublished: boolean;
   onStatusChange: (newStatus: string) => void;
 }
 export default function EventControlCenter({
@@ -23,8 +24,10 @@ export default function EventControlCenter({
     setRegistrationStatus(currentRegistrationStatus);
   }, [currentRegistrationStatus]);
   const { startLoading, stopLoading } = useGlobalLoading();
-
+  const [resultsPublished, setResultsPublished] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
   const [status, setStatus] = useState(currentStatus);
+
   const [loading, setLoading] = useState(false);
   /* ================= STATUS ================= */
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -52,7 +55,36 @@ export default function EventControlCenter({
     setPendingStatus(newStatus);
     setConfirmOpen(true);
   };
+  const toggleResults = async () => {
+    try {
+      startLoading();
+      setResultsLoading(true);
 
+      const newValue = !resultsPublished;
+
+      const res = await secureFetch(
+        `/api/admin/events/${eventId}/results-control`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resultsPublished: newValue,
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error();
+
+      setResultsPublished(newValue);
+
+      toast.success(newValue ? "Results Published" : "Results Hidden");
+    } catch {
+      toast.error("Failed to update results visibility");
+    } finally {
+      stopLoading();
+      setResultsLoading(false);
+    }
+  };
   /* ================= ACTUAL STATUS UPDATE ================= */
   const confirmStatusChange = async () => {
     if (!pendingStatus) return;
@@ -304,6 +336,58 @@ export default function EventControlCenter({
               Registration automatically locked after completion.
             </p>
           )}
+        </div>
+
+        {/* ================= RESULTS CONTROL ================= */}
+        <div className="bg-slate-900/60 backdrop-blur-md rounded-xl border border-slate-700 p-6 space-y-6">
+          <div className="space-y-1">
+            <p className="text-xs text-slate-400 uppercase tracking-wider">
+              Results Visibility
+            </p>
+            <p className="text-xs text-slate-500">
+              Control whether event results are visible to runners
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white font-medium">Publish Results</p>
+              <p className="text-xs text-slate-400">
+                Allow runners to view official race results
+              </p>
+            </div>
+
+            {/* Toggle */}
+            <button
+              onClick={toggleResults}
+              disabled={resultsLoading}
+              className={`
+        relative w-14 h-7 rounded-full transition-all duration-300
+        ${resultsPublished ? "bg-emerald-600" : "bg-slate-700"}
+        ${resultsLoading ? "opacity-50 cursor-not-allowed" : ""}
+      `}
+            >
+              <span
+                className={`
+          absolute top-1 left-1 w-5 h-5 bg-white rounded-full
+          transition-transform duration-300
+          ${resultsPublished ? "translate-x-7" : ""}
+        `}
+              />
+            </button>
+          </div>
+
+          {/* Status indicator */}
+          <div className="text-xs text-slate-400">
+            Current Status:{" "}
+            <span
+              className={
+                resultsPublished ? "text-emerald-400" : "text-slate-400"
+              }
+            >
+              {resultsPublished ? "Published" : "Hidden"}
+            </span>
+          </div>
         </div>
       </div>
 

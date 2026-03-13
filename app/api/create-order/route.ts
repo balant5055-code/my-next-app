@@ -185,24 +185,37 @@ export async function POST(req: Request) {
 
     /* CREATE PENDING REGISTRATION */
 
-    await adminDb.collection("registrations_pending").doc(order.id).set({
-      registrationId,
-      orderId: order.id,
+    await adminDb
+      .collection("registrations_pending")
+      .doc(order.id)
+      .set({
+        registrationId,
+        orderId: order.id,
 
-      eventId,
+        eventId,
 
-      participants,
-      categories: categoryTitles,
+        participants: participants.map((p: any) => ({
+          ...p,
+          whatsAppNumber: p.phone || "",
+          searchKey: (
+            (p.firstName || "") +
+            " " +
+            (p.lastName || "") +
+            " " +
+            (p.phone || p.whatsAppNumber || "")
+          ).toLowerCase(),
+        })),
+        categories: categoryTitles,
 
-      amount: totalPrice,
-      discountAmount,
-      couponCode: appliedCoupon,
+        amount: totalPrice,
+        discountAmount,
+        couponCode: appliedCoupon,
 
-      status: "PENDING",
+        status: "PENDING",
 
-      createdAt: new Date(),
-      expiresAt,
-    });
+        createdAt: new Date(),
+        expiresAt,
+      });
 
     return NextResponse.json({
       order,

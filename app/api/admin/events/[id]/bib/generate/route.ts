@@ -5,101 +5,105 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { requireRole } from "@/lib/requireRole";
 import { FieldValue } from "firebase-admin/firestore";
 
+const BATCH_SIZE = 400;
+
+/* ---------------- DISTANCE NORMALIZER ---------------- */
+
+function normalizeDistance(value: any) {
+  if (!value) return "";
+  const match = String(value).match(/\d+/);
+  return match ? String(Number(match[0])) : "";
+}
+
+/* ----------------------------------------------------- */
+
 export async function POST(req: NextRequest, context: any) {
   try {
     await requireRole(["SUPER_ADMIN", "EVENT_MANAGER"]);
 
     const { id } = await context.params;
     const body = await req.json();
-    const { distance } = body;
 
-    if (!id || !distance) {
+    const normalizedDistance = normalizeDistance(body.distance);
+
+    if (!id || !normalizedDistance) {
       return NextResponse.json(
         { error: "Missing event or distance" },
         { status: 400 },
       );
     }
 
+    /* ---------------- FETCH EVENT ---------------- */
+
     const eventRef = adminDb.collection("events").doc(id);
+    const eventSnap = await eventRef.get();
 
-    const result = await adminDb.runTransaction(async (tx) => {
-      const eventSnap = await tx.get(eventRef);
-      if (!eventSnap.exists) {
-        throw new Error("Event not found");
-      }
+    if (!eventSnap.exists) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
 
-      const eventData = eventSnap.data();
-      const lock = eventData?.bibGenerationLock;
+    const eventData = eventSnap.data();
+    const categories = eventData?.categories || [];
 
-      const now = Date.now();
-      const LOCK_TIMEOUT = 30 * 1000; // 30 seconds
+    const catIndex = categories.findIndex(
+      (c: any) => String(c.distance) === normalizedDistance,
+    );
 
-      /* ================= LOCK CHECK ================= */
-
-      if (lock?.locked) {
-        const lockedAt = lock.lockedAt?.toDate?.()?.getTime() || 0;
-
-        if (now - lockedAt < LOCK_TIMEOUT) {
-          throw new Error("Another admin is generating BIBs. Please wait.");
-        }
-        // If timeout exceeded → auto recover
-      }
-
-      /* ================= LOCK ACQUIRE ================= */
-
-      tx.update(eventRef, {
-        bibGenerationLock: {
-          locked: true,
-          lockedAt: new Date(),
-          lockedBy: "system", // or decoded.uid if available
-        },
-      });
-
-      /* ================= CATEGORY ================= */
-
-      const categories = eventData?.categories || [];
-
-      const catIndex = categories.findIndex(
-        (c: any) => c.distance === distance,
+    if (catIndex === -1) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 400 },
       );
+    }
 
-      if (catIndex === -1) {
-        throw new Error("Category not found");
-      }
+    const category = categories[catIndex];
 
-      const category = categories[catIndex];
-      const nextBib = category.nextBib;
-      const bibEnd = category.bibEnd;
+    let currentBib = category.nextBib;
+    const bibEnd = category.bibEnd;
 
-      if (!nextBib || !bibEnd) {
-        throw new Error("Bib range not configured");
-      }
+    if (!currentBib || !bibEnd) {
+      return NextResponse.json(
+        { error: "Bib range not configured" },
+        { status: 400 },
+      );
+    }
 
-      /* ================= FETCH PARTICIPANTS ================= */
+    let totalAssigned = 0;
+    const startBib = currentBib;
 
-      const confirmedSnap = await adminDb
+    /* ---------------- PROGRESS START ---------------- */
+
+    await eventRef.update({
+      bibGenerationProgress: {
+        distance: normalizedDistance,
+        assigned: 0,
+        startedAt: new Date(),
+      },
+    });
+
+    /* ---------------- BATCH LOOP ---------------- */
+
+    while (true) {
+      const snap = await adminDb
         .collection("registrations_flat")
         .where("eventId", "==", id)
-        .where("participant.distance", "==", distance)
+        .where("participant.categoryDistance", "==", normalizedDistance)
         .where("status", "==", "CONFIRMED")
-        .where("bibNumber", "==", null)
+        .where("participant.bibNumber", "==", null)
+        .limit(BATCH_SIZE)
         .get();
 
-      if (confirmedSnap.empty) {
-        throw new Error("No participants pending BIB");
-      }
+      if (snap.empty) break;
 
-      let currentBib = nextBib;
-      const startBib = nextBib;
-      let totalAssigned = 0;
+      const batch = adminDb.batch();
 
-      for (const doc of confirmedSnap.docs) {
+      for (const doc of snap.docs) {
         if (currentBib > bibEnd) {
           throw new Error("Bib range exhausted");
         }
 
-        tx.update(doc.ref, {
-          bibNumber: currentBib,
+        batch.update(doc.ref, {
+          "participant.bibNumber": currentBib,
           bibAssignedAt: new Date(),
         });
 
@@ -107,45 +111,63 @@ export async function POST(req: NextRequest, context: any) {
         totalAssigned++;
       }
 
-      const endBib = currentBib - 1;
+      await batch.commit();
 
-      categories[catIndex].nextBib = currentBib;
+      /* ---------------- UPDATE PROGRESS ---------------- */
 
-      const batchId = `BIB-${distance}-${Date.now()}`;
+      await eventRef.update({
+        "bibGenerationProgress.assigned": totalAssigned,
+        "bibGenerationProgress.updatedAt": new Date(),
+      });
+    }
 
-      /* ================= FINAL UPDATE + UNLOCK ================= */
+    /* ---------------- NO RUNNERS ---------------- */
 
-      tx.update(eventRef, {
-        categories,
-        "metrics.bibAssignedCount": FieldValue.increment(totalAssigned),
-        auditLogs: FieldValue.arrayUnion({
-          action: "BIB_BATCH_GENERATED",
-          batchId,
-          distance,
-          fromBib: startBib,
-          toBib: endBib,
-          totalAssigned,
-          generatedAt: new Date(),
-        }),
-        bibGenerationLock: {
-          locked: false,
-          lockedAt: null,
-          lockedBy: null,
-        },
+    if (totalAssigned === 0) {
+      await eventRef.update({
+        bibGenerationProgress: FieldValue.delete(),
       });
 
-      return {
+      return NextResponse.json({
+        success: true,
+        message: "No participants pending BIB",
+      });
+    }
+
+    /* ---------------- FINALIZE ---------------- */
+
+    const endBib = currentBib - 1;
+
+    categories[catIndex].nextBib = currentBib;
+
+    const batchId = `BIB-${normalizedDistance}-${Date.now()}`;
+
+    await eventRef.update({
+      categories,
+      "metrics.bibAssignedCount": FieldValue.increment(totalAssigned),
+
+      auditLogs: FieldValue.arrayUnion({
+        action: "BIB_BATCH_GENERATED",
+        batchId,
+        distance: normalizedDistance,
+        fromBib: startBib,
+        toBib: endBib,
+        totalAssigned,
+        generatedAt: new Date(),
+      }),
+
+      bibGenerationProgress: FieldValue.delete(),
+    });
+
+    return NextResponse.json({
+      success: true,
+      batch: {
         batchId,
         startBib,
         endBib,
         totalAssigned,
         nextBibAfter: currentBib,
-      };
-    });
-
-    return NextResponse.json({
-      success: true,
-      batch: result,
+      },
     });
   } catch (error: any) {
     console.error("BIB GENERATE ERROR:", error);

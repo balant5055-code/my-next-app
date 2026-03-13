@@ -18,8 +18,9 @@ export async function POST(
     }
 
     /* ----------------------------------------------------
-       1️⃣ Get Event Document
+       1️⃣ Load Event Document
     ---------------------------------------------------- */
+
     const eventRef = adminDb.collection("events").doc(eventId);
     const eventSnap = await eventRef.get();
 
@@ -30,16 +31,23 @@ export async function POST(
       );
     }
 
-    const eventData = eventSnap.data();
+    const eventData = eventSnap.data() || {};
+    const categories = eventData.categories || [];
+
     const totalCapacity = eventData?.metrics?.totalCapacity || 0;
 
     /* ----------------------------------------------------
-       2️⃣ Fetch All Registrations
+       2️⃣ Fetch Registrations
     ---------------------------------------------------- */
+
     const registrationsSnap = await adminDb
       .collection("registrations_flat")
       .where("eventId", "==", eventId)
       .get();
+
+    /* ----------------------------------------------------
+       3️⃣ Metrics Counters
+    ---------------------------------------------------- */
 
     let totalParticipants = 0;
     let totalRevenue = 0;
@@ -47,37 +55,60 @@ export async function POST(
     let bibAssignedCount = 0;
     let checkedInCount = 0;
 
+    const categoryCounts: Record<string, number> = {};
+
     registrationsSnap.forEach((doc) => {
       const data = doc.data();
 
-      totalParticipants += 1;
+      totalParticipants++;
+
       totalRevenue += Number(data.amount || 0);
 
       if (data.status === "CONFIRMED") {
-        confirmedCount += 1;
+        confirmedCount++;
       }
 
       if (data.bibNumber) {
-        bibAssignedCount += 1;
+        bibAssignedCount++;
       }
 
       if (data.checkInStatus === true) {
-        checkedInCount += 1;
+        checkedInCount++;
+      }
+
+      /* CATEGORY COUNT */
+      const categoryId = data.categoryId;
+
+      if (categoryId) {
+        categoryCounts[categoryId] = (categoryCounts[categoryId] || 0) + 1;
       }
     });
 
     /* ----------------------------------------------------
-       3️⃣ Calculate Occupancy
+       4️⃣ Rebuild Category bookedSeats
     ---------------------------------------------------- */
+
+    const updatedCategories = categories.map((cat: any) => ({
+      ...cat,
+      bookedSeats: categoryCounts[cat.id] || 0,
+    }));
+
+    /* ----------------------------------------------------
+       5️⃣ Calculate Occupancy
+    ---------------------------------------------------- */
+
     const occupancyRate =
       totalCapacity > 0
         ? Math.round((totalParticipants / totalCapacity) * 100)
         : 0;
 
     /* ----------------------------------------------------
-       4️⃣ Update Metrics
+       6️⃣ Update Event Document
     ---------------------------------------------------- */
+
     await eventRef.update({
+      categories: updatedCategories,
+
       metrics: {
         ...eventData?.metrics,
         totalParticipants,
@@ -90,6 +121,10 @@ export async function POST(
       },
     });
 
+    /* ----------------------------------------------------
+       7️⃣ Response
+    ---------------------------------------------------- */
+
     return NextResponse.json({
       success: true,
       metrics: {
@@ -100,6 +135,7 @@ export async function POST(
         checkedInCount,
         occupancyRate,
       },
+      categorySeats: categoryCounts,
     });
   } catch (error: any) {
     console.error("RECALCULATE ERROR:", error);

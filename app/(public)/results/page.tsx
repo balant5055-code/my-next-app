@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-
+import ResultCard from "@/components/event/ResultCard";
+import PageHeader from "@/components/ui/PageHeader";
+import PageContainer from "@/components/layout/PageContainer";
+import { TrophyIcon } from "@heroicons/react/24/outline";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 export default function ResultsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +14,6 @@ export default function ResultsPage() {
     async function loadEvents() {
       try {
         const res = await fetch("/api/results/events");
-
         const data = await res.json();
 
         if (data.success) {
@@ -28,8 +30,14 @@ export default function ResultsPage() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto py-16 px-4">
-      <h1 className="text-3xl font-bold mb-10">Race Results</h1>
+    <PageContainer>
+      <Breadcrumb items={[{ label: "Results" }]} />
+
+      <PageHeader
+        title="Race Results"
+        subtitle="Explore official race leaderboards and finishing times"
+        icon={<TrophyIcon className="w-5 h-5" />}
+      />
 
       {loading && <p className="text-gray-500">Loading results...</p>}
 
@@ -37,23 +45,13 @@ export default function ResultsPage() {
         <p className="text-gray-500">No race results published yet.</p>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {events.map((event) => (
-          <Link
-            key={event.id}
-            href={`/results/${event.slug}`}
-            className="block border rounded-xl p-6 hover:shadow-md transition bg-white"
-          >
-            <h2 className="text-lg font-semibold mb-2">{event.name}</h2>
-
-            <p className="text-sm text-gray-500">
-              {event.city} • {event.venue}
-            </p>
-
-            <p className="text-xs text-gray-400 mt-2">View Full Results →</p>
-          </Link>
-        ))}
-      </div>
-    </div>
+      {!loading && events.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
+          {events.map((event, index) => (
+            <ResultCard key={event.id} event={event} index={index} />
+          ))}
+        </div>
+      )}
+    </PageContainer>
   );
 }

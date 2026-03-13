@@ -17,4 +17,5 @@ export type EventType = {
     status?: string;
   };
   resultsPublished?: boolean;
+  eventFormat?: "timed" | "non-timed" | "fun-run" | "awareness"; // ✅ ADD THIS
 };

@@ -30,7 +30,7 @@ export default function SectionHeader({ title, subtitle, label, icon }: Props) {
       <div className="flex items-center justify-center gap-6">
         <div aria-hidden="true" className="flex-1 border-title"></div>
 
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 bg-clip-text text-transparent">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-[#9f2a25] via-[#c1342d] to-[#e0473f] bg-clip-text text-transparent">
           {title}
         </h2>
 

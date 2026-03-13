@@ -26,7 +26,7 @@ export default function ParticipantTable({ eventId, filters }: Props) {
   const [loading, setLoading] = useState(false);
 
   const [participants, setParticipants] = useState<any[]>([]);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(25);
 
   const [nextCursor, setNextCursor] = useState<Cursor | null>(null);
   const [cursorStack, setCursorStack] = useState<Cursor[]>([]);
@@ -158,8 +158,12 @@ export default function ParticipantTable({ eventId, filters }: Props) {
       }
 
       const res = await secureFetch(url);
-      if (!res.ok) throw new Error("Failed to fetch participants");
 
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Participants API Error:", err);
+        throw new Error(err.error || "Failed to fetch participants");
+      }
       const result = await res.json();
 
       const rows = result.data || [];
@@ -276,11 +280,11 @@ export default function ParticipantTable({ eventId, filters }: Props) {
               </th>
 
               <th
-                onClick={() => handleSort("participant.distance")}
+                onClick={() => handleSort("participant.categoryDistance")}
                 className="px-4 py-3 text-left cursor-pointer hover:text-white transition"
               >
                 Category{" "}
-                {sortField === "participant.distance" &&
+                {sortField === "participant.categoryDistance" &&
                   (sortDirection === "asc" ? "↑" : "↓")}
               </th>
 
@@ -337,6 +341,7 @@ transition-shadow duration-300 ease-in-out
                     </td>
 
                     {/* Bib */}
+                    {/* Bib */}
                     <td className="px-4 py-3 text-white font-medium">
                       {p.bibNumber ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20">
@@ -359,9 +364,8 @@ transition-shadow duration-300 ease-in-out
 
                     {/* Category */}
                     <td className="px-4 py-3 text-slate-400">
-                      {p.category || "—"}
+                      {p.distance ? `${p.distance} KM` : "—"}
                     </td>
-
                     {/* Payment */}
                     <td className="px-4 py-3">
                       <PaymentBadge value={p.paymentStatus} />

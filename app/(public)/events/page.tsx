@@ -18,6 +18,10 @@ import {
   BoltIcon,
   LinkIcon,
   ShareIcon,
+  TrophyIcon,
+  ClockIcon,
+  SparklesIcon,
+  HeartIcon,
 } from "@heroicons/react/24/outline";
 
 import ImageViewer from "@/components/ImageViewer";
@@ -25,7 +29,7 @@ import ResultCard from "@/components/event/ResultCard";
 import { getEventStage } from "@/lib/eventLifecycle";
 import { EventType } from "@/lib/types/event";
 import SectionHeader from "@/components/ui/SectionHeader";
-import { TrophyIcon } from "@heroicons/react/24/solid";
+
 const ITEMS_PER_PAGE = 6;
 
 export default function EventsPage() {
@@ -35,6 +39,20 @@ export default function EventsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const getFormatIcon = (format?: string) => {
+    switch (format) {
+      case "timed":
+        return <TrophyIcon className="h-3.5 w-3.5" />;
+      case "non-timed":
+        return <ClockIcon className="h-3.5 w-3.5" />;
+      case "fun-run":
+        return <SparklesIcon className="h-3.5 w-3.5" />;
+      case "awareness":
+        return <HeartIcon className="h-3.5 w-3.5" />;
+      default:
+        return null;
+    }
+  };
   useEffect(() => {
     const fetchEvents = async () => {
       const snap = await getDocs(collection(db, "events"));
@@ -121,7 +139,7 @@ export default function EventsPage() {
 
       {/* LOADING */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
@@ -140,7 +158,7 @@ export default function EventsPage() {
 
       {/* GRID */}
       {!loading && events.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {currentEvents.map((event, index) => {
             const isOpen = event.registration?.status === "open";
 
@@ -294,6 +312,12 @@ export default function EventsPage() {
                         <span className="line-clamp-2 group-hover:text-orange-600 transition-colors">
                           {event.name || "Untitled Event"}
                         </span>
+                        {event.eventFormat && (
+                          <span className="flex items-center gap-1 text-[11px] px-2.5 py-[4px] rounded-full bg-orange-50 text-orange-600 font-medium">
+                            {getFormatIcon(event.eventFormat)}
+                            {event.eventFormat.replace("-", " ").toUpperCase()}
+                          </span>
+                        )}
                       </h3>
 
                       {/* LOCATION */}

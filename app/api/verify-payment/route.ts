@@ -212,11 +212,21 @@ export async function POST(req: Request) {
         seatCounter[runner.categoryId] = alreadyReserved + 1;
       }
 
+      const updates: Record<string, any> = {};
+
       for (const categoryId in seatCounter) {
         const index = categories.findIndex((c: any) => c.id === categoryId);
-        categories[index].bookedSeats =
-          Number(categories[index].bookedSeats || 0) + seatCounter[categoryId];
+
+        if (index === -1) {
+          throw new Error("Category not found during seat update");
+        }
+
+        updates[`categories.${index}.bookedSeats`] = FieldValue.increment(
+          seatCounter[categoryId],
+        );
       }
+
+      transaction.update(eventRef, updates);
 
       /* Update seats */
       transaction.update(eventRef, { categories });
@@ -226,13 +236,13 @@ export async function POST(req: Request) {
       ================================================== */
 
       for (const runner of participants) {
-        /* Generate unique registration ID */
         const runnerRegistrationId =
           "RLI-" +
           crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
 
         const fullName =
           `${runner?.firstName || ""} ${runner?.lastName || ""}`.trim();
+
         const categoryIndex = categories.findIndex(
           (c: any) => c.id === runner.categoryId,
         );
@@ -242,29 +252,49 @@ export async function POST(req: Request) {
         }
 
         const category = categories[categoryIndex];
+
         const registrationData = {
           registrationId: runnerRegistrationId,
 
-          /* Event Info */
           eventId: pendingData.eventId,
           eventName: eventData.name,
           eventDate: eventData?.date?.toDate?.() || eventData?.date || null,
 
-          /* Category */
           category: category.title,
           categoryId: category.id,
           amount: pendingData.amount,
-          /* Coupon */
+
           couponCode: pendingData.couponCode || null,
           couponDiscount: pendingData.discountAmount || 0,
 
-          /* Runner Data */
           participant: runner,
 
-          /* Search optimization */
           nameLowercase: fullName.toLowerCase(),
 
-          /* Payment Details */
+          searchKey:
+            runner.searchKey ||
+            (
+              (runner.firstName || "") +
+              " " +
+              (runner.lastName || "") +
+              " " +
+              (runner.whatsAppNumber || runner.phone || "")
+            ).toLowerCase(),
+
+          phoneIndex: (
+            runner.whatsAppNumber ||
+            runner.phone ||
+            ""
+          ).toLowerCase(),
+
+          nameIndex: (
+            (runner.firstName || "") +
+            " " +
+            (runner.lastName || "")
+          ).toLowerCase(),
+
+          bibIndex: (runner.bibNumber || "").toLowerCase(),
+
           payment: {
             orderId: razorpay_order_id,
             paymentId: razorpay_payment_id,
@@ -273,22 +303,18 @@ export async function POST(req: Request) {
             status: "SUCCESS",
           },
 
-          /* Registration Status */
           status: "CONFIRMED",
           confirmedAt: new Date(),
           createdAt: pendingData.createdAt || new Date(),
 
-          /* Bib assignment (later stage) */
           bibNumber: null,
           bibAssignedAt: null,
           bibAssignedBy: null,
 
-          /* Race check-in */
           checkedIn: false,
           checkedInAt: null,
           checkedInBy: null,
 
-          /* Activity Timeline */
           activityLog: [
             {
               type: "REGISTRATION_CONFIRMED",
@@ -320,13 +346,15 @@ export async function POST(req: Request) {
         );
 
         for (const runner of participants) {
-          if (!runner.phone) continue;
+          const phoneNumber = runner.whatsAppNumber || runner.phone;
+
+          if (!phoneNumber) continue;
 
           const usageRef = adminDb.collection("coupon_usage").doc();
 
           transaction.set(usageRef, {
             couponCode: pendingData.couponCode,
-            phone: runner.phone,
+            phone: phoneNumber,
             registrationId: pendingData.registrationId,
             usedAt: new Date(),
           });
