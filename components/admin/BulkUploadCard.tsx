@@ -35,7 +35,13 @@ export default function BulkUploadCard({ eventId, onUploadSuccess }: Props) {
         const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+        const jsonData: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        if (jsonData.length > 5000) {
+          alert("Maximum 5000 rows allowed per upload");
+          setUploading(false);
+          return;
+        }
 
         const firstRow = jsonData[0];
 
@@ -215,23 +221,32 @@ export default function BulkUploadCard({ eventId, onUploadSuccess }: Props) {
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       const chunk = rows.slice(i, i + CHUNK_SIZE);
 
-      const res = await secureFetch("/api/admin/chip-mapping/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          rows: chunk,
-          mode: conflictMode,
-        }),
-      });
+      let retries = 2;
+      let res: any;
 
-      const result = await res.json();
+      while (retries > 0) {
+        res = await secureFetch("/api/admin/chip-mapping/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            rows: chunk,
+            mode: conflictMode,
+          }),
+        });
 
-      if (!res.ok) {
-        alert(result.error || "Upload failed");
+        if (res.ok) break;
+
+        retries--;
+      }
+
+      if (!res || !res.ok) {
+        alert("Upload failed after retries");
         setUploading(false);
         return;
       }
+
+      const result = await res.json();
 
       totalSuccess += result.success;
       totalFailed += result.failed;
@@ -241,7 +256,6 @@ export default function BulkUploadCard({ eventId, onUploadSuccess }: Props) {
       const percent = Math.round(((i + chunk.length) / rows.length) * 100);
       setProgress(percent);
     }
-
     setReport({ success: totalSuccess, failed: totalFailed });
     setErrorRows(allErrors);
     setUploading(false);

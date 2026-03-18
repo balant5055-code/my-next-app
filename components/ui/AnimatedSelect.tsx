@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { ChevronDownIcon } from "@heroicons/react/24/solid";
 
 interface AnimatedSelectProps {
   icon?: ReactNode;
@@ -12,6 +13,7 @@ interface AnimatedSelectProps {
   children: ReactNode;
   className?: string;
 }
+
 export default function AnimatedSelect({
   name,
   value,
@@ -37,13 +39,21 @@ export default function AnimatedSelect({
         value={value ?? ""}
         required={required}
         onChange={onChange}
-        className="w-full appearance-none border border-gray-300 bg-white
-        py-3 pl-12 pr-4 text-sm transition
-        focus:border-orange-500 focus:outline-none
-        focus:ring-2 focus:ring-orange-200"
+        className="w-full appearance-none
+        bg-gray-50 hover:bg-gray-100
+        py-3 pl-12 pr-10
+        text-sm text-gray-700 font-medium
+        rounded-xl
+        transition
+        outline-none
+        focus:ring-2 focus:ring-orange-400"
       >
         {children}
       </select>
+
+      {/* Dropdown arrow */}
+
+      <ChevronDownIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
     </motion.div>
   );
 }

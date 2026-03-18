@@ -11,8 +11,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
+    // 🔥 Load all registrations once
+    const snapshot = await adminDb
+      .collection("registrations_flat")
+      .where("eventId", "==", eventId)
+      .get();
+
+    const chipMap = new Map<string, boolean>();
+    const bibMap = new Map<string, boolean>();
+
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data();
+
+      const chip = data.chipCode;
+      const bib = data.participant?.bibNumber;
+
+      if (chip) chipMap.set(String(chip), true);
+      if (bib) bibMap.set(String(bib), true);
+    });
+
     const duplicateInDbChips: string[] = [];
     const duplicateInDbBibs: string[] = [];
+
+    const fileChipSet = new Set<string>();
+    const fileBibSet = new Set<string>();
+
+    const duplicateInFileChips: string[] = [];
+    const duplicateInFileBibs: string[] = [];
 
     for (const row of rows) {
       const chip = row.CHIP?.toString().trim();
@@ -20,42 +45,42 @@ export async function POST(req: NextRequest) {
 
       if (!chip || !bib) continue;
 
-      // 🔹 Check chip duplicate
-      const chipSnap = await adminDb
-        .collection("registrations_flat")
-        .where("eventId", "==", eventId)
-        .where("chipCode", "==", chip)
-        .limit(1)
-        .get();
+      // 🔹 Duplicate inside Excel
+      if (fileChipSet.has(chip)) {
+        duplicateInFileChips.push(chip);
+      } else {
+        fileChipSet.add(chip);
+      }
 
-      if (!chipSnap.empty) {
+      if (fileBibSet.has(bib)) {
+        duplicateInFileBibs.push(bib);
+      } else {
+        fileBibSet.add(bib);
+      }
+
+      // 🔹 Duplicate in database
+      if (chipMap.has(chip)) {
         duplicateInDbChips.push(chip);
       }
 
-      // 🔹 Check if bib already has chip assigned
-      const bibSnap = await adminDb
-        .collection("registrations_flat")
-        .where("eventId", "==", eventId)
-        .where("bibNumber", "==", bib)
-        .limit(1)
-        .get();
-
-      if (!bibSnap.empty) {
-        const doc = bibSnap.docs[0];
-        const existingChip = doc.data().chipCode;
-
-        if (existingChip) {
-          duplicateInDbBibs.push(bib);
-        }
+      if (bibMap.has(bib)) {
+        duplicateInDbBibs.push(bib);
       }
     }
 
     return NextResponse.json({
       duplicateInDbChips,
       duplicateInDbBibs,
+      duplicateInFileChips,
+      duplicateInFileBibs,
     });
+
   } catch (err) {
     console.error("DB duplicate check error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

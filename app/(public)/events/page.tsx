@@ -119,7 +119,7 @@ export default function EventsPage() {
   const resultsEvents = events.filter((e) => getEventStage(e) === "results");
 
   return (
-    <div className="max-w-7xl mx-auto px-4 mt-20">
+    <div className="max-w-7xl mx-auto px-4 ">
       {/* HEADER */}
       <motion.div
         ref={headingRef}
@@ -139,7 +139,7 @@ export default function EventsPage() {
 
       {/* LOADING */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
@@ -158,7 +158,7 @@ export default function EventsPage() {
 
       {/* GRID */}
       {!loading && events.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {currentEvents.map((event, index) => {
             const isOpen = event.registration?.status === "open";
 

@@ -77,17 +77,19 @@ export default function RunnerClubSection({
     }
   }, [showRunnerDropdown]);
 
-  useEffect(() => {
-    if (showRunnerDropdown) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+  /* ---------- AUTO SCROLL INTO VIEW (mobile fix) ---------- */
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showRunnerDropdown]);
+  useEffect(() => {
+    if (showRunnerDropdown && dropdownRef.current) {
+      dropdownRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [showRunnerDropdown, dropdownRef]);
+
+  /* ---------- CLICK OUTSIDE ---------- */
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -104,6 +106,7 @@ export default function RunnerClubSection({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [dropdownRef, setShowRunnerDropdown]);
+
   return (
     <section className="space-y-6">
       {/* HEADER */}
@@ -149,10 +152,10 @@ export default function RunnerClubSection({
               onClick={applyCoupon}
               disabled={couponLoading}
               className="absolute right-2 top-1/2 -translate-y-1/2 
-    px-3 py-1.5 rounded-md text-xs font-semibold 
-    bg-[var(--color-orange-500)] text-white 
-    hover:bg-[var(--color-orange-600)] 
-    disabled:bg-gray-400 transition"
+px-3 py-1.5 rounded-md text-xs font-semibold 
+bg-[var(--color-orange-500)] text-white 
+hover:bg-[var(--color-orange-600)] 
+disabled:bg-gray-400 transition"
             >
               {couponLoading ? "..." : "Apply"}
             </button>
@@ -176,14 +179,15 @@ export default function RunnerClubSection({
             Running Club
             <InfoTooltip text={FIELD_HELP.runnerClub} />
           </label>
+
           <div className="relative">
             {/* SELECT BUTTON */}
 
             <div
               className="w-full cursor-pointer border border-gray-300 bg-white
-  px-3 py-2.5 rounded-md text-sm
-  flex items-center justify-between
-  transition-all hover:border-orange-400"
+px-3 py-2.5 rounded-md text-sm
+flex items-center justify-between
+transition-all hover:border-orange-400"
               onClick={() => {
                 setShowRunnerDropdown(!showRunnerDropdown);
                 setRunnerSearch("");
@@ -207,7 +211,7 @@ export default function RunnerClubSection({
             {/* DROPDOWN */}
 
             {showRunnerDropdown && (
-              <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
+              <div className="absolute left-0 top-full z-[80] mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
                 {/* SEARCH */}
 
                 <input
@@ -221,7 +225,7 @@ export default function RunnerClubSection({
 
                 {/* CLUB LIST */}
 
-                <div className="max-h-48 overflow-y-auto">
+                <div className="max-h-60 overflow-y-auto overscroll-contain">
                   {filteredClubs.map((club) => {
                     const isSelected = form.runnerClub === club;
 
@@ -229,7 +233,7 @@ export default function RunnerClubSection({
                       <div
                         key={club}
                         className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between
-      ${isSelected ? "bg-orange-50 text-orange-600 font-medium" : "hover:bg-orange-50"}`}
+${isSelected ? "bg-orange-50 text-orange-600 font-medium" : "hover:bg-orange-50"}`}
                         onClick={() => {
                           setForm((prev: any) => ({
                             ...prev,
@@ -272,8 +276,6 @@ export default function RunnerClubSection({
           />
         </div>
       )}
-
-      {/* TERMS */}
 
       {/* DECLARATIONS */}
 
@@ -335,6 +337,7 @@ export default function RunnerClubSection({
 
         <FieldError error={errors.agree} />
       </div>
+
       {/* SUBMIT */}
 
       {formError && (

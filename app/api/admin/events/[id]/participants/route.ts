@@ -52,6 +52,7 @@ export async function GET(
     if (sortField === "bibNumber") {
       sortField = "participant.bibNumber";
     }
+
     const sortDirection =
       searchParams.get("sortDirection") === "asc" ? "asc" : "desc";
 
@@ -95,7 +96,6 @@ export async function GET(
        🎯 6️⃣ Apply Filters
     ====================================================== */
 
-    // Distance filter
     if (category && category !== "all") {
       query = query.where(
         "participant.categoryDistance",
@@ -103,7 +103,7 @@ export async function GET(
         String(category),
       );
     }
-    // Payment filter (method OR result)
+
     if (paymentStatus && paymentStatus !== "all") {
       const upper = paymentStatus.toUpperCase();
 
@@ -114,13 +114,12 @@ export async function GET(
       }
     }
 
-    // Registration status
     if (status && status !== "all") {
       query = query.where("status", "==", status);
     }
 
     /* =====================================================
-       🔎 7️⃣ Smart Search (NO limit or order here)
+       🔎 7️⃣ Smart Search
     ====================================================== */
 
     let isNameSearch = false;
@@ -143,19 +142,17 @@ export async function GET(
     }
 
     /* =====================================================
-   📊 8️⃣ FILTERED TOTAL COUNT
-===================================================== */
-
-    const eventSnap = await adminDb.collection("events").doc(eventId).get();
+       📊 8️⃣ COUNT
+    ====================================================== */
 
     const countSnapshot = await query.count().get();
     const totalCount = countSnapshot.data().count;
+
     /* =====================================================
-       📊 8️⃣ Apply Sorting (Firestore Rule Safe)
+       📊 9️⃣ Sorting
     ====================================================== */
 
     if (isNameSearch) {
-      // Range query requires first orderBy on same field
       query = query.orderBy("nameLowercase").orderBy("__name__");
     } else {
       query = query
@@ -164,13 +161,17 @@ export async function GET(
     }
 
     /* =====================================================
-   🔁 9️⃣ Cursor Pagination (FIXED)
-===================================================== */
+       🔁 10️⃣ Cursor Pagination
+    ====================================================== */
 
-    if (lastValue && lastDocId) {
+    if (
+      lastValue !== null &&
+      lastValue !== undefined &&
+      lastValue !== "null" &&
+      lastDocId
+    ) {
       let parsedValue: any = lastValue;
 
-      // Convert numeric fields properly
       if (sortField === "createdAt") {
         parsedValue = new Date(Number(lastValue));
       }
@@ -181,22 +182,22 @@ export async function GET(
         parsedValue = Number(lastValue);
       }
 
-      query = query.startAfter(parsedValue, lastDocId);
+      if (parsedValue !== null && parsedValue !== undefined) {
+        query = query.startAfter(parsedValue, lastDocId);
+      }
     }
+
     /* =====================================================
-       📦 10️⃣ Limit
+       📦 11️⃣ Limit
     ====================================================== */
 
     query = query.limit(pageSize);
 
     /* =====================================================
-       ✅ 11️⃣ Execute
+       ✅ 12️⃣ Execute
     ====================================================== */
 
     const snapshot = await query.get();
-    /* =====================================================
-   📊 Get Total Count from Event Metrics
-===================================================== */
 
     const participants = snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -235,7 +236,7 @@ export async function GET(
     });
 
     /* =====================================================
-       🔁 12️⃣ Next Cursor
+       🔁 13️⃣ Next Cursor
     ====================================================== */
 
     const lastDocSnap = snapshot.docs[snapshot.docs.length - 1];
@@ -248,11 +249,26 @@ export async function GET(
       if (isNameSearch) {
         cursorValue = lastDocSnap.get("nameLowercase");
       } else {
-        const rawValue = lastDocSnap.get(sortField);
+        let rawValue: any;
 
-        // Convert Firestore Timestamp to number
+        if (sortField.includes(".")) {
+          const parts = sortField.split(".");
+          let temp: any = lastDocSnap.data();
+
+          for (const part of parts) {
+            temp = temp?.[part];
+          }
+
+          rawValue = temp;
+        } else {
+          rawValue = lastDocSnap.get(sortField);
+        }
+
         if (rawValue?.toMillis) {
           cursorValue = rawValue.toMillis();
+        } else if (rawValue === null || rawValue === undefined) {
+          cursorValue =
+            lastDocSnap.get("createdAt")?.toMillis?.() ?? null;
         } else {
           cursorValue = rawValue;
         }
@@ -263,6 +279,7 @@ export async function GET(
         lastDocId: lastDocSnap.id,
       };
     }
+
     return NextResponse.json({
       data: participants,
       nextCursor,

@@ -49,7 +49,7 @@ export default function ChipMappingClient({ eventId }: Props) {
   } | null>(null);
 
   const scannerRef = useRef<HTMLInputElement>(null);
-
+  const [categories, setCategories] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [compact, setCompact] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,6 +66,9 @@ export default function ChipMappingClient({ eventId }: Props) {
     "bibNumber" | "name" | "chipCode" | null
   >(null);
   const [eventStats, setEventStats] = useState<any>(null);
+  const [globalDuplicateChips, setGlobalDuplicateChips] = useState<string[]>(
+    [],
+  );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // =========================
@@ -73,26 +76,39 @@ export default function ChipMappingClient({ eventId }: Props) {
   // =========================
   const [pageSize, setPageSize] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
+  const fetchLockRef = useRef(false);
+
   const fetchPage = async (cursor: string | null) => {
+    if (fetchLockRef.current) return;
+
+    fetchLockRef.current = true;
     setLoadingPage(true);
 
-    const res = await secureFetch(
-      `/api/admin/chip-mapping?eventId=${eventId}&pageSize=${pageSize}${
-        cursor ? `&cursor=${cursor}` : ""
-      }`,
-    );
+    try {
+      let url = `/api/admin/chip-mapping?eventId=${eventId}&pageSize=${pageSize}`;
 
-    const result = await res.json();
+      if (selectedCategory !== "ALL") {
+        url += `&category=${encodeURIComponent(selectedCategory)}`;
+      }
 
-    if (res.ok) {
-      setData(result.data);
-      setNextCursor(result.nextCursor);
-      setHasNext(result.hasNext);
+      if (cursor) {
+        url += `&cursor=${cursor}`;
+      }
 
-      setCurrentCursor(cursor);
+      const res = await secureFetch(url);
+
+      const result = await res.json();
+
+      if (res.ok) {
+        setData(result.data);
+        setNextCursor(result.nextCursor);
+        setHasNext(result.hasNext);
+        setCurrentCursor(cursor);
+      }
+    } finally {
+      setLoadingPage(false);
+      fetchLockRef.current = false;
     }
-
-    setLoadingPage(false);
   };
 
   useEffect(() => {
@@ -149,6 +165,10 @@ export default function ChipMappingClient({ eventId }: Props) {
         return 0;
       });
     }
+
+    if (selectedCategory !== "ALL") {
+      result = result.filter((item) => item.categoryTitle === selectedCategory);
+    }
     return result;
   }, [data, search, statusFilter, selectedCategory, sortKey, sortOrder]);
 
@@ -160,8 +180,10 @@ export default function ChipMappingClient({ eventId }: Props) {
       map[item.chipCode] = (map[item.chipCode] || 0) + 1;
     });
 
-    return Object.keys(map).filter((chip) => map[chip] > 1);
-  }, [data]);
+    const pageDuplicates = Object.keys(map).filter((chip) => map[chip] > 1);
+
+    return [...new Set([...pageDuplicates, ...globalDuplicateChips])];
+  }, [data, globalDuplicateChips]);
   // =========================
   // Stats (Current Page)
   // =========================
@@ -172,31 +194,46 @@ export default function ChipMappingClient({ eventId }: Props) {
   // =========================
   // Assign / Remove
   // =========================
+  const savingRef = useRef(false);
+
   const updateChip = async (registrationId: string, chip: string | null) => {
+    if (savingRef.current) return;
+
+    savingRef.current = true;
     setLoading(true);
-    const res = await secureFetch("/api/admin/chip-mapping", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventId,
-        registrationId,
-        chipCode: chip,
-        bibNumber: chip,
-      }),
-    });
-    const result = await res.json();
-    if (!res.ok) {
-      alert(result.error);
-    } else {
+
+    try {
+      const res = await secureFetch("/api/admin/chip-mapping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          registrationId,
+          chipCode: chip,
+          bibNumber: chip,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        alert(result.error);
+        return;
+      }
+
       setData((prev) =>
         prev.map((item) =>
           item.id === registrationId ? { ...item, chipCode: chip } : item,
         ),
       );
+
       setSelected(null);
+
       fetchEventStats();
+    } finally {
+      setLoading(false);
+      savingRef.current = false;
     }
-    setLoading(false);
   };
 
   // =========================
@@ -258,6 +295,7 @@ export default function ChipMappingClient({ eventId }: Props) {
       // auto reset after animation
       setTimeout(() => {
         setScanStatus("idle");
+        scannerRef.current?.focus();
       }, 800);
 
       return;
@@ -345,6 +383,17 @@ export default function ChipMappingClient({ eventId }: Props) {
       });
     }
   };
+  const fetchCategories = async () => {
+    const res = await secureFetch(
+      `/api/admin/chip-mapping/categories?eventId=${eventId}`,
+    );
+
+    const result = await res.json();
+
+    if (res.ok) {
+      setCategories(result.categories || []);
+    }
+  };
   const fetchEventStats = async () => {
     const res = await secureFetch(
       `/api/admin/chip-mapping/event-stats?eventId=${eventId}`,
@@ -356,11 +405,26 @@ export default function ChipMappingClient({ eventId }: Props) {
       setEventStats(result);
     }
   };
+
+  const fetchGlobalDuplicates = async () => {
+    const res = await secureFetch(
+      `/api/admin/chip-mapping/duplicates?eventId=${eventId}`,
+    );
+
+    const result = await res.json();
+
+    if (res.ok) {
+      setGlobalDuplicateChips(result.duplicates || []);
+    }
+  };
   useEffect(() => {
     console.log("Table Data:", data);
   }, [data]);
+
   useEffect(() => {
     fetchEventStats();
+    fetchGlobalDuplicates();
+    fetchCategories();
   }, []);
   return (
     <div className="bg-slate-900 min-h-screen text-white space-y-6">
@@ -514,6 +578,35 @@ export default function ChipMappingClient({ eventId }: Props) {
         </div>
       </div>
 
+      {/* CATEGORY FILTER */}
+      <div className="flex items-center gap-3 px-6 mb-4">
+        <span className="text-sm text-slate-400">Category:</span>
+
+        <select
+          value={selectedCategory}
+          onChange={(e) => {
+            const cat = e.target.value;
+
+            setSelectedCategory(cat);
+
+            // reset pagination
+            setCursorHistory([]);
+            setCurrentCursor(null);
+            setNextCursor(null);
+
+            fetchPage(null);
+          }}
+          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="ALL">All Categories</option>
+
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </div>
       {/* TABLE */}
       <div className="flex-1 px-6 pb-6 flex flex-col min-h-0">
         <div className="flex-1 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-lg">
@@ -539,23 +632,31 @@ export default function ChipMappingClient({ eventId }: Props) {
             pageSize={pageSize}
             hasNext={hasNext}
             loadingPage={loadingPage}
+            page={cursorHistory.length + 1}
             canGoPrev={cursorHistory.length > 0}
             onPrev={() => {
               if (cursorHistory.length === 0) return;
 
-              const previousCursor = cursorHistory[cursorHistory.length - 1];
+              const newHistory = [...cursorHistory];
+              const prevCursor = newHistory.pop() ?? null;
 
-              setCursorHistory((prev) => prev.slice(0, -1));
-              fetchPage(previousCursor);
+              setCursorHistory(newHistory);
+
+              fetchPage(prevCursor);
             }}
             onNext={() => {
               if (!nextCursor) return;
 
-              setCursorHistory((prev) => [...prev, currentCursor]);
+              setCursorHistory((prev) => [...prev, currentCursor ?? null]);
+
               fetchPage(nextCursor);
             }}
             onPageSizeChange={(size) => {
               setPageSize(size);
+              setCursorHistory([]);
+              setCurrentCursor(null);
+              setNextCursor(null);
+              fetchPage(null);
             }}
           />
         </div>

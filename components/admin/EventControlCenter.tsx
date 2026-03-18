@@ -19,12 +19,15 @@ export default function EventControlCenter({
   currentStatus,
   onStatusChange,
   currentRegistrationStatus,
+  resultsPublished: initialResultsPublished,
 }: Props) {
   useEffect(() => {
     setRegistrationStatus(currentRegistrationStatus);
   }, [currentRegistrationStatus]);
   const { startLoading, stopLoading } = useGlobalLoading();
-  const [resultsPublished, setResultsPublished] = useState(false);
+  const [resultsPublished, setResultsPublished] = useState(
+    initialResultsPublished,
+  );
   const [resultsLoading, setResultsLoading] = useState(false);
   const [status, setStatus] = useState(currentStatus);
 
@@ -48,7 +51,9 @@ export default function EventControlCenter({
     setPendingRegistrationStatus(newStatus);
     setRegistrationConfirmOpen(true);
   };
-
+  useEffect(() => {
+    setResultsPublished(initialResultsPublished);
+  }, [initialResultsPublished]);
   /* ================= OPEN CONFIRM MODAL ================= */
   const openConfirm = (newStatus: string) => {
     if (newStatus === status) return;

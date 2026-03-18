@@ -9,7 +9,10 @@ export async function GET(req: NextRequest) {
     const eventId = searchParams.get("eventId");
 
     if (!eventId) {
-      return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing eventId" },
+        { status: 400 }
+      );
     }
 
     const snapshot = await adminDb
@@ -19,40 +22,44 @@ export async function GET(req: NextRequest) {
 
     const stats: Record<
       string,
-      { total: number; assigned: number; pending: number }
+      {
+        online: { total: number; assigned: number; pending: number };
+        offline: { total: number; assigned: number; pending: number };
+      }
     > = {};
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const category = data.category || "Uncategorized";
-
-      if (!stats[category]) {
-        stats[category] = {
-          total: 0,
-          assigned: 0,
-          pending: 0,
-        };
-      }
-
-      stats[category].total += 1;
-
-      if (data.chipCode) {
-        stats[category].assigned += 1;
-      } else {
-        stats[category].pending += 1;
-      }
-    });
-
-    // 🔥 Add overall totals
     let overallTotal = 0;
     let overallAssigned = 0;
     let overallPending = 0;
 
-    Object.values(stats).forEach((cat) => {
-      overallTotal += cat.total;
-      overallAssigned += cat.assigned;
-      overallPending += cat.pending;
-    });
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+
+      const category = data.categoryTitle || "Uncategorized";
+
+      const paymentMethod = data.payment?.method || "OFFLINE";
+
+      const type =
+        paymentMethod === "OFFLINE" ? "offline" : "online";
+
+      if (!stats[category]) {
+        stats[category] = {
+          online: { total: 0, assigned: 0, pending: 0 },
+          offline: { total: 0, assigned: 0, pending: 0 },
+        };
+      }
+
+      stats[category][type].total += 1;
+      overallTotal += 1;
+
+      if (Boolean(data.chipCode)) {
+        stats[category][type].assigned += 1;
+        overallAssigned += 1;
+      } else {
+        stats[category][type].pending += 1;
+        overallPending += 1;
+      }
+    }
 
     return NextResponse.json({
       stats,
@@ -62,8 +69,13 @@ export async function GET(req: NextRequest) {
         pending: overallPending,
       },
     });
+
   } catch (error) {
     console.error("Event Stats Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }

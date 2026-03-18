@@ -5,11 +5,19 @@ import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import { TrophyIcon } from "@heroicons/react/24/outline";
+
 import Podium from "@/components/results/Podium";
 import Leaderboard from "@/components/results/Leaderboard";
+import ResultFilters from "@/components/results/ResultFilters";
 
 type Params = {
   slug: string;
+};
+
+type Filters = {
+  distance: string;
+  gender: string;
+  category: string;
 };
 
 function Stat({ label, value }: { label: string; value: any }) {
@@ -44,6 +52,14 @@ export default function EventResultsPage({
   const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState("");
 
+  /* FILTER STATE */
+
+  const [filters, setFilters] = useState<Filters>({
+    distance: "",
+    gender: "overall",
+    category: "overall",
+  });
+
   /* LOAD EVENT */
 
   useEffect(() => {
@@ -51,7 +67,25 @@ export default function EventResultsPage({
       const res = await fetch(`/api/results/event?slug=${slug}`);
       const data = await res.json();
 
-      if (data.success) setEvent(data.event);
+      if (data.success) {
+        setEvent(data.event);
+
+        /* FIND SMALLEST DISTANCE */
+
+        const distances =
+          data.event?.categories?.map((c: any) =>
+            Number(String(c.distance).replace(/[^\d]/g, "")),
+          ) || [];
+
+        if (distances.length > 0) {
+          const smallest = Math.min(...distances);
+
+          setFilters((prev) => ({
+            ...prev,
+            distance: String(smallest),
+          }));
+        }
+      }
 
       setLoading(false);
     }
@@ -59,7 +93,7 @@ export default function EventResultsPage({
     loadEvent();
   }, [slug]);
 
-  /* LOAD PODIUM */
+  /* LOAD PODIUM (legacy safe — does not affect filtered podium) */
 
   useEffect(() => {
     if (!event) return;
@@ -163,41 +197,36 @@ export default function EventResultsPage({
         icon={<TrophyIcon className="w-5 h-5" />}
       />
 
-      {/* SEARCH */}
-
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-          <h2 className="font-semibold text-lg text-gray-900">
-            Find Your Result
-          </h2>
-          <span className="text-xs text-gray-500">Enter your bib number</span>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            placeholder="Enter Bib Number"
-            value={bib}
-            onChange={(e) => setBib(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+      {/* FILTERS */}
+      <div className="sticky top-0 z-50 bg-white/95">
+        <div className="max-w-7xl mx-auto">
+          <ResultFilters
+            eventId={event.id}
+            onChange={(f: Filters) => {
+              setFilters((prev: Filters) => {
+                if (
+                  prev.distance === f.distance &&
+                  prev.gender === f.gender &&
+                  prev.category === f.category
+                ) {
+                  return prev;
+                }
+                return f;
+              });
+            }}
           />
-
-          <button
-            onClick={searchBib}
-            className="bg-gradient-to-r from-[#9f2a25] via-[#c1342d] to-[#e0473f] text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition"
-          >
-            {searching ? "Searching..." : "Search"}
-          </button>
         </div>
       </div>
 
+      <div className="h-6"></div>
+
       {/* PODIUM */}
 
-      <Podium runners={podium} />
+      <Podium eventId={event.id} filters={filters} />
 
       {/* LEADERBOARD */}
 
-      <Leaderboard eventId={event.id} eventSlug={slug} />
+      <Leaderboard eventId={event.id} eventSlug={slug} filters={filters} />
     </PageContainer>
   );
 }

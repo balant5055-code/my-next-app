@@ -51,26 +51,42 @@ export async function GET(req: NextRequest) {
       return "";
     };
 
-    /* ==============================
-   GROUP BY CATEGORY
-============================== */
+    /* ======================================
+       PREPARE DATA STRUCTURES
+    ====================================== */
 
     const categoryMap: Record<string, any[]> = {};
+    const categoryStats: Record<string, { total: number; revenue: number }> =
+      {};
 
-    snapshot.forEach((doc) => {
+    let totalRevenue = 0;
+
+    snapshot.docs.forEach((doc) => {
       const d = doc.data();
-      const category = d.category || "Uncategorized";
+
+     const category =
+  d.categoryTitle ??
+  d.participant?.categoryTitle ??
+  "Uncategorized";
 
       if (!categoryMap[category]) {
         categoryMap[category] = [];
+        categoryStats[category] = { total: 0, revenue: 0 };
       }
 
       categoryMap[category].push(d);
+
+      const amount = Number(d.amount || 0);
+
+      categoryStats[category].total += 1;
+      categoryStats[category].revenue += amount;
+
+      totalRevenue += amount;
     });
 
-    /* ==============================
-   CREATE SHEET PER CATEGORY
-============================== */
+    /* ======================================
+       CATEGORY SHEETS
+    ====================================== */
 
     Object.entries(categoryMap).forEach(([categoryName, participants]) => {
       const safeSheetName = categoryName
@@ -102,16 +118,18 @@ export async function GET(req: NextRequest) {
       let categoryRevenue = 0;
 
       participants.forEach((d) => {
-        categoryRevenue += Number(d.amount || 0);
+        const amount = Number(d.amount || 0);
+
+        categoryRevenue += amount;
 
         sheet.addRow({
           registrationId: d.registrationId,
           eventName: d.eventName,
           eventDate: formatIST(d.eventDate),
-          bib: d.bibNumber,
-          chip: d.chipCode,
+          bib: d.participant?.bibNumber ?? "-",
+          chip: d.chipCode ?? "-",
           status: d.status,
-          amount: d.amount,
+          amount: amount,
           firstName: d.participant?.firstName,
           lastName: d.participant?.lastName,
           phone: d.participant?.phone,
@@ -121,15 +139,10 @@ export async function GET(req: NextRequest) {
         });
       });
 
-      // Summary Row
       sheet.addRow([]);
+
       const summaryRow = sheet.addRow([
         "TOTAL",
-        "",
-        "",
-        "",
-        "",
-        "",
         "",
         "",
         "",
@@ -140,20 +153,20 @@ export async function GET(req: NextRequest) {
       ]);
 
       summaryRow.getCell(1).font = { bold: true };
-      summaryRow.getCell(7).value = "Revenue:";
-      summaryRow.getCell(8).value = categoryRevenue;
-      summaryRow.getCell(7).font = { bold: true };
-      summaryRow.getCell(8).font = { bold: true };
+
+      sheet.addRow(["Revenue:", categoryRevenue]);
     });
 
-    /* ============================
-       SHEET 1 – ALL PARTICIPANTS
-    ============================ */
+    /* ======================================
+       ALL PARTICIPANTS SHEET
+    ====================================== */
 
     const sheet = workbook.addWorksheet("All Participants");
+
     sheet.views = [{ state: "frozen", ySplit: 2 }];
 
     sheet.mergeCells("A1:F1");
+
     sheet.getCell("A1").value = "Raceline India – Marathon Export";
     sheet.getCell("A1").font = { size: 14, bold: true };
 
@@ -178,30 +191,16 @@ export async function GET(req: NextRequest) {
 
     sheet.getRow(3).font = { bold: true };
 
-    let totalRevenue = 0;
-    const categoryStats: Record<string, { total: number; revenue: number }> =
-      {};
-
-    snapshot.forEach((doc) => {
+    snapshot.docs.forEach((doc) => {
       const d = doc.data();
-      totalRevenue += Number(d.amount || 0);
-
-      const category = d.category || "Uncategorized";
-
-      if (!categoryStats[category]) {
-        categoryStats[category] = { total: 0, revenue: 0 };
-      }
-
-      categoryStats[category].total += 1;
-      categoryStats[category].revenue += Number(d.amount || 0);
 
       sheet.addRow({
         registrationId: d.registrationId,
         eventName: d.eventName,
         eventDate: formatIST(d.eventDate),
-        category: category,
-        bib: d.bibNumber,
-        chip: d.chipCode,
+        category: d.categoryTitle,
+        bib: d.participant?.bibNumber ?? "-",
+        chip: d.chipCode ?? "-",
         status: d.status,
         amount: d.amount,
         firstName: d.participant?.firstName,
@@ -213,11 +212,12 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    /* ============================
-       SHEET 2 – CATEGORY SUMMARY
-    ============================ */
+    /* ======================================
+       CATEGORY SUMMARY
+    ====================================== */
 
     const categorySheet = workbook.addWorksheet("Category Summary");
+
     categorySheet.columns = [
       { header: "Category", key: "category", width: 25 },
       { header: "Total Participants", key: "total", width: 20 },
@@ -235,6 +235,7 @@ export async function GET(req: NextRequest) {
     });
 
     categorySheet.addRow([]);
+
     categorySheet.addRow({
       category: "OVERALL TOTAL",
       total: snapshot.size,
@@ -245,9 +246,9 @@ export async function GET(req: NextRequest) {
       bold: true,
     };
 
-    /* ============================
-       SHEET 3 – FINANCE SUMMARY
-    ============================ */
+    /* ======================================
+       FINANCE SUMMARY
+    ====================================== */
 
     const financeSheet = workbook.addWorksheet("Finance Summary");
 
@@ -258,12 +259,19 @@ export async function GET(req: NextRequest) {
 
     financeSheet.getRow(1).font = { bold: true };
 
-    financeSheet.addRow({ metric: "Total Participants", value: snapshot.size });
-    financeSheet.addRow({ metric: "Total Revenue", value: totalRevenue });
+    financeSheet.addRow({
+      metric: "Total Participants",
+      value: snapshot.size,
+    });
 
-    /* ============================
-       FINAL EXPORT
-    ============================ */
+    financeSheet.addRow({
+      metric: "Total Revenue",
+      value: totalRevenue,
+    });
+
+    /* ======================================
+       EXPORT FILE
+    ====================================== */
 
     const buffer = await workbook.xlsx.writeBuffer();
 
@@ -271,7 +279,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="marathon-export-${eventId}.xlsx"`,
+        "Content-Disposition": `attachment; filename="marathon-export-${eventId}.xlsx`,
       },
     });
   } catch (error) {

@@ -160,9 +160,18 @@ export default function ParticipantTable({ eventId, filters }: Props) {
       const res = await secureFetch(url);
 
       if (!res.ok) {
-        const err = await res.json();
+        let err: any = {};
+
+        try {
+          err = await res.json();
+        } catch {
+          const text = await res.text();
+          console.error("Raw API Error:", text);
+        }
+
         console.error("Participants API Error:", err);
-        throw new Error(err.error || "Failed to fetch participants");
+
+        throw new Error(err?.error || "Failed to fetch participants");
       }
       const result = await res.json();
 

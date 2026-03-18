@@ -2,24 +2,36 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+
+const MAX_PAGE_SIZE = 50;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
     const eventId = searchParams.get("eventId");
-    const pageSize = Number(searchParams.get("pageSize") || 15);
+    const pageSizeRaw = Number(searchParams.get("pageSize") || 15);
     const cursor = searchParams.get("cursor");
-
+const category = searchParams.get("category");
     if (!eventId) {
-      return NextResponse.json({ error: "eventId required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "eventId required" },
+        { status: 400 }
+      );
     }
 
-    let query = adminDb
-      .collection("registrations_flat")
-      .where("eventId", "==", eventId)
-      .orderBy("createdAt", "desc")
-      .limit(pageSize + 1);
+    const pageSize = Math.min(pageSizeRaw, MAX_PAGE_SIZE);
+
+   let query = adminDb
+  .collection("registrations_flat")
+  .where("eventId", "==", eventId);
+
+if (category && category !== "ALL") {
+  query = query.where("categoryTitle", "==", category);
+}
+
+query = query.orderBy("createdAt", "desc").limit(pageSize + 1);
 
     if (cursor) {
       const cursorDoc = await adminDb
@@ -39,33 +51,54 @@ export async function GET(req: NextRequest) {
 
     const nextCursor = hasNext ? docs[docs.length - 1].id : null;
 
-    const data = docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const data = docs.map((doc) => {
+      const d = doc.data();
+
+      return {
+        id: doc.id,
+        registrationId: d.registrationId,
+        chipCode: d.chipCode ?? null,
+        categoryTitle: d.categoryTitle ?? null,
+        participant: d.participant ?? null,
+        createdAt: d.createdAt ?? null,
+      };
+    });
 
     return NextResponse.json({
       data,
       nextCursor,
       hasNext,
     });
+
   } catch (error) {
     console.error("Pagination Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { eventId, registrationId, chipCode, bibNumber } = await req.json();
+    const body = await req.json();
+
+    const eventId: string = body.eventId;
+    const registrationId: string = body.registrationId;
+    const chipCode: string | null = body.chipCode;
+    const bibNumber: number | null = body.bibNumber;
 
     if (!eventId || !registrationId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing fields" },
+        { status: 400 }
+      );
     }
 
-    // 🔐 Get logged-in admin from Firebase token
-    const authHeader = req.headers.get("authorization");
     let adminEmail = "unknown";
+
+    const authHeader = req.headers.get("authorization");
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split("Bearer ")[1];
@@ -73,20 +106,36 @@ export async function POST(req: NextRequest) {
       adminEmail = decoded.email || decoded.uid;
     }
 
+    const updatePayload: any = {
+      chipCode: chipCode ?? null,
+      chipMappedAt: FieldValue.serverTimestamp(),
+      chipMappedBy: adminEmail,
+    };
+
+    if (bibNumber !== undefined) {
+      updatePayload["participant.bibNumber"] = bibNumber ?? null;
+      updatePayload["bibAssignedAt"] = FieldValue.serverTimestamp();
+      updatePayload["bibAssignedBy"] = adminEmail;
+    }
+
     await adminDb
       .collection("registrations_flat")
       .doc(registrationId)
-      .update({
-        chipCode: chipCode || null,
-        bibNumber: bibNumber || null,
-        "participant.bibNumber": bibNumber || null,
-        bibAssignedAt: new Date(),
-        bibAssignedBy: adminEmail,
-      });
+      .update(updatePayload);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      registrationId,
+      chipCode,
+      bibNumber,
+    });
+
   } catch (error) {
     console.error("Update Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }

@@ -158,7 +158,7 @@ export default function Navbar() {
     >
       <motion.nav
         aria-label="Main navigation"
-        className={`bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl transition-all duration-500
+        className={`bg-white/90 backdrop-blur-xl border border-gray-200 shadow-xl transition-all duration-500
         ${
           isHome
             ? scrolled
@@ -171,15 +171,17 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex-1">
             <Link href="/" aria-label="Homepage">
-              <Image
-                src="/logo/raceline-in.png"
-                alt="Logo"
-                width={170}
-                height={60}
-                priority
-                className="h-[44px] w-auto"
-              />
+              <div className="relative w-[200px] h-[50px]">
+  <Image
+    src="/logo/racelineindia.png"
+    alt="Logo"
+    fill
+    className="object-contain"
+    priority
+  />
+</div>
             </Link>
+          
           </div>
 
           {/* Desktop Menu */}

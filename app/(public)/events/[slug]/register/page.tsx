@@ -1233,7 +1233,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="relative min-h-screen py-10  overflow-hidden">
+    <main className="relative min-h-screen py-10 overflow-x-hidden">
       {/* spotlight background */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -1303,7 +1303,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div className="max-w-5xl mx-auto px-4 pb-32 space-y-6">
+        <div className="max-w-5xl mx-auto px-4 pb-48 md:pb-32 space-y-6">
           {/* BREADCRUMB */}
           <Breadcrumb items={breadcrumbItems} />
 

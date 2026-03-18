@@ -2,7 +2,13 @@
 
 interface Props {
   stats: {
-    stats: Record<string, { total: number; assigned: number; pending: number }>;
+    stats: Record<
+      string,
+      {
+        online: { total: number; assigned: number; pending: number };
+        offline: { total: number; assigned: number; pending: number };
+      }
+    >;
     overall: {
       total: number;
       assigned: number;
@@ -23,19 +29,28 @@ export default function EventStatsPanel({ stats }: Props) {
 
   const isReady = overall.pending === 0;
 
+  const format = (n: number) => n.toLocaleString("en-IN");
+
   const ordered = Object.entries(stats.stats).sort(([a], [b]) => {
     const numA = parseInt(a);
     const numB = parseInt(b);
+
     if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+
     return a.localeCompare(b);
   });
 
   return (
-    <div className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900">
-      {/* 🔥 OVERALL SUPER HIGHLIGHT */}
-      <div className={`px-6 py-5 ${isReady ? "bg-emerald-600" : "bg-red-600"}`}>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-white">
-          {/* LEFT SIDE */}
+    <div className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900 shadow-lg">
+
+      {/* HEADER */}
+      <div
+        className={`px-6 py-5 transition-colors ${
+          isReady ? "bg-emerald-600" : "bg-red-600"
+        }`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 text-white">
+
           <div>
             <div className="text-xs uppercase tracking-wider opacity-80">
               Event Status
@@ -46,21 +61,21 @@ export default function EventStatsPanel({ stats }: Props) {
             </div>
           </div>
 
-          {/* RIGHT SIDE NUMBERS */}
-          <div className="flex gap-8 text-lg font-semibold">
+          <div className="flex flex-wrap gap-6 text-lg font-semibold">
+
             <div>
               <div className="text-xs opacity-80">Total</div>
-              <div>{overall.total}</div>
+              <div>{format(overall.total)}</div>
             </div>
 
             <div>
               <div className="text-xs opacity-80">Assigned</div>
-              <div>{overall.assigned}</div>
+              <div>{format(overall.assigned)}</div>
             </div>
 
             <div>
               <div className="text-xs opacity-80">Pending</div>
-              <div>{overall.pending}</div>
+              <div>{format(overall.pending)}</div>
             </div>
 
             <div>
@@ -69,29 +84,44 @@ export default function EventStatsPanel({ stats }: Props) {
             </div>
           </div>
         </div>
+
+        <div className="mt-4 h-2 w-full bg-white/20 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white transition-all duration-700"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
       </div>
 
-      {/* CATEGORY ROWS */}
-      <div className="px-6 py-4 grid md:grid-cols-3 gap-4 text-sm">
-        {ordered.map(([cat, stat]) => {
-          const catPercent =
-            stat.total === 0
-              ? 0
-              : Math.round((stat.assigned / stat.total) * 100);
+      {/* CATEGORY GRID */}
+      <div className="px-6 py-4 grid md:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
 
-          const isComplete = stat.pending === 0 && stat.total > 0;
+        {ordered.map(([cat, stat]) => {
+
+          const online = stat.online;
+          const offline = stat.offline;
+
+          const total = online.total + offline.total;
+          const assigned = online.assigned + offline.assigned;
+          const pending = online.pending + offline.pending;
+
+          const catPercent =
+            total === 0 ? 0 : Math.round((assigned / total) * 100);
+
+          const isComplete = pending === 0 && total > 0;
 
           return (
             <div
               key={cat}
-              className={`rounded-lg p-3 border transition-all
-        ${
-          isComplete
-            ? "bg-emerald-900/30 border-emerald-500"
-            : "bg-slate-800 border-slate-700"
-        }`}
+              className={`rounded-lg p-4 border transition-all hover:scale-[1.01]
+                ${
+                  isComplete
+                    ? "bg-emerald-900/30 border-emerald-500"
+                    : "bg-slate-800 border-slate-700"
+                }`}
             >
-              {/* TOP ROW */}
+
+              {/* CATEGORY TITLE */}
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-white">{cat}</span>
 
@@ -102,24 +132,53 @@ export default function EventStatsPanel({ stats }: Props) {
                 )}
               </div>
 
-              {/* NUMBERS */}
-              <div className="flex justify-between text-xs mt-2">
-                <span className="text-slate-400">{stat.total} Total</span>
+              {/* ONLINE */}
+              <div className="flex justify-between text-xs mt-3">
+                <span className="text-indigo-400">
+                  Online: {format(online.total)}
+                </span>
 
-                <span className="text-emerald-400">{stat.assigned} A</span>
+                <span className="text-emerald-400">
+                  A {format(online.assigned)}
+                </span>
 
-                <span className="text-red-400">{stat.pending} P</span>
+                <span className="text-red-400">
+                  P {format(online.pending)}
+                </span>
               </div>
 
-              {/* MINI PROGRESS BAR */}
-              <div className="mt-2 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+              {/* OFFLINE */}
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-yellow-400">
+                  Offline: {format(offline.total)}
+                </span>
+
+                <span className="text-emerald-400">
+                  A {format(offline.assigned)}
+                </span>
+
+                <span className="text-red-400">
+                  P {format(offline.pending)}
+                </span>
+              </div>
+
+              {/* TOTAL */}
+              <div className="flex justify-between text-xs mt-2 text-slate-400">
+                <span>Total {format(total)}</span>
+                <span>A {format(assigned)}</span>
+                <span>P {format(pending)}</span>
+              </div>
+
+              {/* PROGRESS BAR */}
+              <div className="mt-3 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 ${
+                  className={`h-full transition-all duration-700 ${
                     isComplete ? "bg-emerald-500" : "bg-indigo-500"
                   }`}
                   style={{ width: `${catPercent}%` }}
                 />
               </div>
+
             </div>
           );
         })}

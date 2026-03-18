@@ -260,8 +260,8 @@ export async function POST(req: Request) {
           eventName: eventData.name,
           eventDate: eventData?.date?.toDate?.() || eventData?.date || null,
 
-          category: category.title,
           categoryId: category.id,
+          categoryTitle: category.title,
           amount: pendingData.amount,
 
           couponCode: pendingData.couponCode || null,

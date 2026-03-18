@@ -51,7 +51,7 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <main id="main-content" role="main">
+    <main id="main-content" role="main" className="flex flex-col">
       <Script
         id="event-schema"
         type="application/ld+json"
@@ -66,34 +66,43 @@ export default function Home() {
           }),
         }}
       />
+
       {/* HOME */}
-      <section id="home">
+      <section id="home" className="scroll-mt-20">
         <HeroCarousel />
       </section>
 
       {/* EVENTS */}
-      <section id="events">
-        <EventsPage />
+      <section id="events" className="scroll-mt-20 py-8 md:py-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <EventsPage />
+        </div>
       </section>
 
       {/* SERVICES */}
-      <section id="services">
-        <OurProcess />
-        <UseCases />
-        <HowItWorks />
+      <section id="services" className="scroll-mt-20 py-8 md:py-10">
+        <div className="max-w-7xl mx-auto px-4 space-y-8 md:space-y-10">
+        {/*   <OurProcess /> */}
+          <UseCases />
+          <HowItWorks />
+        </div>
       </section>
 
       {/* ABOUT */}
-      <section id="about">
-        <OrganizerBenefits />
-        <HappyParticipants />
-        <TrustedBy />
-        <ParticipantExperience />
+      <section id="about" className="scroll-mt-20 py-8 md:py-10">
+        <div className="max-w-7xl mx-auto px-4 space-y-8 md:space-y-10">
+          <OrganizerBenefits />
+          <HappyParticipants />
+          <TrustedBy />
+          <ParticipantExperience />
+        </div>
       </section>
 
       {/* CONTACT */}
-      <section id="contact">
-        <CTAContactSection />
+      <section id="contact" className="scroll-mt-20 py-8 md:py-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <CTAContactSection />
+        </div>
       </section>
 
       <WhatsAppFloat />

@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     let totalSeats = 0;
 
     const formattedCategories = categories.map((cat: any, index: number) => {
-      if (!cat.title || !cat.distance || !cat.maxSeats) {
+      if (!cat.title || !cat.distance) {
         throw new Error("Invalid category structure");
       }
 
@@ -132,35 +132,45 @@ export async function POST(req: NextRequest) {
 
       usedDistances.add(cat.distance);
 
-      const maxSeats = Number(cat.maxSeats);
+      const isUnlimited = Boolean(cat.unlimited);
 
-      if (maxSeats <= 0) {
+      const maxSeats = isUnlimited ? null : Number(cat.maxSeats || 0);
+
+      if (!isUnlimited && (maxSeats ?? 0) <= 0) {
         throw new Error("Seats must be greater than zero");
       }
-
-      totalSeats += maxSeats;
-
+      if (!isUnlimited && maxSeats !== null) {
+        totalSeats += maxSeats;
+      }
       const bibBase = distanceNumber * 1000;
       const bibStart = bibBase + 1;
-      const bibEnd = bibBase + maxSeats;
+      const bibEnd =
+        isUnlimited || maxSeats === null ? null : bibBase + maxSeats;
+      const isTimed = cat.timedRun !== undefined ? Boolean(cat.timedRun) : true;
 
       return {
         id: `cat_${index + 1}`,
         title: String(cat.title),
         distance: String(cat.distance),
         price: Number(cat.price) || 0,
-        cutOffTime: cat.cutOffTime || "",
+
+        cutOffTime: isTimed ? cat.cutOffTime || "" : null,
+
         earlyBirdPrice: cat.earlyBirdPrice ? Number(cat.earlyBirdPrice) : null,
 
         earlyBirdEnd: cat.earlyBirdEnd
           ? Timestamp.fromDate(new Date(cat.earlyBirdEnd))
           : null,
+
         minAge: Number(cat.minAge) || 0,
         maxAge: Number(cat.maxAge) || 100,
         maxSeats,
         unlimited: Boolean(cat.unlimited),
+
+        timedRun: isTimed, // ✅ FINAL
+
         bookedSeats: 0,
-        // 🎽 SERVER GENERATED BIB
+
         bibStart,
         bibEnd,
         nextBib: bibStart,
@@ -176,6 +186,9 @@ export async function POST(req: NextRequest) {
     /* ===============================
        📊 6️⃣ EVENT STRUCTURE
     =============================== */
+    const hasUnlimited = formattedCategories.some(
+      (c: { unlimited?: boolean }) => c.unlimited,
+    );
 
     const eventPayload = {
       name: String(body.name).trim(),
@@ -208,7 +221,9 @@ export async function POST(req: NextRequest) {
       maxParticipants:
         Number(body.maxParticipants) > 0
           ? Number(body.maxParticipants)
-          : totalSeats,
+          : hasUnlimited
+            ? null
+            : totalSeats,
 
       socialLinks: body.socialLinks || {},
 

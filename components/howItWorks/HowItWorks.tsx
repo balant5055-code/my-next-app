@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   CalendarDaysIcon,
   CreditCardIcon,
@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { TrophyIcon } from "@heroicons/react/24/solid";
+
 const steps = [
   {
     step: "01",
@@ -39,43 +40,45 @@ const steps = [
 
 export default function HowItWorks() {
   const headingRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <div className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 mt-20">
-        {/* Heading (UNCHANGED STYLE) */}
+      <div className="max-w-7xl mx-auto px-4 mt-10"> {/* reduced */}
+
+        {/* Heading */}
         <motion.div
           ref={headingRef}
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-14 text-center"
+          transition={{ duration: 0.5 }}
+          className="mb-8 text-center"
         >
           <SectionHeader
-            label="Race Results"
-            icon={<TrophyIcon className="h-4 w-4 text-red-500" />}
+            label="Process"
+            icon={<TrophyIcon className="h-4 w-4 text-orange-500" />}
             title="How It Works — Simple for Everyone"
-            subtitle=" A simple workflow to launch and manage sports events effortlessly."
+            subtitle="A simple workflow to launch and manage sports events effortlessly."
           />
         </motion.div>
 
         {/* Steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"> {/* reduced */}
           {steps.map((item, index) => {
             const Icon = item.icon;
 
             return (
               <motion.div
                 key={item.step}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group h-full flex flex-col items-center text-center rounded-xl border border-gray-200 p-5 hover:border-orange-400 hover:shadow-md transition"
+                transition={{ delay: index * 0.06 }}
+                className="group h-full flex flex-col items-center text-center rounded-xl border border-gray-200 p-3 md:p-4 hover:border-orange-400 hover:shadow-sm transition"
               >
                 {/* Icon */}
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 group-hover:bg-orange-100 transition mb-3">
-                  <Icon className="h-5 w-5 text-orange-500" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 group-hover:bg-orange-100 transition mb-2">
+                  <Icon className="h-4 w-4 text-orange-500" />
                 </div>
 
                 {/* Step */}
@@ -89,13 +92,15 @@ export default function HowItWorks() {
                 </h3>
 
                 {/* Description */}
-                <p className="text-xs text-gray-600 mt-2 leading-relaxed flex-grow">
+                <p className="text-sm text-gray-600 mt-1.5 leading-relaxed flex-grow">
                   {item.description}
                 </p>
+
               </motion.div>
             );
           })}
         </div>
+
       </div>
     </div>
   );

@@ -15,6 +15,9 @@ export default function ClearAllChipsButton({ eventId, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleClear = async () => {
+  if (loading) return;
+
+  try {
     setLoading(true);
 
     const res = await secureFetch("/api/admin/chip-mapping/clear", {
@@ -25,16 +28,20 @@ export default function ClearAllChipsButton({ eventId, onSuccess }: Props) {
 
     const result = await res.json();
 
-    if (res.ok) {
-      onSuccess?.();
-    } else {
-      alert(result.error);
+    if (!res.ok) {
+      alert(result.error || "Failed to clear chips");
+      return;
     }
 
+    onSuccess?.();
+  } catch (err) {
+    console.error("Clear chips failed:", err);
+    alert("Network error. Please try again.");
+  } finally {
     setLoading(false);
     setConfirmOpen(false);
-  };
-
+  }
+};
   return (
     <div className="relative">
       {/* 3 DOT BUTTON */}

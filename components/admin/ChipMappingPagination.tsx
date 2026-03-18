@@ -1,6 +1,7 @@
 interface Props {
   dataLength: number;
   pageSize: number;
+  page: number;
   hasNext: boolean;
   loadingPage: boolean;
   onPrev: () => void;
@@ -8,10 +9,10 @@ interface Props {
   onPageSizeChange: (size: number) => void;
   canGoPrev: boolean;
 }
-
 export default function ChipMappingPagination({
   dataLength,
   pageSize,
+  page,
   hasNext,
   canGoPrev,
   loadingPage,
@@ -54,7 +55,9 @@ export default function ChipMappingPagination({
         >
           ‹
         </button>
-
+<div className="text-sm text-slate-300 font-medium">
+  Page {page}
+</div>
         {/* NEXT */}
         <button
           disabled={!hasNext || loadingPage}
