@@ -82,22 +82,26 @@ export default function Home() {
       {/* SERVICES */}
       <section id="services" className="scroll-mt-20 py-8 md:py-10">
         <div className="max-w-7xl mx-auto px-4 space-y-8 md:space-y-10">
-        {/*   <OurProcess /> */}
+          {/*   <OurProcess /> */}
           <UseCases />
-          <HowItWorks />
         </div>
       </section>
-
+      <section className="py-8 md:py-10">
+        <HowItWorks />{" "}
+      </section>
+      <HappyParticipants />
       {/* ABOUT */}
       <section id="about" className="scroll-mt-20 py-8 md:py-10">
         <div className="max-w-7xl mx-auto px-4 space-y-8 md:space-y-10">
           <OrganizerBenefits />
-          <HappyParticipants />
-          <TrustedBy />
-          <ParticipantExperience />
         </div>
       </section>
-
+      <section className="py-8 md:py-10">
+        <TrustedBy />{" "}
+      </section>
+      <section className="py-8 md:py-10">
+        <ParticipantExperience />{" "}
+      </section>
       {/* CONTACT */}
       <section id="contact" className="scroll-mt-20 py-8 md:py-10">
         <div className="max-w-7xl mx-auto px-4">

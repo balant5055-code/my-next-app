@@ -55,7 +55,6 @@ export default function ChipMappingTable({
 
   return (
     <div className="relative">
-
       {/* LOADING OVERLAY */}
       {loadingPage && (
         <div className="absolute inset-0 bg-slate-900/70 flex items-center justify-center z-40">
@@ -68,7 +67,6 @@ export default function ChipMappingTable({
         className="h-[65vh] overflow-y-auto overflow-x-auto"
       >
         <table className="min-w-full text-sm">
-
           {/* HEADER */}
           <thead className="bg-slate-800 sticky top-0 z-20 border-b border-slate-700">
             <tr className="text-slate-400 text-xs uppercase tracking-wider">
@@ -82,29 +80,22 @@ export default function ChipMappingTable({
                 Participant
               </th>
 
-              <th className="px-4 py-3 text-center w-36">
-                Chip Status
-              </th>
+              <th className="px-4 py-3 text-center w-36">Chip Status</th>
 
-              <th className="px-4 py-3 text-center w-40">
-                Actions
-              </th>
+              <th className="px-4 py-3 text-center w-40">Actions</th>
             </tr>
           </thead>
 
           {/* BODY */}
           <tbody className="divide-y divide-slate-800">
-
             {filtered.map((reg, index) => {
-
               const id = reg.id || reg.registrationId;
 
               const isEditing = editingId === id;
               const isAssigned = !!reg.chipCode;
 
               const isDuplicate =
-                !!reg.chipCode &&
-                duplicateChips.includes(reg.chipCode);
+                !!reg.chipCode && duplicateChips.includes(reg.chipCode);
 
               const bib = reg.participant?.bibNumber ?? "-";
 
@@ -124,7 +115,6 @@ export default function ChipMappingTable({
                     hover:bg-slate-800
                   `}
                 >
-
                   {/* INDEX */}
                   <td className="px-4 py-3 text-center text-slate-500">
                     {index + 1}
@@ -142,7 +132,6 @@ export default function ChipMappingTable({
 
                   {/* CHIP STATUS */}
                   <td className="px-4 py-3 text-center">
-
                     {isEditing ? (
                       <input
                         autoFocus
@@ -150,11 +139,9 @@ export default function ChipMappingTable({
                         onChange={(e) => setInlineChip(e.target.value)}
                         onFocus={(e) => e.target.select()}
                         onKeyDown={(e) => {
-
                           if (activeIndex === null) return;
 
                           if (e.key === "Enter") {
-
                             if (savingRef.current) return;
 
                             savingRef.current = true;
@@ -162,7 +149,6 @@ export default function ChipMappingTable({
                             updateChip(id, inlineChip || null);
 
                             if (activeIndex < filtered.length - 1) {
-
                               const nextIndex = activeIndex + 1;
                               const next = filtered[nextIndex];
                               const nextId = next.id || next.registrationId;
@@ -172,7 +158,6 @@ export default function ChipMappingTable({
                               setInlineChip(next.chipCode || "");
 
                               scrollToRow(nextId);
-
                             } else {
                               setEditingId(null);
                             }
@@ -213,12 +198,10 @@ export default function ChipMappingTable({
                               scrollToRow(prevId);
                             }
                           }
-
                         }}
                         className="px-3 py-1.5 bg-slate-800 border border-indigo-500 rounded-md text-xs w-28 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     ) : isAssigned ? (
-
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border
                         ${
@@ -230,27 +213,20 @@ export default function ChipMappingTable({
                         {reg.chipCode}
                         {isDuplicate && " ⚠"}
                       </span>
-
                     ) : (
-
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/30">
                         Pending
                       </span>
-
                     )}
-
                   </td>
 
                   {/* ACTIONS */}
                   <td className="px-4 py-3">
-
                     <div className="flex justify-center gap-2">
-
                       {isEditing ? (
                         <>
                           <button
                             onClick={() => {
-
                               if (savingRef.current) return;
 
                               savingRef.current = true;
@@ -299,9 +275,7 @@ export default function ChipMappingTable({
                           )}
                         </>
                       )}
-
                     </div>
-
                   </td>
                 </tr>
               );
@@ -314,7 +288,6 @@ export default function ChipMappingTable({
                 </td>
               </tr>
             )}
-
           </tbody>
         </table>
       </div>

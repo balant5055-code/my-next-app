@@ -11,18 +11,17 @@ export async function GET(req: Request) {
   if (!slug || !bib) {
     return NextResponse.json(
       { success: false, error: "Missing parameters" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
-
     /* 1️⃣ FIND EVENT */
 
     const eventQuery = query(
       collection(db, "events"),
       where("slug", "==", slug),
-      limit(1)
+      limit(1),
     );
 
     const eventSnap = await getDocs(eventQuery);
@@ -44,7 +43,7 @@ export async function GET(req: Request) {
       collection(db, "registrations_flat"),
       where("eventId", "==", event.id),
       where("participant.bibNumber", "==", Number(bib)),
-      limit(1)
+      limit(1),
     );
 
     const runnerSnap = await getDocs(runnerQuery);
@@ -65,13 +64,9 @@ export async function GET(req: Request) {
       event,
       runner,
     });
-
   } catch (error) {
     console.error(error);
 
-    return NextResponse.json(
-      { success: false },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false }, { status: 500 });
   }
 }

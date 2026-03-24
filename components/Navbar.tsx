@@ -49,7 +49,7 @@ export default function Navbar() {
   const [hash, setHash] = useState("");
   const [open, setOpen] = useState(false);
   const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => false);
   const [scrollDir, setScrollDir] = useState<"up" | "down">("up");
 
   const isHome = pathname === "/";
@@ -172,16 +172,15 @@ export default function Navbar() {
           <div className="flex-1">
             <Link href="/" aria-label="Homepage">
               <div className="relative w-[200px] h-[50px]">
-  <Image
-    src="/logo/racelineindia.png"
-    alt="Logo"
-    fill
-    className="object-contain"
-    priority
-  />
-</div>
+                <Image
+                  src="/logo/racelineindia.png"
+                  alt="Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
             </Link>
-          
           </div>
 
           {/* Desktop Menu */}
@@ -233,7 +232,7 @@ export default function Navbar() {
                               <p className="font-semibold text-gray-900">
                                 {child.name}
                               </p>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-md text-gray-500">
                                 {child.desc}
                               </p>
                             </Link>
@@ -326,7 +325,7 @@ export default function Navbar() {
                                 <Link
                                   key={child.name}
                                   href={child.link}
-                                  className="block text-sm text-gray-600 hover:text-orange-500"
+                                  className="block text-md text-gray-600 hover:text-orange-500"
                                 >
                                   {child.name}
                                 </Link>

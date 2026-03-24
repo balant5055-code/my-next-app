@@ -77,7 +77,7 @@ body {
   -webkit-overflow-scrolling: touch;
   background: var(--color-background);
   color: var(--color-foreground);
- font-family: "Inter_18pt-Medium";
+  font-family: "Inter_18pt-Medium";
   font-size: 16px;
 }
 

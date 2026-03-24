@@ -59,7 +59,6 @@ export default function OurProcess() {
   return (
     <div className="bg-white overflow-hidden mt-10">
       <div className="max-w-7xl mx-auto px-4">
-
         {/* Heading */}
         <motion.div
           ref={headingRef}
@@ -92,7 +91,6 @@ export default function OurProcess() {
                 className="group flex flex-col items-center"
               >
                 <div className="relative w-full rounded-xl border border-gray-200 bg-white p-3 md:p-4 text-center transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md">
-                  
                   {/* Step Badge */}
                   <div
                     className={`absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-white px-2.5 py-[2px] text-[10px] font-semibold ${step.text} ${step.border} border`}
@@ -108,10 +106,9 @@ export default function OurProcess() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-[11px] md:text-sm font-semibold text-gray-800 leading-snug">
+                  <h3 className="text-[11px] md:text-md font-semibold text-gray-800 leading-snug">
                     {step.title}
                   </h3>
-
                 </div>
               </motion.div>
             );
@@ -128,12 +125,11 @@ export default function OurProcess() {
         >
           <Link
             href="/our-process"
-            className="inline-flex items-center gap-2 rounded-full border border-orange-500 px-5 py-2 text-sm font-semibold text-orange-500 transition-all duration-300 hover:bg-orange-500 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full border border-orange-500 px-5 py-2 text-md font-semibold text-orange-500 transition-all duration-300 hover:bg-orange-500 hover:text-white"
           >
             Read More <ArrowRightIcon className="h-3.5 w-3.5" />
           </Link>
         </motion.div>
-
       </div>
     </div>
   );

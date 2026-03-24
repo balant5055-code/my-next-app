@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  limit
-} from "firebase/firestore";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
 export async function GET(req: Request) {
-
   try {
-
     const { searchParams } = new URL(req.url);
 
     const eventId = searchParams.get("eventId");
@@ -28,20 +20,16 @@ export async function GET(req: Request) {
     const q = query(
       collection(db, "registrations_flat"),
       where("eventId", "==", eventId),
-      limit(1000) // SAFE LIMIT
+      limit(1000), // SAFE LIMIT
     );
 
     const snap = await getDocs(q);
 
     let runners = snap.docs.map((doc) => {
-
       const data: any = doc.data() || {};
 
       const place =
-        data?.result?.Place ??
-        data?.result?.place ??
-        data?.Place ??
-        "";
+        data?.result?.Place ?? data?.result?.place ?? data?.Place ?? "";
 
       let rankNumber = 999999;
 
@@ -54,7 +42,6 @@ export async function GET(req: Request) {
       const last = data?.participant?.lastName ?? "";
 
       return {
-
         id: doc.id,
 
         bib: data?.participant?.bibNumber ?? "",
@@ -75,34 +62,26 @@ export async function GET(req: Request) {
 
         distance: data?.result?.Distance ?? "",
 
-        rankNumber
-
+        rankNumber,
       };
-
     });
 
     /* FILTER DISTANCE */
 
     if (distance) {
-      runners = runners.filter(r =>
-        String(r.distance).includes(distance)
-      );
+      runners = runners.filter((r) => String(r.distance).includes(distance));
     }
 
     /* FILTER GENDER */
 
     if (gender && gender !== "overall") {
-      runners = runners.filter(r =>
-        r.gender === gender.toLowerCase()
-      );
+      runners = runners.filter((r) => r.gender === gender.toLowerCase());
     }
 
     /* FILTER CATEGORY */
 
     if (category && category !== "overall") {
-      runners = runners.filter(r =>
-        r.category === category.toLowerCase()
-      );
+      runners = runners.filter((r) => r.category === category.toLowerCase());
     }
 
     /* SORT BY RANK */
@@ -115,17 +94,13 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      runners: podium
+      runners: podium,
     });
-
   } catch (err) {
-
     console.error(err);
 
     return NextResponse.json({
-      success: false
+      success: false,
     });
-
   }
-
 }

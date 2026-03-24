@@ -5,17 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 
 const PAGE_SIZE = 10;
 
-export default function Leaderboard({
-  eventId,
-  eventSlug,
-  filters
-}: any) {
-
+export default function Leaderboard({ eventId, eventSlug, filters }: any) {
   const router = useRouter();
 
   const [runners, setRunners] = useState<any[]>([]);
@@ -31,7 +26,6 @@ export default function Leaderboard({
   ----------------------------- */
 
   async function loadRunners() {
-
     if (!eventId || !filters?.distance) return;
 
     const url =
@@ -44,7 +38,6 @@ export default function Leaderboard({
       `&search=${search}`;
 
     try {
-
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
 
@@ -55,15 +48,11 @@ export default function Leaderboard({
         setRunners([]);
         setTotal(0);
       }
-
     } catch (err) {
-
       console.error(err);
       setRunners([]);
       setTotal(0);
-
     }
-
   }
 
   /* -----------------------------
@@ -72,27 +61,21 @@ export default function Leaderboard({
 
   useEffect(() => {
     setPage(1);
-  }, [
-    filters?.distance,
-    filters?.gender,
-    filters?.category
-  ]);
+  }, [filters?.distance, filters?.gender, filters?.category]);
 
   /* -----------------------------
      LOAD DATA
   ----------------------------- */
 
   useEffect(() => {
-
     loadRunners();
-
   }, [
     page,
     search,
     eventId,
     filters?.distance,
     filters?.gender,
-    filters?.category
+    filters?.category,
   ]);
 
   /* -----------------------------
@@ -100,18 +83,14 @@ export default function Leaderboard({
   ----------------------------- */
 
   const getPageNumbers = () => {
-
     const pages: (number | string)[] = [];
     const maxVisible = 5;
 
     if (totalPages <= maxVisible) {
-
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
-
     } else {
-
       const start = Math.max(2, page - 1);
       const end = Math.min(totalPages - 1, page + 1);
 
@@ -126,25 +105,17 @@ export default function Leaderboard({
       if (end < totalPages - 1) pages.push("...");
 
       pages.push(totalPages);
-
     }
 
     return pages;
-
   };
 
   return (
-
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-
       <div className="flex items-center justify-between px-6 py-4">
-
-        <h2 className="font-semibold text-gray-900">
-          Leaderboard
-        </h2>
+        <h2 className="font-semibold text-gray-900">Leaderboard</h2>
 
         <div className="relative">
-
           <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
 
           <input
@@ -156,15 +127,11 @@ export default function Leaderboard({
             }}
             className="border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm w-[200px]"
           />
-
         </div>
-
       </div>
 
       <div className="h-[420px] overflow-y-auto">
-
         <table className="w-full table-fixed text-sm">
-
           <thead className="sticky top-0 bg-white border-y border-gray-100 text-xs uppercase text-gray-400">
             <tr>
               <th className="px-6 py-3 text-left w-[70px]">Rank</th>
@@ -178,19 +145,15 @@ export default function Leaderboard({
           </thead>
 
           <tbody>
-
             {runners.length === 0 && (
-
               <tr>
                 <td colSpan={7} className="text-center py-10 text-gray-400">
                   No results found
                 </td>
               </tr>
-
             )}
 
             {runners.map((r, i) => (
-
               <tr
                 key={r.id}
                 onClick={() => {
@@ -201,7 +164,6 @@ export default function Leaderboard({
                   i % 2 === 0 ? "bg-white" : "bg-gray-50/40"
                 }`}
               >
-
                 <td className="px-6 py-3 font-semibold text-gray-900">
                   {r.rankDisplay}
                 </td>
@@ -225,25 +187,18 @@ export default function Leaderboard({
                 <td className="px-6 py-3 text-right tabular-nums text-gray-500">
                   {r.speed}
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </div>
 
       <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100">
-
         <div className="text-sm text-gray-500">
           Page {page} / {totalPages}
         </div>
 
         <div className="flex items-center gap-2">
-
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
@@ -253,7 +208,6 @@ export default function Leaderboard({
           </button>
 
           {getPageNumbers().map((p, i) => {
-
             if (p === "...") {
               return (
                 <span key={i} className="px-2 text-gray-400">
@@ -275,7 +229,6 @@ export default function Leaderboard({
                 {p}
               </button>
             );
-
           })}
 
           <button
@@ -285,13 +238,8 @@ export default function Leaderboard({
           >
             <ChevronRightIcon className="w-4 h-4" />
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   );
-
 }

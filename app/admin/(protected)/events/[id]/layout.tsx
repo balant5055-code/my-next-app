@@ -48,8 +48,8 @@ export default function EventLayout({
       icon: CpuChipIcon,
     },
     {
-      name: "Analytics",
-      href: `/admin/events/${eventId}/analytics`,
+      name: "Photos",
+      href: `/admin/events/${eventId}/photos`,
       icon: ChartBarIcon,
     },
     {

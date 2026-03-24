@@ -7,10 +7,10 @@ interface Props {
 
 export default function KitDistributionSection({ data, onChange }: Props) {
   const kitList = Array.isArray(data.kitDistribution)
-  ? data.kitDistribution
-  : data.kitDistribution
-    ? [data.kitDistribution] // convert old object → array
-    : [];
+    ? data.kitDistribution
+    : data.kitDistribution
+      ? [data.kitDistribution] // convert old object → array
+      : [];
 
   const updateKit = (index: number, field: string, value: string) => {
     const updated = [...kitList];
@@ -19,10 +19,7 @@ export default function KitDistributionSection({ data, onChange }: Props) {
   };
 
   const addKit = () => {
-    const updated = [
-      ...kitList,
-      { date: "", venue: "", time: "" },
-    ];
+    const updated = [...kitList, { date: "", venue: "", time: "" }];
     onChange("kitDistribution", updated);
   };
 
@@ -35,9 +32,7 @@ export default function KitDistributionSection({ data, onChange }: Props) {
     <section className="bg-[#111827] border border-slate-700 rounded-xl p-6 space-y-6">
       {/* HEADER */}
       <div>
-        <h2 className="text-lg font-semibold text-white">
-          Kit Distribution
-        </h2>
+        <h2 className="text-lg font-semibold text-white">Kit Distribution</h2>
         <p className="text-sm text-slate-400">
           Provide details about race kit collection (multiple days supported).
         </p>
@@ -52,47 +47,35 @@ export default function KitDistributionSection({ data, onChange }: Props) {
           >
             {/* DATE */}
             <div>
-              <label className="block text-xs text-slate-400 mb-2">
-                Date
-              </label>
+              <label className="block text-xs text-slate-400 mb-2">Date</label>
               <input
                 type="date"
                 value={kit.date || ""}
-                onChange={(e) =>
-                  updateKit(index, "date", e.target.value)
-                }
+                onChange={(e) => updateKit(index, "date", e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
               />
             </div>
 
             {/* VENUE */}
             <div>
-              <label className="block text-xs text-slate-400 mb-2">
-                Venue
-              </label>
+              <label className="block text-xs text-slate-400 mb-2">Venue</label>
               <input
                 type="text"
                 placeholder="Example: Decathlon Coimbatore"
                 value={kit.venue || ""}
-                onChange={(e) =>
-                  updateKit(index, "venue", e.target.value)
-                }
+                onChange={(e) => updateKit(index, "venue", e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
               />
             </div>
 
             {/* TIME */}
             <div>
-              <label className="block text-xs text-slate-400 mb-2">
-                Time
-              </label>
+              <label className="block text-xs text-slate-400 mb-2">Time</label>
               <input
                 type="text"
                 placeholder="Example: 10 AM - 6 PM"
                 value={kit.time || ""}
-                onChange={(e) =>
-                  updateKit(index, "time", e.target.value)
-                }
+                onChange={(e) => updateKit(index, "time", e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
               />
             </div>

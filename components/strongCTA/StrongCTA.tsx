@@ -127,7 +127,7 @@ export default function StrongCTA() {
           <div className="relative">
             <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
 
-            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-md text-gray-500">
               +91
             </span>
 
@@ -140,7 +140,7 @@ export default function StrongCTA() {
               pattern="[0-9]*"
               maxLength={10}
               placeholder="9123456789"
-              className={`w-full border py-3 pl-20 pr-4 text-sm rounded-lg outline-none transition 
+              className={`w-full border py-3 pl-20 pr-4 text-md rounded-lg outline-none transition 
               ${
                 error
                   ? "border-red-400 focus:ring-red-200"
@@ -189,7 +189,7 @@ export default function StrongCTA() {
             disabled={loading}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="relative overflow-hidden w-full sm:flex-1 px-6 py-3 text-sm font-semibold text-white rounded-lg bg-gradient-to-r from-orange-500 to-red-500"
+            className="relative overflow-hidden w-full sm:flex-1 px-6 py-3 text-md font-semibold text-white rounded-lg bg-gradient-to-r from-orange-500 to-red-500"
           >
             {loading
               ? "Submitting..."
@@ -212,7 +212,7 @@ export default function StrongCTA() {
             target="_blank"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="relative overflow-hidden w-full sm:flex-1 flex items-center justify-center gap-2 bg-green-500 px-6 py-3 text-sm font-semibold text-white rounded-lg hover:bg-green-600 transition"
+            className="relative overflow-hidden w-full sm:flex-1 flex items-center justify-center gap-2 bg-green-500 px-6 py-3 text-md font-semibold text-white rounded-lg hover:bg-green-600 transition"
           >
             <ChatBubbleLeftRightIcon className="h-4 w-4" />
             WhatsApp
@@ -258,7 +258,7 @@ export default function StrongCTA() {
               <CheckCircleIcon className="h-5 w-5 text-green-600" />
 
               <div className="text-left">
-                <p className="text-sm font-semibold text-green-700">
+                <p className="text-md font-semibold text-green-700">
                   Request received successfully
                 </p>
 

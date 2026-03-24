@@ -42,7 +42,6 @@ export default function EventStatsPanel({ stats }: Props) {
 
   return (
     <div className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900 shadow-lg">
-
       {/* HEADER */}
       <div
         className={`px-6 py-5 transition-colors ${
@@ -50,19 +49,17 @@ export default function EventStatsPanel({ stats }: Props) {
         }`}
       >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 text-white">
-
           <div>
             <div className="text-xs uppercase tracking-wider opacity-80">
               Event Status
             </div>
 
             <div className="text-3xl font-bold mt-1">
-              {isReady ? "RACE READY" : "CHIPS PENDING"}
+              {isReady ? "RACE READY" : "RFID  PENDING"}
             </div>
           </div>
 
           <div className="flex flex-wrap gap-6 text-lg font-semibold">
-
             <div>
               <div className="text-xs opacity-80">Total</div>
               <div>{format(overall.total)}</div>
@@ -95,9 +92,7 @@ export default function EventStatsPanel({ stats }: Props) {
 
       {/* CATEGORY GRID */}
       <div className="px-6 py-4 grid md:grid-cols-2 xl:grid-cols-3 gap-4 text-sm">
-
         {ordered.map(([cat, stat]) => {
-
           const online = stat.online;
           const offline = stat.offline;
 
@@ -120,7 +115,6 @@ export default function EventStatsPanel({ stats }: Props) {
                     : "bg-slate-800 border-slate-700"
                 }`}
             >
-
               {/* CATEGORY TITLE */}
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-white">{cat}</span>
@@ -142,9 +136,7 @@ export default function EventStatsPanel({ stats }: Props) {
                   A {format(online.assigned)}
                 </span>
 
-                <span className="text-red-400">
-                  P {format(online.pending)}
-                </span>
+                <span className="text-red-400">P {format(online.pending)}</span>
               </div>
 
               {/* OFFLINE */}
@@ -178,7 +170,6 @@ export default function EventStatsPanel({ stats }: Props) {
                   style={{ width: `${catPercent}%` }}
                 />
               </div>
-
             </div>
           );
         })}

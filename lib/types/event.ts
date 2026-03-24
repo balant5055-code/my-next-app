@@ -18,7 +18,7 @@ export type EventType = {
   };
   resultsPublished?: boolean;
   eventFormat?: "timed" | "non-timed" | "fun-run" | "awareness"; // ✅ ADD THIS
-   metrics?: {
+  metrics?: {
     totalParticipants?: number;
     totalRevenue?: number;
     occupancyRate?: number;

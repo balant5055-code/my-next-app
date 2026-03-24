@@ -77,8 +77,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           icon: CpuChipIcon,
         },
         {
-          name: "Analytics",
-          path: `/admin/events/${eventId}/analytics`,
+          name: "Photos",
+          path: `/admin/events/${eventId}/photos`,
           icon: ChartBarIcon,
         },
         {

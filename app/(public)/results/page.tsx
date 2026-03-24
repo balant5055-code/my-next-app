@@ -31,7 +31,7 @@ export default function ResultsPage() {
 
   return (
     <PageContainer>
-      <Breadcrumb items={[{ label: "Results" }]} />
+      <Breadcrumb />
 
       <PageHeader
         title="Race Results"

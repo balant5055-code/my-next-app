@@ -30,8 +30,9 @@ export default function OrganizerBenefits() {
 
   return (
     <div className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 mt-10"> {/* reduced */}
-
+      <div className="max-w-7xl mx-auto px-4 mt-10">
+        {" "}
+        {/* reduced */}
         {/* Heading */}
         <motion.div
           ref={headingRef}
@@ -48,9 +49,9 @@ export default function OrganizerBenefits() {
             subtitle="Everything you need to run events smoothly — without the stress."
           />
         </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start"> {/* reduced */}
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+          {" "}
+          {/* reduced */}
           {/* LEFT CONTENT */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
@@ -69,7 +70,6 @@ export default function OrganizerBenefits() {
               helping organizers run successful events with confidence.
             </p>
           </motion.div>
-
           {/* BENEFITS GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {benefits.map((item, index) => {
@@ -90,14 +90,13 @@ export default function OrganizerBenefits() {
                   </div>
 
                   {/* Text */}
-                  <p className="text-sm font-medium text-gray-800 leading-snug group-hover:text-orange-600 transition">
+                  <p className="text-md font-medium text-gray-800 leading-snug group-hover:text-orange-600 transition">
                     {item.title}
                   </p>
                 </motion.div>
               );
             })}
           </div>
-
         </div>
       </div>
     </div>

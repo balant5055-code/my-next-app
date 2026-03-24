@@ -9,12 +9,7 @@ type Props = {
   icon?: ReactNode;
 };
 
-export default function SectionHeader({
-  title,
-  subtitle,
-  label,
-  icon,
-}: Props) {
+export default function SectionHeader({ title, subtitle, label, icon }: Props) {
   return (
     <section className="mb-6 text-center">
       {/* TOP LABEL */}

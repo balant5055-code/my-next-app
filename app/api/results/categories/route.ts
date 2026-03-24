@@ -29,8 +29,7 @@ export async function GET(req: Request) {
 
     const eventData: any = eventSnap.data();
 
-    const distances =
-      eventData.categories?.map((c: any) => c.distance) || [];
+    const distances = eventData.categories?.map((c: any) => c.distance) || [];
 
     /* AGE CATEGORIES */
 
@@ -55,7 +54,6 @@ export async function GET(req: Request) {
       distances,
       categories: ageCategories,
     });
-
   } catch (err) {
     console.error(err);
     return NextResponse.json({ success: false });

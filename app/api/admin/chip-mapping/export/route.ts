@@ -64,10 +64,8 @@ export async function GET(req: NextRequest) {
     snapshot.docs.forEach((doc) => {
       const d = doc.data();
 
-     const category =
-  d.categoryTitle ??
-  d.participant?.categoryTitle ??
-  "Uncategorized";
+      const category =
+        d.categoryTitle ?? d.participant?.categoryTitle ?? "Uncategorized";
 
       if (!categoryMap[category]) {
         categoryMap[category] = [];
@@ -141,16 +139,7 @@ export async function GET(req: NextRequest) {
 
       sheet.addRow([]);
 
-      const summaryRow = sheet.addRow([
-        "TOTAL",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-      ]);
+      const summaryRow = sheet.addRow(["TOTAL", "", "", "", "", "", "", ""]);
 
       summaryRow.getCell(1).font = { bold: true };
 

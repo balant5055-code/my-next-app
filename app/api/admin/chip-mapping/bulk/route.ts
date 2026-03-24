@@ -21,23 +21,17 @@ export async function POST(req: NextRequest) {
     const mode: "block" | "skip" | "override" = body.mode ?? "block";
 
     if (!eventId || !Array.isArray(rows)) {
-      return NextResponse.json(
-        { error: "Invalid payload" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     if (rows.length === 0) {
-      return NextResponse.json(
-        { error: "No rows provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No rows provided" }, { status: 400 });
     }
 
     if (rows.length > MAX_ROWS) {
       return NextResponse.json(
         { error: `Maximum ${MAX_ROWS} rows allowed per upload` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -165,13 +159,9 @@ export async function POST(req: NextRequest) {
       failed,
       errors,
     });
-
   } catch (error) {
     console.error("Bulk Upload Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

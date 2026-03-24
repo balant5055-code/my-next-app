@@ -47,7 +47,7 @@ interface Category {
   maxAge: string;
   maxSeats: string;
   unlimited?: boolean;
-   timedRun?: boolean;
+  timedRun?: boolean;
 }
 
 interface CreateEventForm {
@@ -86,11 +86,11 @@ interface CreateEventForm {
   medicalNote: string;
 
   bannerURL: string;
-kitDistribution: {
-  date: string;
-  venue: string;
-  time: string;
-}[];
+  kitDistribution: {
+    date: string;
+    venue: string;
+    time: string;
+  }[];
   categories: Category[];
   // ✅ ADD THIS
   inclusions: {
@@ -151,13 +151,13 @@ export default function CreateEventLayout() {
       refundPolicy: "",
       medicalNote: "",
       bannerURL: "",
-    kitDistribution: [
-  {
-    date: "",
-    venue: "",
-    time: "",
-  },
-],
+      kitDistribution: [
+        {
+          date: "",
+          venue: "",
+          time: "",
+        },
+      ],
       categories: [],
       eventFormat: "timed",
       inclusions: {

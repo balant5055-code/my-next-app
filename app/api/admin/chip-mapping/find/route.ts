@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!eventId || !rawBib) {
       return NextResponse.json(
         { error: "Missing parameters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     if (!/^\d+$/.test(bib)) {
       return NextResponse.json(
         { error: "Invalid BIB format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,10 +34,7 @@ export async function GET(req: NextRequest) {
       .get();
 
     if (snapshot.empty) {
-      return NextResponse.json(
-        { error: "Runner not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Runner not found" }, { status: 404 });
     }
 
     const doc = snapshot.docs[0];
@@ -53,13 +50,9 @@ export async function GET(req: NextRequest) {
         categoryTitle: data.categoryTitle ?? null,
       },
     });
-
   } catch (error) {
     console.error("Find API Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

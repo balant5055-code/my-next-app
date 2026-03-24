@@ -6,11 +6,10 @@ import { mockParticipants } from "@/data/mockParticipants";
 
 export async function GET() {
   try {
-
     if (!mockParticipants || mockParticipants.length === 0) {
       return NextResponse.json(
         { error: "No mock participants found" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -22,7 +21,6 @@ export async function GET() {
     const notFound: string[] = [];
 
     for (const mock of mockParticipants) {
-
       const mockName = mock.Name.trim().toLowerCase();
 
       let matchedDoc: any = null;
@@ -30,9 +28,10 @@ export async function GET() {
       for (const doc of docs) {
         const data = doc.data();
 
-        const fullName = `${data.participant?.firstName ?? ""} ${data.participant?.lastName ?? ""}`
-          .trim()
-          .toLowerCase();
+        const fullName =
+          `${data.participant?.firstName ?? ""} ${data.participant?.lastName ?? ""}`
+            .trim()
+            .toLowerCase();
 
         if (fullName === mockName) {
           matchedDoc = doc;
@@ -51,8 +50,8 @@ export async function GET() {
       await matchedDoc.ref.update({
         "participant.bibNumber": bibNumber,
         result: {
-          ...mock
-        }
+          ...mock,
+        },
       });
 
       updated++;
@@ -63,19 +62,17 @@ export async function GET() {
       totalMockRows: mockParticipants.length,
       updated,
       skipped,
-      notFound
+      notFound,
     });
-
   } catch (error: any) {
-
     console.error("RESULT IMPORT ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Import failed"
+        error: error.message || "Import failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

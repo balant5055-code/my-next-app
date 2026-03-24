@@ -217,298 +217,292 @@ export default function CategoryBuilderSection({
   };
 
   return (
-  <section className="bg-gradient-to-br from-[#0f172a] to-[#111827] border border-slate-700 rounded-2xl p-6 space-y-8 shadow-xl shadow-black/30">
-    {/* HEADER */}
-    <div>
-      <h2 className="text-lg font-semibold text-white">
-        Category Builder Engine
-      </h2>
-      <p className="text-sm text-slate-400">
-        Select preset distances or create custom categories.
-      </p>
-    </div>
+    <section className="bg-gradient-to-br from-[#0f172a] to-[#111827] border border-slate-700 rounded-2xl p-6 space-y-8 shadow-xl shadow-black/30">
+      {/* HEADER */}
+      <div>
+        <h2 className="text-lg font-semibold text-white">
+          Category Builder Engine
+        </h2>
+        <p className="text-sm text-slate-400">
+          Select preset distances or create custom categories.
+        </p>
+      </div>
 
-    {/* PRESET SELECTOR */}
-    <div className="flex flex-wrap gap-3">
-      {Object.keys(DEFAULT_CATEGORY_TEMPLATES).map((key) => {
-        const template = DEFAULT_CATEGORY_TEMPLATES[key];
+      {/* PRESET SELECTOR */}
+      <div className="flex flex-wrap gap-3">
+        {Object.keys(DEFAULT_CATEGORY_TEMPLATES).map((key) => {
+          const template = DEFAULT_CATEGORY_TEMPLATES[key];
 
-        const isSelected = categories.some(
-          (cat) => cat.distance === template.distance
-        );
+          const isSelected = categories.some(
+            (cat) => cat.distance === template.distance,
+          );
 
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => toggleDefaultCategory(key)}
-            className={`px-5 py-2 text-sm font-medium rounded-xl transition-all duration-200 border ${
-              isSelected
-                ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-400 shadow-md shadow-indigo-500/30 scale-105"
-                : "bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700"
-            }`}
-          >
-            {key}
-          </button>
-        );
-      })}
-
-      <button
-        onClick={addCategory}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-sm font-medium transition shadow-md shadow-indigo-500/30"
-      >
-        <PlusIcon className="h-4 w-4" />
-        Add Custom Category
-      </button>
-    </div>
-
-    {/* CATEGORY CARDS */}
-    <div className="space-y-6">
-      {categories.map((cat, index) => {
-        const bibPreview = getBibPreview(cat.distance, cat.maxSeats);
-        const isOpen = openIndexes.includes(index);
-        const color = getCategoryColor(cat.distance);
-
-        const colorMap: any = {
-          teal: "from-teal-500 to-emerald-600 shadow-emerald-500/30",
-          blue: "from-blue-500 to-blue-600 shadow-blue-500/30",
-          orange: "from-orange-500 to-orange-600 shadow-orange-500/30",
-          purple: "from-purple-500 to-purple-600 shadow-purple-500/30",
-          red: "from-rose-500 to-red-600 shadow-red-500/30",
-          indigo: "from-indigo-500 to-indigo-600 shadow-indigo-500/30",
-        };
-
-        return (
-          <div
-            key={index}
-            className="bg-slate-800/70 backdrop-blur border border-slate-700 rounded-2xl shadow-lg transition"
-          >
-            {/* HEADER */}
-            <div
-              onClick={() => toggleCollapse(index)}
-              className="flex justify-between items-center p-5 cursor-pointer"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br ${colorMap[color]} text-white font-bold text-sm shadow-md`}
-                >
-                  {cat.distance || "?"}K
-                </div>
-
-                <div>
-                  <input
-                    value={cat.title}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) =>
-                      updateCategory(index, "title", e.target.value)
-                    }
-                    placeholder="Untitled Category"
-                    className="bg-transparent text-white font-semibold text-base border-b border-transparent focus:border-indigo-500 focus:outline-none transition w-48"
-                  />
-                  <p className="text-xs text-slate-400">
-                    ₹ {cat.price || 0}
-                  </p>
-                </div>
-              </div>
-
-              <ChevronDownIcon
-                className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
-                  isOpen ? "rotate-180" : ""
-                }`}
-              />
-            </div>
-
-            {/* BODY */}
-            <div
-              className={`overflow-hidden transition-all duration-500 ${
-                isOpen
-                  ? "max-h-[1000px] opacity-100 p-6 pt-0"
-                  : "max-h-0 opacity-0"
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => toggleDefaultCategory(key)}
+              className={`px-5 py-2 text-sm font-medium rounded-xl transition-all duration-200 border ${
+                isSelected
+                  ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-400 shadow-md shadow-indigo-500/30 scale-105"
+                  : "bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700"
               }`}
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                {/* Distance */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Distance (KM)
-                  </label>
-                  <input
-                    type="number"
-                    value={cat.distance}
-                    onChange={(e) =>
-                      updateCategory(index, "distance", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
+              {key}
+            </button>
+          );
+        })}
+
+        <button
+          onClick={addCategory}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-sm font-medium transition shadow-md shadow-indigo-500/30"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Add Custom Category
+        </button>
+      </div>
+
+      {/* CATEGORY CARDS */}
+      <div className="space-y-6">
+        {categories.map((cat, index) => {
+          const bibPreview = getBibPreview(cat.distance, cat.maxSeats);
+          const isOpen = openIndexes.includes(index);
+          const color = getCategoryColor(cat.distance);
+
+          const colorMap: any = {
+            teal: "from-teal-500 to-emerald-600 shadow-emerald-500/30",
+            blue: "from-blue-500 to-blue-600 shadow-blue-500/30",
+            orange: "from-orange-500 to-orange-600 shadow-orange-500/30",
+            purple: "from-purple-500 to-purple-600 shadow-purple-500/30",
+            red: "from-rose-500 to-red-600 shadow-red-500/30",
+            indigo: "from-indigo-500 to-indigo-600 shadow-indigo-500/30",
+          };
+
+          return (
+            <div
+              key={index}
+              className="bg-slate-800/70 backdrop-blur border border-slate-700 rounded-2xl shadow-lg transition"
+            >
+              {/* HEADER */}
+              <div
+                onClick={() => toggleCollapse(index)}
+                className="flex justify-between items-center p-5 cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br ${colorMap[color]} text-white font-bold text-sm shadow-md`}
+                  >
+                    {cat.distance || "?"}K
+                  </div>
+
+                  <div>
+                    <input
+                      value={cat.title}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        updateCategory(index, "title", e.target.value)
+                      }
+                      placeholder="Untitled Category"
+                      className="bg-transparent text-white font-semibold text-base border-b border-transparent focus:border-indigo-500 focus:outline-none transition w-48"
+                    />
+                    <p className="text-xs text-slate-400">₹ {cat.price || 0}</p>
+                  </div>
                 </div>
 
-                {/* Price */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={cat.price}
-                    onChange={(e) =>
-                      updateCategory(index, "price", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
+                <ChevronDownIcon
+                  className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
+
+              {/* BODY */}
+              <div
+                className={`overflow-hidden transition-all duration-500 ${
+                  isOpen
+                    ? "max-h-[1000px] opacity-100 p-6 pt-0"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                  {/* Distance */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Distance (KM)
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.distance}
+                      onChange={(e) =>
+                        updateCategory(index, "distance", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.price}
+                      onChange={(e) =>
+                        updateCategory(index, "price", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Seats */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Max Seats
+                    </label>
+                    <input
+                      type="number"
+                      disabled={cat.unlimited}
+                      value={cat.maxSeats}
+                      onChange={(e) =>
+                        updateCategory(index, "maxSeats", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm disabled:opacity-40"
+                    />
+
+                    <label className="flex items-center gap-2 mt-2 text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={cat.unlimited || false}
+                        onChange={(e) =>
+                          updateCategory(index, "unlimited", e.target.checked)
+                        }
+                      />
+                      Unlimited Seats
+                    </label>
+                  </div>
+
+                  {/* Cutoff */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Cut-Off Time
+                    </label>
+                    <input
+                      type="time"
+                      disabled={!cat.timedRun}
+                      value={cat.cutOffTime || ""}
+                      onChange={(e) =>
+                        updateCategory(index, "cutOffTime", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Min Age */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Min Age
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.minAge}
+                      onChange={(e) =>
+                        updateCategory(index, "minAge", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Max Age */}
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block">
+                      Max Age
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.maxAge}
+                      onChange={(e) =>
+                        updateCategory(index, "maxAge", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
                 </div>
 
-                {/* Seats */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Max Seats
-                  </label>
-                  <input
-                    type="number"
-                    disabled={cat.unlimited}
-                    value={cat.maxSeats}
-                    onChange={(e) =>
-                      updateCategory(index, "maxSeats", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm disabled:opacity-40"
-                  />
+                {/* EARLY BIRD */}
+                <div className="grid grid-cols-2 gap-5 mt-5">
+                  <div>
+                    <label className="text-xs text-indigo-400 mb-2 block">
+                      Early Bird Price
+                    </label>
+                    <input
+                      type="number"
+                      value={cat.earlyBirdPrice || ""}
+                      onChange={(e) =>
+                        updateCategory(index, "earlyBirdPrice", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
 
-                  <label className="flex items-center gap-2 mt-2 text-xs text-slate-300">
+                  <div>
+                    <label className="text-xs text-indigo-400 mb-2 block">
+                      Early Bird Ends
+                    </label>
+                    <input
+                      type="date"
+                      value={cat.earlyBirdEnd || ""}
+                      onChange={(e) =>
+                        updateCategory(index, "earlyBirdEnd", e.target.value)
+                      }
+                      className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* TIMED RUN */}
+                <div className="mt-5">
+                  <label className="flex items-center gap-3 text-sm text-slate-300">
                     <input
                       type="checkbox"
-                      checked={cat.unlimited || false}
+                      checked={cat.timedRun || false}
                       onChange={(e) =>
-                        updateCategory(index, "unlimited", e.target.checked)
+                        updateCategory(index, "timedRun", e.target.checked)
                       }
+                      className="accent-indigo-500"
                     />
-                    Unlimited Seats
+                    Timed Run (Chip Timing Enabled)
                   </label>
                 </div>
 
-                {/* Cutoff */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Cut-Off Time
-                  </label>
-                  <input
-                    type="time"
-                    disabled={!cat.timedRun}
-                    value={cat.cutOffTime || ""}
-                    onChange={(e) =>
-                      updateCategory(index, "cutOffTime", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
-                </div>
+                {/* BIB */}
+                {bibPreview && (
+                  <div className="mt-6 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/40 rounded-xl px-4 py-3 text-sm flex justify-between">
+                    <span className="text-indigo-300">
+                      Bib Range: {bibPreview.bibStart} – {bibPreview.bibEnd}
+                    </span>
+                    <span className="text-slate-300">
+                      {cat.unlimited ? "Unlimited" : cat.maxSeats}
+                    </span>
+                  </div>
+                )}
 
-                {/* Min Age */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Min Age
-                  </label>
-                  <input
-                    type="number"
-                    value={cat.minAge}
-                    onChange={(e) =>
-                      updateCategory(index, "minAge", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
-                </div>
-
-                {/* Max Age */}
-                <div>
-                  <label className="text-xs text-slate-400 mb-2 block">
-                    Max Age
-                  </label>
-                  <input
-                    type="number"
-                    value={cat.maxAge}
-                    onChange={(e) =>
-                      updateCategory(index, "maxAge", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
-                </div>
+                {/* DELETE */}
+                {categories.length > 1 && (
+                  <div className="mt-4 text-right">
+                    <button
+                      onClick={() => removeCategory(index)}
+                      className="text-rose-400 hover:text-rose-300 text-sm"
+                    >
+                      Remove Category
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {/* EARLY BIRD */}
-              <div className="grid grid-cols-2 gap-5 mt-5">
-                <div>
-                  <label className="text-xs text-indigo-400 mb-2 block">
-                    Early Bird Price
-                  </label>
-                  <input
-                    type="number"
-                    value={cat.earlyBirdPrice || ""}
-                    onChange={(e) =>
-                      updateCategory(
-                        index,
-                        "earlyBirdPrice",
-                        e.target.value
-                      )
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-indigo-400 mb-2 block">
-                    Early Bird Ends
-                  </label>
-                  <input
-                    type="date"
-                    value={cat.earlyBirdEnd || ""}
-                    onChange={(e) =>
-                      updateCategory(index, "earlyBirdEnd", e.target.value)
-                    }
-                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* TIMED RUN */}
-              <div className="mt-5">
-                <label className="flex items-center gap-3 text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={cat.timedRun || false}
-                    onChange={(e) =>
-                      updateCategory(index, "timedRun", e.target.checked)
-                    }
-                    className="accent-indigo-500"
-                  />
-                  Timed Run (Chip Timing Enabled)
-                </label>
-              </div>
-
-              {/* BIB */}
-              {bibPreview && (
-                <div className="mt-6 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/40 rounded-xl px-4 py-3 text-sm flex justify-between">
-                  <span className="text-indigo-300">
-                    Bib Range: {bibPreview.bibStart} – {bibPreview.bibEnd}
-                  </span>
-                  <span className="text-slate-300">
-                    {cat.unlimited ? "Unlimited" : cat.maxSeats}
-                  </span>
-                </div>
-              )}
-
-              {/* DELETE */}
-              {categories.length > 1 && (
-                <div className="mt-4 text-right">
-                  <button
-                    onClick={() => removeCategory(index)}
-                    className="text-rose-400 hover:text-rose-300 text-sm"
-                  >
-                    Remove Category
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
-        );
-      })}
-    </div>
-  </section>
-);
+          );
+        })}
+      </div>
+    </section>
+  );
 }

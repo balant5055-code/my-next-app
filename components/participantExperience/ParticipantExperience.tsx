@@ -62,17 +62,21 @@ function Card({ item }: any) {
   const Icon = item.icon;
 
   return (
-    <div className="h-full w-full">
-      <div className="h-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+    <div className="h-full w-full flex">
+      <div className="flex flex-col justify-between h-full w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        
+        {/* TOP CONTENT */}
         <div className="flex gap-3 items-start">
+          {/* ICON */}
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${item.accent}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${item.accent}`}
           >
             <Icon className="h-5 w-5 text-white" />
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">
+          {/* TEXT */}
+          <div className="flex-1">
+            <h3 className="text-sm md:text-base font-semibold text-gray-900">
               {item.title}
             </h3>
 
@@ -80,11 +84,14 @@ function Card({ item }: any) {
               className={`mt-2 mb-2 h-[2px] w-8 rounded-full bg-gradient-to-r ${item.accent}`}
             />
 
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm md:text-[15px] text-gray-600 leading-relaxed">
               {item.description}
             </p>
           </div>
         </div>
+
+        {/* BOTTOM SPACER (ensures equal height feel) */}
+        <div className="mt-4" />
       </div>
     </div>
   );
@@ -92,16 +99,16 @@ function Card({ item }: any) {
 
 export default function ParticipantExperience() {
   return (
-    <div className="bg-white">
+    <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4 mt-10">
-
-        {/* Header */}
+        
+        {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
+          className="mb-10 text-center"
         >
           <SectionHeader
             label="Experience"
@@ -111,33 +118,32 @@ export default function ParticipantExperience() {
           />
         </motion.div>
 
-        {/* ✅ FIXED CENTERED SLIDER */}
+        {/* SLIDER */}
         <div className="w-full overflow-hidden">
-         <Swiper
-  modules={[Autoplay, Pagination]}
-  spaceBetween={20}
-  loop={true}
-  speed={600}
-  autoplay={{
-    delay: 2500,
-    disableOnInteraction: false,
-  }}
-  pagination={{ clickable: true }}
-  slidesPerView={"auto"}
-  className="w-full !pb-10 overflow-hidden"
->
-  {experiences.map((item) => (
-    <SwiperSlide
-      key={item.title}
-      className="!w-[280px] md:!w-[320px]"
-    >
-      <Card item={item} />
-    </SwiperSlide>
-  ))}
-</Swiper>
+          <Swiper
+            modules={[Autoplay, Pagination]}
+            spaceBetween={20}
+            loop={true}
+            speed={700}
+            autoplay={{
+              delay: 2500,
+              disableOnInteraction: false,
+            }}
+            pagination={{ clickable: true }}
+            slidesPerView={"auto"}
+            className="w-full !pb-12"
+          >
+            {experiences.map((item) => (
+              <SwiperSlide
+                key={item.title}
+                className="!w-[280px] md:!w-[320px] flex"
+              >
+                <Card item={item} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
-
       </div>
-    </div>
+    </section>
   );
 }

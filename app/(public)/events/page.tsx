@@ -158,7 +158,7 @@ export default function EventsPage() {
 
       {/* GRID */}
       {!loading && events.length > 0 && (
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {currentEvents.map((event, index) => {
             const isOpen = event.registration?.status === "open";
 

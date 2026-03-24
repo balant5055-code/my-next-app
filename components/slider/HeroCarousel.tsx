@@ -251,7 +251,7 @@ px-5 py-1.5 text-xs tracking-wider font-semibold text-orange-400 backdrop-blur-m
                       href="/events"
                       className="inline-flex items-center justify-center
     bg-orange-500 text-white
-    px-5 py-2 text-sm font-semibold
+    px-5 py-2 text-md font-semibold
     rounded-md
     shadow-md shadow-orange-500/20
     hover:bg-orange-600 hover:shadow-orange-500/40
@@ -264,7 +264,7 @@ px-5 py-1.5 text-xs tracking-wider font-semibold text-orange-400 backdrop-blur-m
                       href="/organizer"
                       className="inline-flex items-center justify-center
     border border-white/30 text-white
-    px-5 py-2 text-sm font-semibold
+    px-5 py-2 text-md font-semibold
     rounded-md
     hover:bg-white hover:text-black
     transition-all duration-200"
@@ -314,7 +314,7 @@ px-5 py-1.5 text-xs tracking-wider font-semibold text-orange-400 backdrop-blur-m
               }}
               className={`
           w-10 h-10 rounded-full flex items-center justify-center
-          text-sm font-bold transition
+          text-md font-bold transition
           ${
             active === i
               ? "bg-orange-500 text-white"
@@ -373,7 +373,7 @@ px-5 py-1.5 text-xs tracking-wider font-semibold text-orange-400 backdrop-blur-m
                   </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-white tracking-tight">
+                    <p className="text-md font-semibold text-white tracking-tight">
                       {s.title}
                     </p>
 

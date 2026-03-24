@@ -15,7 +15,7 @@ export default function TopBar() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs sm:text-sm shadow-sm">
+    <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs sm:text-sm shadow-sm">
       {/* MOBILE ANNOUNCEMENT */}
       <div className="md:hidden flex items-center justify-center gap-2 py-1.5 border-b border-white/20 px-3 text-center">
         <MegaphoneIcon className="w-4 h-4 text-orange-200 flex-shrink-0" />

@@ -13,25 +13,22 @@ export async function GET(req: NextRequest) {
     const eventId = searchParams.get("eventId");
     const pageSizeRaw = Number(searchParams.get("pageSize") || 15);
     const cursor = searchParams.get("cursor");
-const category = searchParams.get("category");
+    const category = searchParams.get("category");
     if (!eventId) {
-      return NextResponse.json(
-        { error: "eventId required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "eventId required" }, { status: 400 });
     }
 
     const pageSize = Math.min(pageSizeRaw, MAX_PAGE_SIZE);
 
-   let query = adminDb
-  .collection("registrations_flat")
-  .where("eventId", "==", eventId);
+    let query = adminDb
+      .collection("registrations_flat")
+      .where("eventId", "==", eventId);
 
-if (category && category !== "ALL") {
-  query = query.where("categoryTitle", "==", category);
-}
+    if (category && category !== "ALL") {
+      query = query.where("categoryTitle", "==", category);
+    }
 
-query = query.orderBy("createdAt", "desc").limit(pageSize + 1);
+    query = query.orderBy("createdAt", "desc").limit(pageSize + 1);
 
     if (cursor) {
       const cursorDoc = await adminDb
@@ -69,14 +66,10 @@ query = query.orderBy("createdAt", "desc").limit(pageSize + 1);
       nextCursor,
       hasNext,
     });
-
   } catch (error) {
     console.error("Pagination Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }
 
@@ -90,10 +83,7 @@ export async function POST(req: NextRequest) {
     const bibNumber: number | null = body.bibNumber;
 
     if (!eventId || !registrationId) {
-      return NextResponse.json(
-        { error: "Missing fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     let adminEmail = "unknown";
@@ -129,13 +119,9 @@ export async function POST(req: NextRequest) {
       chipCode,
       bibNumber,
     });
-
   } catch (error) {
     console.error("Update Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

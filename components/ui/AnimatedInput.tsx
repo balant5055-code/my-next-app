@@ -3,8 +3,7 @@
 import { motion } from "framer-motion";
 import React, { ReactNode, forwardRef } from "react";
 
-interface AnimatedInputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+interface AnimatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: ReactNode;
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url";
 }
@@ -32,7 +31,7 @@ const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
         />
       </motion.div>
     );
-  }
+  },
 );
 
 AnimatedInput.displayName = "AnimatedInput";

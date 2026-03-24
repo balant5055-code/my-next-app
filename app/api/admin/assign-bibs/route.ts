@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
       .get();
 
     if (snapshot.empty) {
-      return NextResponse.json({ error: "No registrations found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No registrations found" },
+        { status: 404 },
+      );
     }
 
     let currentBib = 1000;
@@ -68,7 +71,6 @@ export async function POST(req: NextRequest) {
       success: true,
       assigned: updated,
     });
-
   } catch (error) {
     console.error("Bib Assignment Error:", error);
 

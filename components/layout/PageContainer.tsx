@@ -7,7 +7,6 @@ type Props = {
 };
 
 export default function PageContainer({ children }: Props) {
-
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -17,13 +16,10 @@ export default function PageContainer({ children }: Props) {
   }, []);
 
   return (
-
     <div className="relative min-h-screen bg-white overflow-hidden">
-
       {/* PARALLAX BACKGROUND */}
 
       <div className="absolute inset-0 pointer-events-none">
-
         {/* SHAPE 1 */}
 
         <div
@@ -31,7 +27,7 @@ export default function PageContainer({ children }: Props) {
           style={{ transform: `translateY(${scrollY * 0.05}px)` }}
         >
           <svg viewBox="0 0 400 400" className="w-full h-full">
-            <circle cx="200" cy="200" r="200" fill="#ef4444"/>
+            <circle cx="200" cy="200" r="200" fill="#ef4444" />
           </svg>
         </div>
 
@@ -42,7 +38,7 @@ export default function PageContainer({ children }: Props) {
           style={{ transform: `translateY(${scrollY * 0.08}px)` }}
         >
           <svg viewBox="0 0 300 300" className="w-full h-full">
-            <rect width="300" height="300" fill="#f97316" rx="60"/>
+            <rect width="300" height="300" fill="#f97316" rx="60" />
           </svg>
         </div>
 
@@ -53,13 +49,9 @@ export default function PageContainer({ children }: Props) {
           style={{ transform: `translateY(${scrollY * 0.03}px)` }}
         >
           <svg viewBox="0 0 350 350" className="w-full h-full">
-            <polygon
-              points="175,0 350,175 175,350 0,175"
-              fill="#dc2626"
-            />
+            <polygon points="175,0 350,175 175,350 0,175" fill="#dc2626" />
           </svg>
         </div>
-
       </div>
 
       {/* PAGE CONTENT */}
@@ -67,8 +59,6 @@ export default function PageContainer({ children }: Props) {
       <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-10 lg:py-12">
         {children}
       </div>
-
     </div>
-
   );
 }

@@ -97,137 +97,124 @@ export default function AdminLogin() {
   };
 
   return (
-<main
-  className="relative min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
-  style={{
-    backgroundImage: "url('/images/background/admin_login.png')",
-  }}
->
-  {/* Dark overlay */}
-  <div className="absolute inset-0 bg-black/40"></div>
-
-  {/* Content layer */}
-  <div className="relative z-10 w-full flex items-center justify-center">
-
-    <Toast
-      message={toastMessage}
-      type={toastType}
-      onClose={() => {
-        setToastMessage(null);
-        setToastType(null);
+    <main
+      className="relative min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "url('/images/background/admin_login.png')",
       }}
-    />
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40"></div>
 
-    <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+      {/* Content layer */}
+      <div className="relative z-10 w-full flex items-center justify-center">
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => {
+            setToastMessage(null);
+            setToastType(null);
+          }}
+        />
 
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Admin Login
-          </h1>
-          <p className="text-gray-500 mt-2">
-            Secure access to Event Raceline dashboard
-          </p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-5">
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">
-              User ID
-            </label>
-
-            <AnimatedInput
-  ref={userInputRef}
-  name="userId"
-  placeholder="admin01"
-  required
-  value={userId}
-  onChange={(e) => setUserId(e.target.value)}
-  icon={<UserIcon className="h-5 w-5" />}
-/>
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-900">Admin Login</h1>
+            <p className="text-gray-500 mt-2">
+              Secure access to Event Raceline dashboard
+            </p>
           </div>
 
-          <div className="space-y-1 relative">
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">
+                User ID
+              </label>
 
-            <label className="text-sm font-medium text-gray-700">
-              Password
-            </label>
+              <AnimatedInput
+                ref={userInputRef}
+                name="userId"
+                placeholder="admin01"
+                required
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                icon={<UserIcon className="h-5 w-5" />}
+              />
+            </div>
 
-            <AnimatedInput
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyUp={checkCapsLock}
-              icon={<LockClosedIcon className="h-5 w-5" />}
-            />
+            <div className="space-y-1 relative">
+              <label className="text-sm font-medium text-gray-700">
+                Password
+              </label>
+
+              <AnimatedInput
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={checkCapsLock}
+                icon={<LockClosedIcon className="h-5 w-5" />}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeSlashIcon className="h-5 w-5" />
+                ) : (
+                  <EyeIcon className="h-5 w-5" />
+                )}
+              </button>
+
+              {capsLock && (
+                <p className="text-xs text-red-500 mt-1">Caps Lock is ON</p>
+              )}
+            </div>
 
             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-            >
-              {showPassword ? (
-                <EyeSlashIcon className="h-5 w-5" />
-              ) : (
-                <EyeIcon className="h-5 w-5" />
-              )}
-            </button>
-
-            {capsLock && (
-              <p className="text-xs text-red-500 mt-1">
-                Caps Lock is ON
-              </p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="group mt-4 w-full inline-flex items-center justify-center gap-2
+              type="submit"
+              disabled={loading}
+              className="group mt-4 w-full inline-flex items-center justify-center gap-2
                        rounded-full bg-orange-600 hover:bg-orange-700 px-6 py-3
                        text-white font-semibold
                        shadow-md hover:shadow-xl
                        transition-all duration-200 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin h-5 w-5"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="white"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                </svg>
-                Logging in...
-              </>
-            ) : (
-              <>
-                Login Securely
-                <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </>
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                  </svg>
+                  Logging in...
+                </>
+              ) : (
+                <>
+                  Login Securely
+                  <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
+            </button>
+
+            {attempts > 0 && (
+              <p className="text-xs text-center text-gray-400">
+                Failed attempts: {attempts}/5
+              </p>
             )}
-          </button>
-
-          {attempts > 0 && (
-            <p className="text-xs text-center text-gray-400">
-              Failed attempts: {attempts}/5
-            </p>
-          )}
-
-        </form>
+          </form>
+        </div>
       </div>
-</div>
-      
     </main>
   );
 }

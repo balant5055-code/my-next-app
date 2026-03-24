@@ -43,8 +43,9 @@ export default function HowItWorks() {
 
   return (
     <div className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 mt-10"> {/* reduced */}
-
+      <div className="max-w-7xl mx-auto px-4 mt-10">
+        {" "}
+        {/* reduced */}
         {/* Heading */}
         <motion.div
           ref={headingRef}
@@ -61,9 +62,10 @@ export default function HowItWorks() {
             subtitle="A simple workflow to launch and manage sports events effortlessly."
           />
         </motion.div>
-
         {/* Steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"> {/* reduced */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {" "}
+          {/* reduced */}
           {steps.map((item, index) => {
             const Icon = item.icon;
 
@@ -87,20 +89,18 @@ export default function HowItWorks() {
                 </span>
 
                 {/* Title */}
-                <h3 className="text-sm font-semibold text-gray-900 group-hover:text-orange-500 transition">
+                <h3 className="text-md font-semibold text-gray-900 group-hover:text-orange-500 transition">
                   {item.title}
                 </h3>
 
                 {/* Description */}
-                <p className="text-sm text-gray-600 mt-1.5 leading-relaxed flex-grow">
+                <p className="text-md text-gray-600 mt-1.5 leading-relaxed flex-grow">
                   {item.description}
                 </p>
-
               </motion.div>
             );
           })}
         </div>
-
       </div>
     </div>
   );

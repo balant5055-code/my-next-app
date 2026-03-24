@@ -11,33 +11,21 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get("admin_token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = await adminAuth.verifySessionCookie(token);
 
-    const adminDoc = await adminDb
-      .collection("admins")
-      .doc(decoded.uid)
-      .get();
+    const adminDoc = await adminDb.collection("admins").doc(decoded.uid).get();
 
     if (!adminDoc.exists || adminDoc.data()?.active !== true) {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { eventId } = await req.json();
 
     if (!eventId) {
-      return NextResponse.json(
-        { error: "eventId required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "eventId required" }, { status: 400 });
     }
 
     const snapshot = await adminDb
@@ -69,13 +57,9 @@ export async function POST(req: NextRequest) {
       success: true,
       cleared,
     });
-
   } catch (error) {
     console.error("Clear Chips Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

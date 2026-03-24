@@ -37,9 +37,10 @@ export default function TrustedBy() {
   const headingRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="bg-white"> {/* reduced */}
+    <div className="bg-white">
+      {" "}
+      {/* reduced */}
       <div className="max-w-7xl mx-auto px-4">
-
         {/* Heading */}
         <motion.div
           ref={headingRef}
@@ -58,7 +59,9 @@ export default function TrustedBy() {
         </motion.div>
 
         {/* Logo Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"> {/* reduced */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {" "}
+          {/* reduced */}
           {partners.map((partner, index) => (
             <motion.div
               key={partner.name}
@@ -98,7 +101,6 @@ export default function TrustedBy() {
             </motion.div>
           ))}
         </div>
-
       </div>
     </div>
   );

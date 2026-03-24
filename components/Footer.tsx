@@ -56,7 +56,7 @@ export default function Footer() {
                 Powering <span className="text-red-500">Events</span> That
                 People Remember
               </h2>
-              <p className="mt-3 text-sm md:text-base text-gray-300">
+              <p className="mt-3 text-md md:text-base text-gray-300">
                 From marathons and sports meets to conferences and cultural
                 programs — manage registrations, participants, and experiences
                 on one powerful platform.
@@ -65,7 +65,7 @@ export default function Footer() {
 
             <a
               href="#"
-              className="inline-flex items-center gap-3 rounded-full bg-red-600 px-8 py-3 text-sm md:text-base font-semibold text-white shadow-lg hover:bg-red-700 transition"
+              className="inline-flex items-center gap-3 rounded-full bg-red-600 px-8 py-3 text-md md:text-base font-semibold text-white shadow-lg hover:bg-red-700 transition"
             >
               Host Your Event
               <ArrowRightIcon className="h-5 w-5" />
@@ -79,17 +79,17 @@ export default function Footer() {
             <h3 className="text-lg font-bold text-white mb-3">
               Event Platform
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-md text-gray-400">
               A modern event technology platform for sports, marathons,
               conferences, and large-scale programs.
             </p>
           </div>
 
           <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase text-white">
+            <h4 className="mb-3 text-md font-semibold uppercase text-white">
               Explore
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-md">
               {["Upcoming Events", "Create Event", "Pricing", "Contact"].map(
                 (item) => (
                   <li
@@ -104,10 +104,10 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase text-white">
+            <h4 className="mb-3 text-md font-semibold uppercase text-white">
               Platform
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-md">
               <li className="flex items-center gap-2">
                 <CalendarDaysIcon className="h-4 w-4 text-red-500" />
                 Event Scheduling
@@ -124,10 +124,10 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase text-white">
+            <h4 className="mb-3 text-md font-semibold uppercase text-white">
               Contact
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-md">
               <li className="flex items-start gap-2">
                 <MapPinIcon className="h-4 w-4 text-red-500 mt-0.5" />
                 India · Serving Events Nationwide
@@ -141,7 +141,7 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM */}
-        <div className="border-t border-white/10 py-6 text-center text-sm text-gray-400">
+        <div className="border-t border-white/10 py-6 text-center text-md text-gray-400">
           © {new Date().getFullYear()} Event Platform. All rights reserved.
         </div>
       </div>

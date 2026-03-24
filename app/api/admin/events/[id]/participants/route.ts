@@ -267,8 +267,7 @@ export async function GET(
         if (rawValue?.toMillis) {
           cursorValue = rawValue.toMillis();
         } else if (rawValue === null || rawValue === undefined) {
-          cursorValue =
-            lastDocSnap.get("createdAt")?.toMillis?.() ?? null;
+          cursorValue = lastDocSnap.get("createdAt")?.toMillis?.() ?? null;
         } else {
           cursorValue = rawValue;
         }

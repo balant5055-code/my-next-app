@@ -32,7 +32,7 @@ export default function TrustSection() {
                 {item.value}
               </p>
 
-              <p className="text-sm text-gray-600 mt-1">{item.label}</p>
+              <p className="text-md text-gray-600 mt-1">{item.label}</p>
             </motion.div>
           ))}
         </div>

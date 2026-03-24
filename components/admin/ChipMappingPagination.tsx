@@ -55,9 +55,7 @@ export default function ChipMappingPagination({
         >
           ‹
         </button>
-<div className="text-sm text-slate-300 font-medium">
-  Page {page}
-</div>
+        <div className="text-sm text-slate-300 font-medium">Page {page}</div>
         {/* NEXT */}
         <button
           disabled={!hasNext || loadingPage}

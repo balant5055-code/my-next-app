@@ -9,10 +9,7 @@ export async function GET(req: NextRequest) {
     const eventId = searchParams.get("eventId");
 
     if (!eventId) {
-      return NextResponse.json(
-        { error: "Missing eventId" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
     }
 
     const snapshot = await adminDb
@@ -39,8 +36,7 @@ export async function GET(req: NextRequest) {
 
       const paymentMethod = data.payment?.method || "OFFLINE";
 
-      const type =
-        paymentMethod === "OFFLINE" ? "offline" : "online";
+      const type = paymentMethod === "OFFLINE" ? "offline" : "online";
 
       if (!stats[category]) {
         stats[category] = {
@@ -69,13 +65,9 @@ export async function GET(req: NextRequest) {
         pending: overallPending,
       },
     });
-
   } catch (error) {
     console.error("Event Stats Error:", error);
 
-    return NextResponse.json(
-      { error: "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

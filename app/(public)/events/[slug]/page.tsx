@@ -46,11 +46,9 @@ export async function generateMetadata({
 
   const title = `${event.name} | Raceline`;
   const description =
-    event.description?.slice(0, 160) ||
-    "Join this exciting race event.";
+    event.description?.slice(0, 160) || "Join this exciting race event.";
 
-  const image =
-    event.bannerURL || `${SITE_URL}/api/og/events/${event.slug}`;
+  const image = event.bannerURL || `${SITE_URL}/api/og/events/${event.slug}`;
 
   return {
     title,
@@ -104,16 +102,13 @@ export default async function Page({
 
         name: event.name,
 
-        description:
-          event.description ||
-          "Join this exciting race event.",
+        description: event.description || "Join this exciting race event.",
 
         startDate: event.date,
         endDate: event.date,
 
         eventStatus: "https://schema.org/EventScheduled",
-        eventAttendanceMode:
-          "https://schema.org/OfflineEventAttendanceMode",
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
 
         image: [event.bannerURL],
 
@@ -152,7 +147,6 @@ export default async function Page({
             __html: JSON.stringify(jsonLd),
           }}
         />
-
       )}
 
       <EventPage />

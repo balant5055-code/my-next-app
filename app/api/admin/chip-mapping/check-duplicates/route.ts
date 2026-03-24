@@ -74,13 +74,9 @@ export async function POST(req: NextRequest) {
       duplicateInFileChips,
       duplicateInFileBibs,
     });
-
   } catch (err) {
     console.error("DB duplicate check error:", err);
 
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

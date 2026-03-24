@@ -23,7 +23,6 @@ export default function AnimatedDropdown({
   options,
   onChange,
 }: Props) {
-
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,12 +34,10 @@ export default function AnimatedDropdown({
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  const selected = options.find(o => o.value === value);
+  const selected = options.find((o) => o.value === value);
 
   return (
-
     <div className="relative flex flex-col gap-1 min-w-[170px]" ref={ref}>
-
       {label && (
         <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
           {label}
@@ -56,29 +53,21 @@ export default function AnimatedDropdown({
         bg-white border border-gray-300 rounded-md
         cursor-pointer text-sm"
       >
-
         <div className="flex items-center gap-2">
-
           {selected?.icon}
 
-          <span className="text-gray-700">
-            {selected?.label}
-          </span>
-
+          <span className="text-gray-700">{selected?.label}</span>
         </div>
 
         <ChevronDownIcon
           className={`w-4 h-4 text-gray-500 transition ${open ? "rotate-180" : ""}`}
         />
-
       </motion.div>
 
       {/* MENU */}
 
       <AnimatePresence>
-
         {open && (
-
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,9 +75,7 @@ export default function AnimatedDropdown({
             className="absolute top-full left-0 w-full mt-1
             bg-white border border-gray-200 rounded-md z-40"
           >
-
-            {options.map(opt => {
-
+            {options.map((opt) => {
               const active = opt.value === value;
 
               return (
@@ -105,24 +92,15 @@ export default function AnimatedDropdown({
                       : "hover:bg-gray-50 text-gray-700"
                   }`}
                 >
-
                   {opt.icon}
 
                   {opt.label}
-
                 </div>
               );
-
             })}
-
           </motion.div>
-
         )}
-
       </AnimatePresence>
-
     </div>
-
   );
-
 }

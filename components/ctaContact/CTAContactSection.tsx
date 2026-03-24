@@ -9,7 +9,7 @@ export default function ContactSection() {
     <section
       id="contact"
       aria-labelledby="contact-heading"
-      className="relative py-16 scroll-mt-24"
+      className="relative scroll-mt-24"
     >
       {/* background glow */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.08),transparent_70%)]"></div>

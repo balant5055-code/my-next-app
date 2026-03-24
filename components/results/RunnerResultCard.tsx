@@ -87,7 +87,6 @@ export default function RunnerResultCard({
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-
       {/* HEADER */}
       <div
         className={`
@@ -100,7 +99,6 @@ export default function RunnerResultCard({
         `}
       >
         <div className="flex flex-col md:flex-row md:justify-between gap-4">
-
           <div>
             <h2 className="text-xl font-semibold">{name}</h2>
 
@@ -109,48 +107,32 @@ export default function RunnerResultCard({
             </p>
 
             {isPodium && (
-              <div className="text-xs mt-2 font-medium">
-                🥇 Top Finisher
-              </div>
+              <div className="text-xs mt-2 font-medium">🥇 Top Finisher</div>
             )}
           </div>
 
           <div className="text-center md:text-right">
-            <div className="text-3xl font-bold">
-              {result.finishTime ?? "-"}
-            </div>
-            <div className="text-[11px] uppercase opacity-90">
-              Finish Time
-            </div>
+            <div className="text-3xl font-bold">{result.finishTime ?? "-"}</div>
+            <div className="text-[11px] uppercase opacity-90">Finish Time</div>
           </div>
-
         </div>
       </div>
 
       <div className="p-6 space-y-6">
-
         {/* RANKS */}
         <div className="grid grid-cols-3 gap-6 border-b pb-5">
-
-          <RankStat
-            label="Overall"
-            value={result.overallRank}
-            highlight
-          />
+          <RankStat label="Overall" value={result.overallRank} highlight />
 
           <RankStat label="Gender" value={result.genderRank} />
           <RankStat label="Category" value={result.categoryRank} />
-
         </div>
 
         {/* TIMES */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-
           <Stat label="Gun Time" value={result.gunTime} />
           <Stat label="Chip Time" value={result.netTime} />
           <Stat label="Pace" value={result.pace} />
           <Stat label="Speed" value={result.speed} />
-
         </div>
 
         {/* PERFORMANCE BADGE */}
@@ -178,20 +160,14 @@ export default function RunnerResultCard({
 
                 <tbody>
                   {result.splits.map((s: any, i: number) => (
-                    <tr
-                      key={i}
-                      className="border-t text-center"
-                    >
-                      <td className="px-3 py-2 text-left">
-                        {s.distance}
-                      </td>
+                    <tr key={i} className="border-t text-center">
+                      <td className="px-3 py-2 text-left">{s.distance}</td>
                       <td>{s.split}</td>
                       <td>{s.pace}</td>
                       <td>{s.rank}</td>
                     </tr>
                   ))}
                 </tbody>
-
               </table>
             </div>
           </div>
@@ -199,7 +175,6 @@ export default function RunnerResultCard({
 
         {/* ACTIONS */}
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-
           <button
             onClick={onDownload}
             disabled={downloading}
@@ -215,20 +190,14 @@ export default function RunnerResultCard({
             Share Result
           </button>
 
-          <button
-            className="border border-gray-300 px-6 py-2.5 rounded-lg text-sm font-medium w-full sm:w-auto"
-          >
+          <button className="border border-gray-300 px-6 py-2.5 rounded-lg text-sm font-medium w-full sm:w-auto">
             View Photos (AI)
           </button>
-
         </div>
 
         {message && (
-          <div className="text-xs text-gray-500 text-center">
-            {message}
-          </div>
+          <div className="text-xs text-gray-500 text-center">{message}</div>
         )}
-
       </div>
     </div>
   );

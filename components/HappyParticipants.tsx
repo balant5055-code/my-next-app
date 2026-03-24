@@ -4,9 +4,7 @@ import { motion } from "framer-motion";
 
 export default function HappyParticipants() {
   return (
-    <section className="relative py-12 md:py-16 mt-10 bg-gradient-to-b from-orange-50 to-white">
-
-      
+    <section className="relative py-12 md:py-16 bg-gradient-to-b from-orange-50 to-white">
       {/* subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
         <svg className="w-full h-full">
@@ -25,7 +23,6 @@ export default function HappyParticipants() {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-        
         {/* Heading */}
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -52,7 +49,7 @@ export default function HappyParticipants() {
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mt-4 text-sm md:text-base text-gray-600 leading-relaxed max-w-xl mx-auto"
+          className="mt-4 text-md md:text-base text-gray-600 leading-relaxed max-w-xl mx-auto"
         >
           When participants enjoy a smooth experience — from registration and
           payments to race-day check-in and results — your sports event
@@ -69,23 +66,7 @@ export default function HappyParticipants() {
           Built for running races, cycling events, school sports and corporate
           fitness programs.
         </motion.p>
-
       </div>
-
-      {/* Smooth divider */}
-      <div className="absolute bottom-0 left-0 w-full">
-        <svg
-          viewBox="0 0 1440 100"
-          className="w-full h-[70px]"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0,40 C300,90 900,0 1440,40 L1440,100 L0,100 Z"
-            fill="#f9fafb"
-          />
-        </svg>
-      </div>
-
     </section>
   );
 }
