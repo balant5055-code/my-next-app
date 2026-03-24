@@ -1305,7 +1305,7 @@ export default function RegisterPage() {
 
         <div className="max-w-5xl mx-auto px-4 pb-48 md:pb-32 space-y-6">
           {/* BREADCRUMB */}
-          <Breadcrumb items={breadcrumbItems} />
+          <Breadcrumb />
 
           {/* HEADER */}
           <EventHeader event={event} />
