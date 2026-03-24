@@ -96,12 +96,7 @@ export default function RunnerPage({ params }: { params: Promise<Params> }) {
   return (
     <PageContainer>
       <div className="space-y-6">
-        <Breadcrumb
-          items={[
-            { label: "Results", href: "/results" },
-            { label: event?.name, href: `/results/${slug}` },
-            { label: `Bib ${bib}` },
-          ]}
+        <Breadcrumb          
         />
 
         <PageHeader
