@@ -187,9 +187,7 @@ export default function EventResultsPage({
 
   return (
     <PageContainer>
-      <Breadcrumb
-        items={[{ label: "Results", href: "/results" }, { label: event.name }]}
-      />
+    <Breadcrumb />
 
       <PageHeader
         title={`${event.name} Results`}
