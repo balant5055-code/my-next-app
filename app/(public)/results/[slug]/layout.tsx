@@ -1,19 +1,19 @@
 import { ReactNode } from "react";
 
-export default function ResultsLayout({
+export default async function ResultsLayout({
   children,
   params,
 }: {
   children: ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-const slug = params?.slug || "";
+  const { slug = "" } = await params;
 
-const formatLabel = (segment?: string) =>
-  (segment || "")
-    .replace(/-/g, " ")
-    .replace(/(\d)\s+(\d)/g, "$1.$2")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const formatLabel = (segment?: string) =>
+    (segment || "")
+      .replace(/-/g, " ")
+      .replace(/(\d)\s+(\d)/g, "$1.$2")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   const eventName = formatLabel(slug);
 
@@ -53,6 +53,7 @@ const formatLabel = (segment?: string) =>
 
   return (
     <>
+      {/* SEO Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
