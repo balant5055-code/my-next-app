@@ -117,7 +117,7 @@ interface CreateEventForm {
 
 export default function CreateEventLayout() {
   const router = useRouter();
-
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("basic");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -471,6 +471,8 @@ export default function CreateEventLayout() {
               bannerPreview={bannerPreview}
               setBannerFile={setBannerFile}
               setBannerPreview={setBannerPreview}
+              uploadProgress={uploadProgress}
+              setUploadProgress={setUploadProgress}
             />
           )}
 
