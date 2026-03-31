@@ -2,7 +2,6 @@
 
 interface Props {
   data: {
-    organizer: any;
     name: string;
     phone: string;
   };
@@ -52,7 +51,7 @@ export default function OrganizerRegistrationSection({
               </div>
 
               <input
-                value={data.organizer?.name || ""}
+                value={data?.name || ""}
                 onChange={(e) => onChange("organizer.name", e.target.value)}
                 placeholder="Rotary Club Ooty"
                 className="w-full pl-14 pr-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
@@ -81,7 +80,7 @@ export default function OrganizerRegistrationSection({
               </div>
 
               <input
-                value={data.organizer?.phone || ""}
+                value={data?.phone || ""}
                 onChange={(e) => onChange("organizer.phone", e.target.value)}
                 placeholder="+91 9876543210"
                 className="w-full pl-14 pr-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
