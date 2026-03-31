@@ -10,8 +10,17 @@ interface Props {
   bannerPreview: string | null;
   setBannerFile: (file: File | null) => void;
   setBannerPreview: (url: string | null) => void;
+  uploadProgress: number;
+  setUploadProgress: (value: number) => void;
 }
 
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { storage } from "@/lib/firebase";
 export default function MediaSection({
   data,
   errors,
@@ -19,33 +28,33 @@ export default function MediaSection({
   bannerPreview,
   setBannerFile,
   setBannerPreview,
+  uploadProgress,
+  setUploadProgress,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [posX, setPosX] = useState(0);
   const [posY, setPosY] = useState(0);
   const [overlay, setOverlay] = useState(0.3);
 
+  const getSafeFolderName = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+  };
   /* ==============================
         POSTER UPLOAD
   ============================== */
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploadProgress > 0) {
+      alert("Upload in progress...");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
-    /* IMAGE COMPRESSION OPTIONS */
-
-    const options = {
-      maxSizeMB: 0.8,
-      maxWidthOrHeight: 1600,
-      useWebWorker: true,
-      fileType: "image/webp",
-    };
-
-    /* COMPRESS IMAGE */
-
-    const compressedFile = await imageCompression(file, options);
-
+    /* ================= VALIDATE TYPE ================= */
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
@@ -53,19 +62,65 @@ export default function MediaSection({
       return;
     }
 
-    const maxSizeMB = 2;
+    try {
+      /* ================= COMPRESS ================= */
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+        fileType: "image/webp",
+        initialQuality: 0.85, // 🔥 better quality
+      };
 
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      alert("Poster must be under 2MB.");
-      return;
+      const compressedFile = await imageCompression(file, options);
+
+      if (compressedFile.size > 800 * 1024) {
+        alert("Compressed image still too large.");
+        return;
+      }
+
+      /* ================= UPLOAD WITH PROGRESS ================= */
+      const folder = data.slug || getSafeFolderName(data.name || "event");
+
+      try {
+        const oldRef = ref(storage, `event-banners/${folder}/banner.webp`);
+        await deleteObject(oldRef);
+      } catch (err) {
+        console.warn("Old image delete failed", err);
+      }
+
+      const fileName = `event-banners/${folder}/banner.webp`;
+      const storageRef = ref(storage, fileName);
+
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(Math.round(progress));
+        },
+        (error) => {
+          console.error(error);
+          alert("Upload failed");
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+          /* ================= SAVE ================= */
+          setBannerPreview(downloadURL);
+          setBannerFile(null);
+          onChange("bannerURL", downloadURL);
+
+          setUploadProgress(0);
+        },
+      );
+    } catch (err) {
+      console.error("Compression error:", err);
+      alert("Image processing failed");
     }
-
-    const objectUrl = URL.createObjectURL(compressedFile);
-
-    setBannerFile(compressedFile);
-    setBannerPreview(objectUrl);
   };
-
   /* ==============================
         RESET CONTROLS
   ============================== */
@@ -133,7 +188,19 @@ export default function MediaSection({
             />
           </div>
         )}
-
+        {uploadProgress > 0 && (
+          <div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div
+                className="bg-emerald-500 h-2 rounded-full transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Uploading... {uploadProgress}%
+            </p>
+          </div>
+        )}
         {/* ==============================
               POSTER PREVIEW EDITOR
         ============================== */}

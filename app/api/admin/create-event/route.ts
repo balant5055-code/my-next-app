@@ -182,7 +182,13 @@ export async function POST(req: NextRequest) {
         updatedAt: Timestamp.now(),
       };
     });
-
+    function cleanHTML(html: string) {
+      return (html || "")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .replace(/<p>\s*<\/p>/g, ""); // remove empty <p>
+    }
     /* ===============================
        📊 6️⃣ EVENT STRUCTURE
     =============================== */
@@ -204,7 +210,11 @@ export async function POST(req: NextRequest) {
       venue: body.venue || "",
       city: body.city || "",
       mapLink: body.mapLink || "",
-
+      startLocation: body.startLocation || "",
+      endLocation: body.endLocation || "",
+      routeStops: (body.routeStops || []).filter((s: any) => s?.name?.trim()),
+      routeLabel: body.routeLabel || "",
+      distance: Number(body.distance) || 0,
       organizer: {
         name: body.organizer?.name || "",
         email: body.organizer?.email || "",
@@ -227,10 +237,10 @@ export async function POST(req: NextRequest) {
 
       socialLinks: body.socialLinks || {},
 
-      description: body.description || "",
-      terms: body.terms || "",
-      refundPolicy: body.refundPolicy || "",
-      medicalNote: body.medicalNote || "",
+      description: cleanHTML(body.description),
+      terms: cleanHTML(body.terms),
+      refundPolicy: cleanHTML(body.refundPolicy),
+      medicalNote: cleanHTML(body.medicalNote),
 
       bannerURL: bannerURL,
 
@@ -241,14 +251,11 @@ export async function POST(req: NextRequest) {
       },
       categories: formattedCategories,
 
-      inclusions: {
-        apparel: body.inclusions?.apparel || [],
-        timing: body.inclusions?.timing || [],
-        certificates: body.inclusions?.certificates || [],
-        media: body.inclusions?.media || [],
-        support: body.inclusions?.support || [],
-        awards: body.inclusions?.awards || [],
-      },
+      inclusions: (body.inclusions || []).map((cat: any) => ({
+        key: cat.key,
+        title: cat.title,
+        items: cat.items || [],
+      })),
 
       status: "upcoming",
 
@@ -308,7 +315,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-
+    console.log(eventPayload);
     await docRef.create(eventPayload);
     return NextResponse.json({
       success: true,

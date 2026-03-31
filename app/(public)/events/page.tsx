@@ -22,8 +22,11 @@ import {
   ClockIcon,
   SparklesIcon,
   HeartIcon,
+  FlagIcon,
+  FireIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
-
+import { Bike, PersonStanding } from "lucide-react";
 import ImageViewer from "@/components/ImageViewer";
 import ResultCard from "@/components/event/ResultCard";
 import { getEventStage } from "@/lib/eventLifecycle";
@@ -65,12 +68,15 @@ export default function EventsPage() {
         return {
           id: doc.id,
           ...rest,
+          eventType: data.eventType || "",
           date:
             data.date instanceof Timestamp
               ? data.date.toDate()
-              : data.date instanceof Date
-                ? data.date
-                : null,
+              : typeof data.date === "string"
+                ? new Date(data.date)
+                : data.date instanceof Date
+                  ? data.date
+                  : null,
         };
       });
       const sorted = list
@@ -117,7 +123,22 @@ export default function EventsPage() {
   );
 
   const resultsEvents = events.filter((e) => getEventStage(e) === "results");
+  console.log(events);
+  const getEventTypeIcon = (type?: string) => {
+    const t = type?.toLowerCase();
 
+    switch (t) {
+      case "cycling":
+        return <Bike className="h-3.5 w-3.5" />;
+
+      case "marathon":
+      case "running":
+        return <PersonStanding className="h-3.5 w-3.5" />;
+
+      default:
+        return <BoltIcon className="h-3.5 w-3.5" />;
+    }
+  };
   return (
     <div className="max-w-7xl mx-auto px-4 ">
       {/* HEADER */}
@@ -161,9 +182,10 @@ export default function EventsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {currentEvents.map((event, index) => {
             const isOpen = event.registration?.status === "open";
-
+            console.log("EVENT TYPE:", event.eventType);
             return (
               <motion.div
+                className={`h-full ${index !== 0 ? "mt-7 md:mt-0" : ""}`}
                 key={event.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -171,27 +193,36 @@ export default function EventsPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.06 }}
               >
-                <div className="mb-2 flex justify-center h-[26px]">
-                  {index === 0 ? (
-                    <div className="flex items-center gap-1 rounded-full bg-orange-500 px-3 py-[4px] text-[11px] font-semibold text-white shadow-md">
-                      🔥 Next Upcoming Event
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-[4px] text-[11px] font-medium text-gray-600">
-                      📅 Upcoming {/* Event Type */}
-                      {event.eventType && (
-                        <span className="flex items-center gap-1 text-[11px] px-2.5 py-[4px] rounded-full bg-orange-50 text-orange-600 font-medium">
-                          <BoltIcon className="h-3.5 w-3.5" />
+                <div className="mb-2 flex justify-center">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {/* MAIN TAG */}
+                    {index === 0 ? (
+                      <div className="flex items-center gap-2 rounded-md bg-orange-500 px-3 py-[4px] text-[11px] font-semibold text-white shadow-sm">
+                        <BoltIcon className="h-3.5 w-3.5" />
+                        <span>Next Upcoming Event</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 rounded-md bg-gray-100 px-3 py-[4px] text-[11px] font-medium text-gray-600">
+                        <CalendarDaysIcon className="h-3.5 w-3.5 text-gray-500" />
+                        <span>Upcoming</span>
+                      </div>
+                    )}
 
-                          {event.eventType}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                    {/* ✅ EVENT TYPE ALWAYS SHOW */}
+                    {event.eventType?.trim() && (
+                      <div
+                        className="flex items-center gap-1 text-[11px] px-2.5 py-[4px] rounded-md 
+    bg-orange-50 text-orange-500 border border-orange-100 font-medium"
+                      >
+                        {getEventTypeIcon(event.eventType)}
+                        <span>{event.eventType.toUpperCase()}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Link
                   href={`/events/${event.slug || event.id}`}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-orange-200"
+                  className="group relative flex flex-col h-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-orange-200"
                 >
                   {/* Date badge */}
                   {/* DATE CORNER */}
@@ -302,37 +333,99 @@ export default function EventsPage() {
                   </div>
 
                   {/* CONTENT */}
-                  <div className="flex flex-col justify-between p-5 grow bg-gradient-to-b from-white to-gray-50">
+                  <div className="flex flex-col justify-between p-5 grow ">
                     {/* TOP SECTION */}
                     <div className="space-y-4">
                       {/* EVENT TITLE */}
-                      <h3 className="flex items-start gap-2 text-[16px] font-semibold text-gray-900 leading-snug">
-                        <CalendarDaysIcon className="h-5 w-5 text-orange-500 mt-[2px]" />
+                      {/* EVENT TITLE ROW */}
+                      <div className="flex items-start justify-between gap-2">
+                        {/* LEFT SIDE */}
+                        <div className="flex items-start gap-2">
+                          <CalendarDaysIcon className="h-5 w-5 text-orange-500 mt-[2px]" />
 
-                        <span className="line-clamp-2 group-hover:text-orange-600 transition-colors">
-                          {event.name || "Untitled Event"}
-                        </span>
+                          <h3 className="text-[16px] font-semibold text-gray-900 leading-snug">
+                            <span
+                              className="line-clamp-2 text-gray-900 
+             group-hover:bg-gradient-to-r group-hover:from-[#9f2a25] 
+             group-hover:via-[#c1342d] group-hover:to-[#e0473f] 
+             group-hover:bg-clip-text group-hover:text-transparent 
+             transition-all duration-300"
+                            >
+                              {event.name || "Untitled Event"}
+                            </span>
+                            {/* 🆕 TAGLINE */}
+                            {event.tagline && (
+                              <span className="block text-[11px] text-gray-400 font-medium tracking-wide mt-1">
+                                {event.tagline}
+                              </span>
+                            )}
+                          </h3>
+                        </div>
+
+                        {/* RIGHT SIDE BADGE */}
                         {event.eventFormat && (
-                          <span className="flex items-center gap-1 text-[11px] px-2.5 py-[4px] rounded-full bg-orange-50 text-orange-600 font-medium">
+                          <span
+                            className="shrink-0 flex items-center gap-1 text-[11px] px-2.5 py-[4px] 
+                     rounded-md bg-orange-50 text-orange-500 font-medium"
+                          >
                             {getFormatIcon(event.eventFormat)}
                             {event.eventFormat.replace("-", " ").toUpperCase()}
                           </span>
                         )}
-                      </h3>
+                      </div>
 
-                      {/* LOCATION */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPinIcon className="h-4 w-4 text-gray-400" />
+                      {/* 🆕 DISTANCE AVAILABLE */}
+                      {event.categories?.length ? (
+                        <div className="flex flex-col gap-2">
+                          {/* TITLE */}
+                          <div className="flex items-center gap-2 text-[13px] font-medium text-gray-600">
+                            <FlagIcon className="h-4 w-4 text-orange-500" />
+                            <span>Distance Available</span>
+                          </div>
 
-                        <span className="font-medium">
-                          {event.city || "Location TBA"}
-                        </span>
+                          {/* DISTANCE BOXES */}
+                          <div className="flex flex-wrap gap-2">
+                            {event.categories.map((cat, i) => (
+                              <div
+                                key={cat.id ?? i}
+                                className="px-3 py-[5px] text-[12px] font-semibold
+                     bg-orange-50 text-orange-500
+                     border border-orange-200
+                     rounded-md
+                     shadow-sm
+                     hover:bg-orange-100 transition"
+                              >
+                                {cat.distance} KM
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* LOCATION + VENUE (PREMIUM) */}
+                      <div className="flex items-start gap-3 p-3 rounded-md border border-gray-100 bg-gray-50">
+                        {/* ICON */}
+                        <MapPinIcon className="h-5 w-5 text-orange-500 mt-[2px]" />
+
+                        {/* TEXT BLOCK */}
+                        <div className="flex flex-col leading-tight">
+                          {/* CITY */}
+                          <span className="text-sm font-semibold text-gray-800">
+                            {event.city || "Location TBA"}
+                          </span>
+
+                          {/* VENUE */}
+                          {event.venue && (
+                            <span className="text-xs text-gray-500 mt-[2px]">
+                              {event.venue}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* FOOTER ACTION BAR */}
-                    {/* FOOTER ACTION BAR */}
-                    <div className="pt-4 flex items-center justify-end border-t border-gray-100 mt-4">
+                    <div className="pt-4 flex items-center justify-end border-t border-gray-100">
                       <div className="flex items-center gap-2">
                         {/* COPY LINK */}
                         <button
@@ -428,7 +521,6 @@ export default function EventsPage() {
       )}
 
       {/* RESULTS SECTION */}
-
       {resultsEvents.length > 0 && (
         <div className="mt-20">
           <motion.div
@@ -437,7 +529,7 @@ export default function EventsPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="mb-14 text-center"
+            className="mb-6 md:mb-14 text-center"
           >
             <SectionHeader
               label="Race Results"

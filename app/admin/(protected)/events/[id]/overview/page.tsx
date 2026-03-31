@@ -196,7 +196,7 @@ export default function EventOverviewPage() {
       </div>
     );
   }
-
+  console.log(eventData);
   if (!eventData) {
     return <div className="p-10 text-rose-400">Event not found.</div>;
   }
@@ -272,10 +272,6 @@ export default function EventOverviewPage() {
 "
         >
           {/* Banner */}
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-20"
-            style={{ backgroundImage: `url(${eventData.bannerURL})` }}
-          />
 
           <div className="relative p-8 backdrop-blur-md space-y-8">
             {/* ================= TOP ROW ================= */}

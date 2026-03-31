@@ -20,7 +20,7 @@ import {
   PhotoIcon,
   ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/solid";
-
+import { EVENT_INCLUSIONS } from "@/components/constants/eventInclusions";
 /* ============================= */
 /* TYPES */
 /* ============================= */
@@ -51,6 +51,15 @@ interface Category {
 }
 
 interface CreateEventForm {
+  startLocation: string;
+  endLocation: string;
+  routeStops: {
+    name: string;
+    description: string;
+  }[];
+  routeLabel: string;
+  distance: number;
+
   name: string;
   slug: string;
   tagline: string;
@@ -94,13 +103,11 @@ interface CreateEventForm {
   categories: Category[];
   // ✅ ADD THIS
   inclusions: {
-    apparel: string[];
-    timing: string[];
-    certificates: string[];
-    media: string[];
-    support: string[];
-    awards: string[];
-  };
+    key: string;
+    title: string;
+    items: string[];
+  }[];
+
   eventFormat: "timed" | "non-timed" | "fun-run" | "awareness";
 }
 
@@ -122,7 +129,21 @@ export default function CreateEventLayout() {
       const saved = localStorage.getItem("eventDraft");
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+
+          return {
+            ...parsed,
+            startLocation: parsed.startLocation || "",
+            endLocation: parsed.endLocation || "",
+            routeStops: (parsed.routeStops || []).map((s: any) => {
+              if (typeof s === "string") {
+                return { name: s, description: "" };
+              }
+              return s;
+            }),
+            routeLabel: parsed.routeLabel || "",
+            distance: parsed.distance || 0,
+          };
         } catch {
           console.error("Draft parse failed");
         }
@@ -160,14 +181,16 @@ export default function CreateEventLayout() {
       ],
       categories: [],
       eventFormat: "timed",
-      inclusions: {
-        apparel: [],
-        timing: [],
-        certificates: [],
-        media: [],
-        support: [],
-        awards: [],
-      },
+      startLocation: "",
+      endLocation: "",
+      routeStops: [],
+      routeLabel: "",
+      distance: 0,
+      inclusions: EVENT_INCLUSIONS.map((cat) => ({
+        key: cat.key,
+        title: cat.title,
+        items: [],
+      })),
     };
   });
 
@@ -223,6 +246,15 @@ export default function CreateEventLayout() {
 
     if (!formData.categories || formData.categories.length === 0)
       newErrors.categories = "At least one category required";
+    if (formData.eventFormat === "awareness") {
+      if (!formData.startLocation)
+        newErrors.startLocation = "Start location required";
+
+      if (!formData.endLocation)
+        newErrors.endLocation = "End location required";
+
+      if (!formData.distance) newErrors.distance = "Distance required";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -232,7 +264,7 @@ export default function CreateEventLayout() {
   /* ============================= */
 
   const handleSubmit = async () => {
-    localStorage.removeItem("eventDraft");
+    //localStorage.removeItem("eventDraft");
 
     if (!validateForm()) {
       setActiveTab("basic");
@@ -247,6 +279,7 @@ export default function CreateEventLayout() {
       const form = new FormData();
 
       /* attach event data */
+      console.log(formData);
 
       form.append("data", JSON.stringify(formData));
 

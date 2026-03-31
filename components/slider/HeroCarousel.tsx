@@ -83,8 +83,10 @@ export default function HeroSliderMatrixDirectional() {
 
   const contentX = useTransform(smoothX, (v) => v * -1);
   const contentY = useTransform(smoothY, (v) => v * -1);
-
-  const [slides, setSlides] = useState<Slide[]>(baseSlides);
+  const slides: Slide[] = baseSlides.map((slide, i) => ({
+    ...slide,
+    bg: marathonImages[i % marathonImages.length],
+  }));
   /* AUTOPLAY */
   const startAuto = () => {
     stopAuto();
@@ -115,15 +117,6 @@ export default function HeroSliderMatrixDirectional() {
   useEffect(() => {
     startAuto();
     return stopAuto;
-  }, []);
-
-  useEffect(() => {
-    const randomized = baseSlides.map((slide) => ({
-      ...slide,
-      bg: marathonImages[Math.floor(Math.random() * marathonImages.length)],
-    }));
-
-    setSlides(randomized);
   }, []);
 
   /* MATRIX */

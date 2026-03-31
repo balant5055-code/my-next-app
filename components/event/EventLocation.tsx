@@ -31,7 +31,7 @@ export default function EventLocation({ event }: EventLocationProps) {
         transition={{ duration: 0.5 }}
         className="
         rounded-2xl
-        border border-gray-200
+      
         bg-white
         p-6 md:p-7
         shadow-sm
@@ -42,39 +42,32 @@ export default function EventLocation({ event }: EventLocationProps) {
         flex flex-col
         "
       >
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="">
-            {/* Top label row */}
-            <div className="flex items-center gap-3 mb-3">
-              {/* Icon badge */}
-              <div
-                className="flex items-center justify-center 
-      w-8 h-8 sm:w-9 sm:h-9 
-      rounded-lg bg-red-50 border border-red-100"
-              >
-                <MapPinIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
-              </div>
+        {/* HEADER */}
 
-              {/* Label */}
-              <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-red-500 uppercase">
-                Event
-              </span>
-
-              {/* Divider */}
-              <span className="flex-1 h-[1px] bg-gradient-to-r from-red-200 via-red-100 to-transparent"></span>
+        <div className="mb-8 sm:mb-5">
+          {/* Top label row */}
+          {/* HEADER */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+              <FlagIcon className="w-4 h-4 text-orange-500" />
             </div>
 
-            {/* Title */}
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
-              Location
-            </h2>
+            <span className="text-xs font-semibold tracking-widest text-orange-500 uppercase">
+              Event
+            </span>
 
-            {/* Description */}
-            <p className="text-gray-500 text-sm sm:text-base mt-1 sm:mt-2 max-w-xl">
-              Race start point and venue details
-            </p>
+            <span className="flex-1 h-[1px] bg-gradient-to-r from-orange-200 via-orange-100 to-transparent"></span>
           </div>
+
+          {/* Title */}
+          <h2 className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900">
+            Location
+          </h2>
+
+          {/* Description */}
+          <p className="text-gray-500 text-sm sm:text-base mt-1 sm:mt-2 max-w-xl">
+            Race start point and venue details
+          </p>
         </div>
 
         <div className="h-px w-full bg-gray-100 mb-5" />
@@ -168,7 +161,7 @@ export default function EventLocation({ event }: EventLocationProps) {
               text-sm font-semibold
               rounded-lg
               border border-red-200
-              text-red-600
+             text-orange-500
               bg-white
               hover:bg-red-50
               transition

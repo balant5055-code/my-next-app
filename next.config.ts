@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
       "cdn.pixabay.com",
       "upload.wikimedia.org",
       "storage.googleapis.com",
+      "firebasestorage.googleapis.com",
     ],
   },
 };

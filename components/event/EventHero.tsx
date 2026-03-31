@@ -22,7 +22,7 @@ interface Props {
   event?: EventData;
 }
 import { BoltIcon } from "@heroicons/react/24/solid";
-
+import Breadcrumb from "@/components/ui/Breadcrumb";
 export default function EventHero({ event }: Props) {
   if (!event) return null;
   const categories = Array.isArray(event.categories)
@@ -36,11 +36,19 @@ export default function EventHero({ event }: Props) {
   });
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarRef = useRef<HTMLDivElement | null>(null);
-  const eventDate = event.date ? new Date(event.date) : null;
+
+  const eventDate =
+    event?.date && !isNaN(new Date(event.date).getTime())
+      ? new Date(event.date)
+      : null;
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const background = event.bannerURL || "/ONLINE_POSTER.jpg";
-
+  const registrationEnd =
+    event?.registration?.end &&
+    !isNaN(new Date(event.registration.end).getTime())
+      ? new Date(event.registration.end)
+      : null;
   useEffect(() => {
     if (!registrationEnd) return;
 
@@ -58,7 +66,7 @@ export default function EventHero({ event }: Props) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [eventDate]);
+  }, [registrationEnd]);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -127,7 +135,7 @@ export default function EventHero({ event }: Props) {
   };
 
   const getCalendarLinks = () => {
-    if (!eventDate) return {};
+    if (!eventDate || isNaN(eventDate.getTime())) return {};
 
     const start =
       eventDate.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
@@ -146,7 +154,7 @@ export default function EventHero({ event }: Props) {
   };
 
   const downloadICS = () => {
-    if (!eventDate) return;
+    if (!eventDate || isNaN(eventDate.getTime())) return;
 
     const start =
       eventDate.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
@@ -183,12 +191,11 @@ END:VCALENDAR`;
     link.click();
   };
   const calendar = getCalendarLinks();
-  const registrationEnd = event.registration?.end
-    ? new Date(event.registration.end)
-    : null;
+
   return (
     <section className="bg-white pt-8 pb-10">
       <div className="max-w-6xl mx-auto px-5">
+        <Breadcrumb />
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -204,11 +211,7 @@ END:VCALENDAR`;
 
             {/* title */}
 
-            <h1
-              className="text-3xl md:text-3xl font-bold tracking-tight
-bg-gradient-to-r from-orange-500 via-red-500 to-orange-500
-bg-clip-text text-transparent animate-gradientMove"
-            >
+            <h1 className="text-xl md:text-2xl bg-gradient-to-r from-[#9f2a25] via-[#c1342d] to-[#e0473f] bg-clip-text text-transparent animate-gradientMove">
               <span className="text-gray-900">{event.name.split(" ")[0]} </span>
 
               <span className="bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 bg-[length:200%_100%] bg-clip-text text-transparent animate-gradientMove">
@@ -240,16 +243,6 @@ bg-clip-text text-transparent animate-gradientMove"
           className="relative h-[220px] md:h-[250px] rounded-2xl overflow-hidden"
         >
           {/* animated glow frame */}
-
-          <motion.div
-            className="absolute inset-0 rounded-2xl"
-            style={{
-              background:
-                "linear-gradient(120deg, transparent, rgba(255,120,40,0.35), transparent)",
-            }}
-            animate={{ x: ["-100%", "100%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-          />
 
           {/* image */}
 
@@ -312,6 +305,7 @@ bg-clip-text text-transparent animate-gradientMove"
                     <RaceCard
                       key={cat.id ?? cat.title ?? cat.distance ?? index}
                       distance={Number(cat.distance)}
+                      title={cat.title}
                     />
                   ))}
                 </div>
@@ -355,9 +349,9 @@ bg-clip-text text-transparent animate-gradientMove"
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
                   href={`/events/${event.slug}/register`}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold
-    bg-gradient-to-r from-orange-500 to-red-500 shadow-md hover:shadow-lg
-    transition whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-sm font-medium
+bg-gradient-to-r from-orange-500 to-red-500 shadow-sm hover:shadow-md
+transition whitespace-nowrap"
                 >
                   <ClockIcon className="w-4 h-4" />
                   Register Now
@@ -487,7 +481,7 @@ function Countdown({ label, value }: { label: string; value: number }) {
   );
 }
 
-function RaceCard({ distance }: { distance: number }) {
+function RaceCard({ distance, title }: { distance: number; title?: string }) {
   const getColor = (km: number) => {
     if (km <= 3) return "from-blue-500 to-blue-600";
     if (km <= 5) return "from-green-500 to-emerald-600";
@@ -496,12 +490,14 @@ function RaceCard({ distance }: { distance: number }) {
     return "from-red-600 to-rose-600";
   };
 
-  const getLabel = (km: number) => {
-    if (km <= 3) return "Kids Run";
-    if (km <= 5) return "Fun Run";
-    if (km <= 10) return "Run";
-    if (km <= 21) return "Half";
-    return "Marathon";
+  const getLabelFromTitle = (title?: string) => {
+    if (!title) return "";
+
+    // Remove "40 KM", "10KM", etc.
+    return title
+      .replace(/\d+\s*KM/i, "") // remove "40 KM"
+      .replace(/\d+/g, "") // remove any numbers
+      .trim();
   };
 
   const gradient = getColor(distance);
@@ -524,7 +520,9 @@ function RaceCard({ distance }: { distance: number }) {
 
       {/* label */}
 
-      <div className="text-[10px] text-gray-500">{getLabel(distance)}</div>
+      <div className="text-[10px] text-gray-500 text-center leading-tight line-clamp-2">
+        {getLabelFromTitle(title)}
+      </div>
 
       {/* hover glow */}
 

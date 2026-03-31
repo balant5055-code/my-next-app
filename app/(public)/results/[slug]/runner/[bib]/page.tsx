@@ -96,8 +96,7 @@ export default function RunnerPage({ params }: { params: Promise<Params> }) {
   return (
     <PageContainer>
       <div className="space-y-6">
-        <Breadcrumb          
-        />
+        <Breadcrumb />
 
         <PageHeader
           title={`${runner.participant.firstName} ${runner.participant.lastName}`}

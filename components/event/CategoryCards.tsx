@@ -10,21 +10,43 @@ import {
   UserIcon,
   ClockIcon,
   TicketIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
-
+import { EventData } from "@/types/event";
 import { motion } from "framer-motion";
 import { Category } from "@/types/event";
-
+import { useEffect, useRef, useState } from "react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 interface Props {
-  event: {
-    slug: string;
-    categories: Category[];
-  };
+  event: EventData;
 }
 
 export default function CategoryCards({ event }: Props) {
   const router = useRouter();
+  const routeStops = event.routeStops || [];
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [showArrow, setShowArrow] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
 
+    const checkScroll = () => {
+      const isScrollable = el.scrollHeight > el.clientHeight;
+      const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+
+      setShowArrow(isScrollable && !isAtBottom);
+    };
+
+    checkScroll();
+
+    el.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, []);
   return (
     <section>
       <motion.div
@@ -34,7 +56,7 @@ export default function CategoryCards({ event }: Props) {
         transition={{ duration: 0.5 }}
         className="
         rounded-2xl
-        border border-gray-200
+      
         bg-white
         p-6 md:p-7
         shadow-sm
@@ -47,29 +69,23 @@ export default function CategoryCards({ event }: Props) {
       >
         {/* HEADER */}
 
-        <div className="mb-8 sm:mb-10">
+        <div className="mb-8 sm:mb-5">
           {/* Top label row */}
-          <div className="flex items-center gap-3 mb-3">
-            {/* Icon badge */}
-            <div
-              className="flex items-center justify-center 
-      w-8 h-8 sm:w-9 sm:h-9 
-      rounded-lg bg-red-50 border border-red-100"
-            >
-              <FlagIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+          {/* HEADER */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+              <FlagIcon className="w-4 h-4 text-orange-500" />
             </div>
 
-            {/* Label */}
-            <span className="text-[10px] sm:text-xs font-semibold tracking-widest text-red-500 uppercase">
+            <span className="text-xs font-semibold tracking-widest text-orange-500 uppercase">
               Event
             </span>
 
-            {/* Divider */}
-            <span className="flex-1 h-[1px] bg-gradient-to-r from-red-200 via-red-100 to-transparent"></span>
+            <span className="flex-1 h-[1px] bg-gradient-to-r from-orange-200 via-orange-100 to-transparent"></span>
           </div>
 
           {/* Title */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900">
             Race Categories
           </h2>
 
@@ -80,7 +96,10 @@ export default function CategoryCards({ event }: Props) {
         </div>
 
         {/* CATEGORY LIST */}
-        <div className="space-y-4 overflow-y-auto pr-2 max-h-[420px]">
+        <div
+          ref={scrollRef}
+          className="space-y-4 overflow-y-auto pr-2 max-h-[420px]"
+        >
           {event.categories.map((cat) => {
             const seatsLeft = cat.maxSeats - cat.bookedSeats;
 
@@ -204,7 +223,6 @@ transition
                 </div>
 
                 {/* REGISTER BUTTON */}
-
                 <button
                   disabled={status === "soldout"}
                   onClick={() =>
@@ -232,7 +250,112 @@ disabled:opacity-40
               </div>
             );
           })}
+
+          {routeStops.length > 0 && (
+            <div className="mt-10">
+              {/* HEADER */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+                  <FlagIcon className="w-4 h-4 text-orange-500" />
+                </div>
+
+                <span className="text-xs font-semibold tracking-widest text-orange-500 uppercase">
+                  Awareness Stops
+                </span>
+
+                <span className="flex-1 h-[1px] bg-gradient-to-r from-orange-200 via-orange-100 to-transparent"></span>
+              </div>
+
+              {/* LIST */}
+              <div className="space-y-5">
+                {/* ROUTE LABEL */}
+                {event.routeLabel && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex items-center gap-2 text-sm text-gray-700 font-medium"
+                  >
+                    <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-orange-50 border border-orange-100">
+                      <MapPinIcon className="w-4 h-4 text-orange-500" />
+                    </span>
+
+                    <span>{event.routeLabel}</span>
+                  </motion.div>
+                )}
+
+                {/* DIVIDER */}
+                <div className="h-px w-full bg-gray-100"></div>
+
+                {/* STOPS */}
+                <div className="space-y-4">
+                  {routeStops.map((stop, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.12, duration: 0.4 }}
+                      className="flex items-start gap-3 border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-white transition"
+                    >
+                      {/* ICON + LINE */}
+                      <div className="flex flex-col items-center mt-1">
+                        {/* STEP CIRCLE */}
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          whileInView={{ scale: 1 }}
+                          transition={{
+                            delay: index * 0.12,
+                            type: "spring",
+                            stiffness: 200,
+                          }}
+                          className="w-6 h-6 rounded-full bg-orange-500 text-white text-[11px] flex items-center justify-center font-semibold"
+                        >
+                          {index + 1}
+                        </motion.div>
+
+                        {/* CONNECTING LINE */}
+                        {index !== routeStops.length - 1 && (
+                          <motion.div
+                            initial={{ height: 0 }}
+                            whileInView={{ height: "100%" }}
+                            transition={{
+                              delay: index * 0.12 + 0.1,
+                              duration: 0.4,
+                            }}
+                            className="w-[2px] bg-orange-200 mt-1"
+                          />
+                        )}
+                      </div>
+
+                      {/* CONTENT */}
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800 text-sm mb-1">
+                          {stop.name}
+                        </div>
+
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {stop.description}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+        {showArrow && (
+          <motion.div className="flex justify-center mt-2">
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-50 border border-orange-100 shadow-sm"
+            >
+              <ChevronDownIcon className="w-4 h-4 text-orange-500" />
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </section>
   );

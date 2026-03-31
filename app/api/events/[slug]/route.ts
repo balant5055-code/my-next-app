@@ -27,9 +27,31 @@ export async function GET(req: Request) {
     const doc = snap.docs[0];
 
     // Return full event document
+    const data = doc.data();
+
     return NextResponse.json({
       id: doc.id,
-      ...doc.data(),
+
+      ...data,
+
+      // ✅ MAIN DATE FIX
+      date: data.date ? data.date.toDate().toISOString() : null,
+
+      // ✅ REGISTRATION FIX
+      registration: {
+        ...data.registration,
+        start: data.registration?.start
+          ? data.registration.start.toDate().toISOString()
+          : null,
+        end: data.registration?.end
+          ? data.registration.end.toDate().toISOString()
+          : null,
+      },
+
+      // ✅ OPTIONAL (GOOD PRACTICE)
+      createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
+
+      updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : null,
     });
   } catch (error) {
     console.error("EVENT API ERROR:", error);

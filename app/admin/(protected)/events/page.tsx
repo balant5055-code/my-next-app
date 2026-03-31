@@ -215,7 +215,34 @@ export default function AllEventsPage() {
 
     return <span className="text-2xl font-bold text-white">{count}</span>;
   }
+  const handleDelete = async (eventId: string) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this event?\n\nThis action cannot be undone.",
+    );
 
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}/delete`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Delete failed");
+        return;
+      }
+
+      alert("Event deleted successfully");
+
+      // 🔥 refresh table
+      fetchEvents();
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
+  };
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br dark:from-[#0f172a] dark:via-[#111827] dark:to-[#0b1220] text-slate-900 dark:text-slate-100 antialiased p-4 md:p-8">
       {/* Header */}
@@ -535,6 +562,14 @@ border border-indigo-500/20
                             eventId={event.id}
                             onSuccess={fetchEvents}
                           />
+                          {/* 🔥 DELETE BUTTON */}
+                          <button
+                            onClick={() => handleDelete(event.id)}
+                            className="p-2 rounded-md hover:bg-red-900/40 text-red-400 transition"
+                            title="Delete Event"
+                          >
+                            <XCircleIcon className="h-5 w-5" />
+                          </button>
                         </div>
                       </td>
                     </tr>

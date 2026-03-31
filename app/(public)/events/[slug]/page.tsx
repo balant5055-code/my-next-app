@@ -26,6 +26,27 @@ async function getEvent(slug: string) {
   }
 }
 
+/* ================= DATE NORMALIZER ================= */
+
+function normalizeEventDates(event: any) {
+  if (!event) return event;
+  console.log(event);
+  return {
+    ...event,
+
+    // ✅ FIX DATE
+    date: event.date ? new Date(event.date) : null,
+
+    registration: {
+      ...event.registration,
+      start: event.registration?.start
+        ? new Date(event.registration.start)
+        : null,
+      end: event.registration?.end ? new Date(event.registration.end) : null,
+    },
+  };
+}
+
 /* ================= SEO METADATA ================= */
 
 export async function generateMetadata({
@@ -91,7 +112,10 @@ export default async function Page({
 }) {
   const { slug } = await params;
 
-  const event = await getEvent(slug);
+  const rawEvent = await getEvent(slug);
+
+  // ✅ IMPORTANT FIX
+  const event = normalizeEventDates(rawEvent);
 
   /* ================= JSON-LD ================= */
 
@@ -104,8 +128,15 @@ export default async function Page({
 
         description: event.description || "Join this exciting race event.",
 
-        startDate: event.date,
-        endDate: event.date,
+        startDate:
+          event.date && !isNaN(new Date(event.date).getTime())
+            ? new Date(event.date).toISOString()
+            : undefined,
+
+        endDate:
+          event.date && !isNaN(new Date(event.date).getTime())
+            ? new Date(event.date).toISOString()
+            : undefined,
 
         eventStatus: "https://schema.org/EventScheduled",
         eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
@@ -149,7 +180,7 @@ export default async function Page({
         />
       )}
 
-      <EventPage />
+      <EventPage event={event} />
     </>
   );
 }

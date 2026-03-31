@@ -43,37 +43,38 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
 
   /* toggle preset inclusion */
   const toggleItem = (categoryKey: string, item: string) => {
-    const current = data.inclusions?.[categoryKey] || [];
+    const updated = data.inclusions.map((cat: any) => {
+      if (cat.key !== categoryKey) return cat;
 
-    const updated = current.includes(item)
-      ? current.filter((i: string) => i !== item)
-      : [...current, item];
+      const exists = cat.items.includes(item);
 
-    const updatedInclusions = {
-      ...data.inclusions,
-      [categoryKey]: updated,
-    };
+      return {
+        ...cat,
+        items: exists
+          ? cat.items.filter((i: string) => i !== item)
+          : [...cat.items, item],
+      };
+    });
 
-    onChange("inclusions", updatedInclusions);
+    onChange("inclusions", updated);
   };
-
   /* add custom inclusion */
   const addCustomItem = (categoryKey: string) => {
     const value = customInputs[categoryKey]?.trim();
     if (!value) return;
 
-    const updatedCategory = [...(data.inclusions?.[categoryKey] || [])];
+    const updated = data.inclusions.map((cat: any) => {
+      if (cat.key !== categoryKey) return cat;
 
-    if (!updatedCategory.includes(value)) {
-      updatedCategory.push(value);
-    }
+      if (cat.items.includes(value)) return cat;
 
-    const updatedInclusions = {
-      ...data.inclusions,
-      [categoryKey]: updatedCategory,
-    };
+      return {
+        ...cat,
+        items: [...cat.items, value],
+      };
+    });
 
-    onChange("inclusions", updatedInclusions);
+    onChange("inclusions", updated);
 
     setCustomInputs((prev) => ({
       ...prev,
@@ -94,10 +95,14 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
 
       {/* CATEGORIES */}
       <div className="space-y-5">
-        {EVENT_INCLUSIONS.map((category) => {
+        {data.inclusions.map((category: any) => {
+          const isDefault = EVENT_INCLUSIONS.some(
+            (c) => c.key === category.key,
+          );
           const isOpen = open === category.key;
-          const Icon = categoryIcons[category.key];
-          const gradient = categoryColors[category.key];
+          const Icon = categoryIcons[category.key] || GiftIcon;
+          const gradient =
+            categoryColors[category.key] || "from-gray-500 to-gray-700";
 
           return (
             <div
@@ -105,10 +110,9 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
               className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 backdrop-blur"
             >
               {/* HEADER */}
-              <button
-                type="button"
+              <div
                 onClick={() => setOpen(isOpen ? null : category.key)}
-                className="w-full flex items-center justify-between px-6 py-5"
+                className="w-full flex items-center justify-between px-6 py-5 cursor-pointer"
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -118,16 +122,57 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
                   </div>
 
                   <span className="text-base font-semibold text-white">
-                    {category.title}
+                    <input
+                      value={
+                        data.inclusions.find((c: any) => c.key === category.key)
+                          ?.title || ""
+                      }
+                      onChange={(e) => {
+                        const updated = data.inclusions.map((cat: any) => {
+                          if (cat.key !== category.key) return cat;
+
+                          return {
+                            ...cat,
+                            title: e.target.value,
+                          };
+                        });
+
+                        onChange("inclusions", updated);
+                      }}
+                      className="bg-transparent border-b border-slate-600 focus:border-indigo-500 outline-none text-white font-semibold"
+                    />
                   </span>
                 </div>
 
-                <ChevronDownIcon
-                  className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+                {/* RIGHT SIDE */}
+                <div className="flex items-center gap-3">
+                  {/* DELETE BUTTON */}
+                  {!isDefault && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        const updated = data.inclusions.filter(
+                          (c: any) => c.key !== category.key,
+                        );
+
+                        onChange("inclusions", updated);
+                      }}
+                      className="text-red-400 hover:text-red-300 text-xs px-2 py-1 border border-red-500/30 rounded"
+                    >
+                      Delete
+                    </button>
+                  )}
+
+                  {/* DROPDOWN ICON */}
+                  <ChevronDownIcon
+                    className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </div>
 
               {/* BODY */}
               <div
@@ -141,8 +186,33 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
                 {/* PRESET + CUSTOM ITEMS */}
 
                 {(() => {
-                  const selected = data.inclusions?.[category.key] || [];
-                  const preset = category.items || [];
+                  const inclusionsArray = Array.isArray(data.inclusions)
+                    ? data.inclusions
+                    : Object.keys(data.inclusions || {}).map((key) => {
+                        const base = EVENT_INCLUSIONS.find(
+                          (c) => c.key === key,
+                        );
+
+                        return {
+                          key,
+                          title: base?.title || key,
+                          items: data.inclusions[key] || [],
+                        };
+                      });
+
+                  const categoryData = inclusionsArray.find(
+                    (c: any) => c.key === category.key,
+                  ) || {
+                    items: [],
+                    title: category.title,
+                  };
+
+                  const selected = categoryData.items || [];
+                  const baseCategory = EVENT_INCLUSIONS.find(
+                    (c) => c.key === category.key,
+                  );
+
+                  const preset = baseCategory?.items || [];
 
                   // merge preset items + custom added items
                   const allItems = Array.from(
@@ -206,6 +276,34 @@ export default function EventInclusionsSection({ data, onChange }: Props) {
             </div>
           );
         })}
+      </div>
+      <div className="pt-4">
+        <button
+          type="button"
+          onClick={() => {
+            const exists = data.inclusions.some(
+              (cat: any) => cat.title === "New Category",
+            );
+
+            if (exists) return; // 🚫 prevent duplicate
+
+            const newKey = `custom_${Date.now()}`;
+
+            const updated = [
+              ...data.inclusions,
+              {
+                key: newKey,
+                title: `Category ${data.inclusions.length + 1}`,
+                items: [],
+              },
+            ];
+
+            onChange("inclusions", updated);
+          }}
+          className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm"
+        >
+          + Add Category
+        </button>
       </div>
     </section>
   );

@@ -187,7 +187,7 @@ export default function EventResultsPage({
 
   return (
     <PageContainer>
-    <Breadcrumb />
+      <Breadcrumb />
 
       <PageHeader
         title={`${event.name} Results`}

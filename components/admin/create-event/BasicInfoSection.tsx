@@ -28,7 +28,7 @@ interface Props {
     eventFormat: "timed" | "non-timed" | "fun-run" | "awareness";
   };
   errors: Record<string, string>;
-  onChange: (name: string, value: string) => void;
+  onChange: (name: string, value: any) => void;
 }
 
 export default function BasicInfoSection({ data, errors, onChange }: Props) {
@@ -58,7 +58,27 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
       onChange("eventFormat", "timed");
     }
   }, []);
+  useEffect(() => {
+    if ((data as any).eventFormat !== "awareness") return;
 
+    const start = (data as any).startLocation || "";
+    const stops = (data as any).routeStops || [];
+    const end = (data as any).endLocation || "";
+
+    const filteredStops = stops
+      .map((s: any) => s.name)
+      .filter((s: string) => s?.trim());
+
+    const fullRoute = [start, ...filteredStops, end].filter(Boolean);
+
+    const label = fullRoute.join(" → ");
+
+    onChange("routeLabel", label);
+  }, [
+    (data as any).startLocation,
+    (data as any).endLocation,
+    JSON.stringify((data as any).routeStops),
+  ]);
   return (
     <section className="bg-[#0f172a] border border-slate-700 rounded-2xl p-6 space-y-8">
       <div>
@@ -161,7 +181,7 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
               <option value="cycling">Cycling</option>
               <option value="triathlon">Triathlon</option>
               <option value="swimming">Swimming</option>
-              <option value="custom">Custom</option>
+              <option value="other">Other</option>
             </select>
           </div>
         </div>
@@ -186,7 +206,7 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
               <option value="timed">Timed</option>
               <option value="non-timed">Non-Timed</option>
               <option value="fun-run">Fun Run</option>
-              <option value="awareness">Awareness Run</option>
+              <option value="awareness">Awareness</option>
             </select>
           </div>
         </div>
@@ -336,6 +356,110 @@ export default function BasicInfoSection({ data, errors, onChange }: Props) {
           )}
         </div>
       </div>
+      {/* ROUTE SECTION - ONLY FOR AWARENESS */}
+      {data.eventFormat === "awareness" && (
+        <div className="mt-10 border-t border-slate-700 pt-8 space-y-6">
+          <h3 className="text-lg font-semibold text-white">
+            Route Information
+          </h3>
+
+          {/* Start & End */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <input
+              placeholder="Start Location (e.g. Tiruppur)"
+              value={(data as any).startLocation || ""}
+              onChange={(e) => onChange("startLocation", e.target.value)}
+              className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"
+            />
+
+            <input
+              placeholder="End Location (e.g. Puliampatti)"
+              value={(data as any).endLocation || ""}
+              onChange={(e) => onChange("endLocation", e.target.value)}
+              className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"
+            />
+          </div>
+
+          {/* ROUTE STOPS */}
+          <div className="space-y-3">
+            <label className="text-sm text-slate-400">Route Stops</label>
+
+            {(data as any).routeStops?.map((stop: any, i: number) => (
+              <div key={i} className="flex flex-col gap-2 w-full">
+                {/* STOP NAME */}
+                <div className="flex gap-3">
+                  <input
+                    value={stop.name}
+                    onChange={(e) => {
+                      const updated = [...(data as any).routeStops];
+                      updated[i].name = e.target.value;
+                      onChange("routeStops", updated);
+                    }}
+                    placeholder={`Stop ${i + 1} (e.g. Avinashi)`}
+                    className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-white"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = (data as any).routeStops.filter(
+                        (_: any, index: number) => index !== i,
+                      );
+                      onChange("routeStops", updated);
+                    }}
+                    className="px-3 bg-red-600 rounded-xl text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* DESCRIPTION */}
+                <input
+                  value={stop.description}
+                  onChange={(e) => {
+                    const updated = [...(data as any).routeStops];
+                    updated[i].description = e.target.value;
+                    onChange("routeStops", updated);
+                  }}
+                  placeholder="What happens here (e.g. Water + Medical support)"
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-300"
+                />
+              </div>
+            ))}
+
+            {/* ADD STOP */}
+            <button
+              type="button"
+              onClick={() =>
+                onChange("routeStops", [
+                  ...(data as any).routeStops,
+                  { name: "", description: "" },
+                ])
+              }
+              className="px-4 py-2 bg-indigo-600 rounded-xl text-white text-sm"
+            >
+              + Add Stop
+            </button>
+          </div>
+
+          {/* ROUTE LABEL */}
+          <input
+            placeholder="Auto-generated route"
+            value={(data as any).routeLabel || ""}
+            readOnly
+            className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white cursor-not-allowed"
+          />
+
+          {/* DISTANCE */}
+          <input
+            type="number"
+            placeholder="Distance (KM)"
+            value={(data as any).distance || ""}
+            onChange={(e) => onChange("distance", Number(e.target.value))}
+            className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"
+          />
+        </div>
+      )}
     </section>
   );
 }

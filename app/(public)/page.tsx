@@ -1,4 +1,4 @@
-import HeroCarousel from "@/components/slider/HeroCarousel";
+import ClientHeroCarousel from "@/components/ClientHeroCarousel";
 import OurProcess from "@/components/ourProcess/OurProcess";
 import EventsPage from "@/app/(public)/events/page";
 import UseCases from "@/components/useCases/UseCases";
@@ -69,7 +69,7 @@ export default function Home() {
 
       {/* HOME */}
       <section id="home" className="scroll-mt-20">
-        <HeroCarousel />
+        <ClientHeroCarousel />
       </section>
 
       {/* EVENTS */}

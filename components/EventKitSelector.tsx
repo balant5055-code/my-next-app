@@ -27,9 +27,7 @@ export default function EventKitSelector() {
 
   const toggleItem = (id: string) => {
     setSelected((prev) =>
-      prev.includes(id)
-        ? prev.filter((item) => item !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -54,7 +52,6 @@ export default function EventKitSelector() {
   return (
     <section className="mt-20">
       <div className="max-w-6xl mx-auto px-4">
-
         {/* HEADER */}
         <div className="text-center mb-12">
           <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
@@ -105,21 +102,13 @@ export default function EventKitSelector() {
                   <div
                     className={`
                       h-12 w-12 flex items-center justify-center rounded-xl
-                      ${
-                        isSelected
-                          ? "bg-orange-100"
-                          : "bg-gray-100"
-                      }
+                      ${isSelected ? "bg-orange-100" : "bg-gray-100"}
                     `}
                   >
                     <Icon
                       className={`
                         h-6 w-6
-                        ${
-                          isSelected
-                            ? "text-orange-600"
-                            : "text-gray-500"
-                        }
+                        ${isSelected ? "text-orange-600" : "text-gray-500"}
                       `}
                     />
                   </div>
@@ -157,7 +146,6 @@ export default function EventKitSelector() {
             Get Quote on WhatsApp
           </button>
         </div>
-
       </div>
     </section>
   );

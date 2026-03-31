@@ -130,23 +130,22 @@ export default function ReviewSubmitSection({
       {data.inclusions && (
         <Card title="Event Inclusions">
           <div className="grid md:grid-cols-2 gap-6 text-sm">
-            {Object.entries(data.inclusions).map(([key, items]) => {
-              const list = items as string[];
+            {Array.isArray(data.inclusions) &&
+              data.inclusions.map((cat: any) => {
+                if (!cat.items || cat.items.length === 0) return null;
 
-              if (!list || list.length === 0) return null;
+                return (
+                  <div key={cat.key}>
+                    <p className="text-slate-400 mb-2">{cat.title}</p>
 
-              return (
-                <div key={key}>
-                  <p className="text-slate-400 capitalize mb-2">{key}</p>
-
-                  <ul className="space-y-1 text-white">
-                    {list.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
+                    <ul className="space-y-1 text-white">
+                      {cat.items.map((item: string, i: number) => (
+                        <li key={i}>• {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
           </div>
         </Card>
       )}

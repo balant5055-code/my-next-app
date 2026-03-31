@@ -64,7 +64,6 @@ function Card({ item }: any) {
   return (
     <div className="h-full w-full flex">
       <div className="flex flex-col justify-between h-full w-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-        
         {/* TOP CONTENT */}
         <div className="flex gap-3 items-start">
           {/* ICON */}
@@ -101,7 +100,6 @@ export default function ParticipantExperience() {
   return (
     <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4 mt-10">
-        
         {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

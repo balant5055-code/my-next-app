@@ -50,7 +50,6 @@ export default function ResultCard({ event, index }: Props) {
       className="h-full"
     >
       <div className="group flex flex-col h-full bg-white rounded-2xl border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-lg overflow-hidden">
-
         {/* IMAGE */}
         <div className="relative h-40 overflow-hidden">
           <Image
@@ -79,7 +78,6 @@ export default function ResultCard({ event, index }: Props) {
 
         {/* CONTENT */}
         <div className="p-4 flex flex-col flex-1 gap-3">
-
           {/* META */}
           <div className="flex justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1 truncate">
@@ -95,7 +93,6 @@ export default function ResultCard({ event, index }: Props) {
 
           {/* STATS */}
           <div className="flex justify-between text-center px-1">
-
             <div className="flex flex-col items-center gap-0.5">
               <UserGroupIcon className="h-4 w-4 text-gray-400" />
               <span className="text-sm font-semibold text-gray-900">
@@ -119,12 +116,10 @@ export default function ResultCard({ event, index }: Props) {
               </span>
               <span className="text-[10px] text-gray-400">Type</span>
             </div>
-
           </div>
 
           {/* CTA (ALIGNED) */}
           <div className="mt-auto flex flex-col gap-2 pt-2">
-
             {/* RESULTS */}
             <Link
               href={`/results/${slug}`}
@@ -150,7 +145,6 @@ export default function ResultCard({ event, index }: Props) {
 
               <ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1" />
             </Link>
-
           </div>
         </div>
       </div>

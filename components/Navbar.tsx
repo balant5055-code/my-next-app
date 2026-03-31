@@ -49,7 +49,7 @@ export default function Navbar() {
   const [hash, setHash] = useState("");
   const [open, setOpen] = useState(false);
   const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(() => false);
+  const [scrolled, setScrolled] = useState(false);
   const [scrollDir, setScrollDir] = useState<"up" | "down">("up");
 
   const isHome = pathname === "/";
@@ -68,6 +68,8 @@ export default function Navbar() {
 
   /* Scroll detection */
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     let last = window.scrollY;
 
     const handleScroll = () => {
@@ -250,7 +252,7 @@ export default function Navbar() {
           <div className="hidden md:flex flex-1 justify-end">
             <button
               onClick={() => handleScroll("contact")}
-              className="bg-orange-500 text-white px-7 py-2 rounded-full font-semibold hover:bg-orange-600 transition"
+              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-7 py-2 rounded-full font-semibold hover:bg-orange-600 transition"
             >
               Host an Event
             </button>
@@ -340,7 +342,7 @@ export default function Navbar() {
 
                 <button
                   onClick={() => handleScroll("contact")}
-                  className="w-full bg-orange-500 text-white px-7 py-3 rounded-full font-semibold mt-4"
+                  className="bg-gradient-to-r from-orange-500 to-red-500 w-full text-white px-7 py-3 rounded-full font-semibold mt-4"
                 >
                   Host an Event
                 </button>

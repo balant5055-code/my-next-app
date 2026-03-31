@@ -6,7 +6,6 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
-
 import PageContainer from "@/components/layout/PageContainer";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 
@@ -37,12 +36,10 @@ const useCases = [
 export default function Page() {
   return (
     <PageContainer>
-
       <Breadcrumb />
 
       {/* HEADER */}
       <div className="max-w-5xl mx-auto px-4 pt-4 pb-10 text-center">
-
         <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 tracking-tight">
           Event Solutions
         </h1>
@@ -52,13 +49,11 @@ export default function Page() {
         </p>
 
         <div className="mx-auto mt-4 h-[2px] w-14 bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 rounded-full" />
-
       </div>
 
       {/* GRID */}
       <div className="max-w-5xl mx-auto px-4 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
           {useCases.map((item) => {
             const Icon = item.icon;
 
@@ -69,7 +64,6 @@ export default function Page() {
                 className="group block"
               >
                 <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300">
-
                   {/* IMAGE */}
                   <div className="relative h-40 overflow-hidden">
                     <Image
@@ -83,7 +77,6 @@ export default function Page() {
 
                   {/* CONTENT */}
                   <div className="p-5">
-
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className="w-5 h-5 text-orange-500" />
                       <h3 className="text-base font-semibold text-gray-900">
@@ -99,17 +92,13 @@ export default function Page() {
                     <div className="mt-4 text-sm font-medium text-orange-500 group-hover:translate-x-1 transition">
                       Explore →
                     </div>
-
                   </div>
-
                 </div>
               </Link>
             );
           })}
-
         </div>
       </div>
-
     </PageContainer>
   );
 }

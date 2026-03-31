@@ -43,7 +43,6 @@ export default function UseCases() {
   return (
     <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        
         {/* HEADER */}
         <motion.div
           ref={headingRef}
@@ -67,7 +66,11 @@ export default function UseCases() {
             const Icon = item.icon;
 
             return (
-              <Link key={item.slug} href={`/use-cases/${item.slug}`} className="block">
+              <Link
+                key={item.slug}
+                href={`/use-cases/${item.slug}`}
+                className="block"
+              >
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}

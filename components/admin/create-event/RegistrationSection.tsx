@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
@@ -21,10 +21,16 @@ interface Props {
     medicalNote: string;
   };
   errors: Record<string, string>;
-  onChange: (path: string, value: string) => void;
+  onChange: (path: string, value: any) => void;
 }
 
 export default function RegistrationSection({ data, errors, onChange }: Props) {
+  const [previewMode, setPreviewMode] = useState({
+    description: false,
+    refundPolicy: false,
+    terms: false,
+    medicalNote: false,
+  });
   /* 🔐 Auto Validation: End must be after Start */
   useEffect(() => {
     if (
@@ -140,24 +146,48 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Description */}
           <div className="flex flex-col">
-            <label className="text-sm text-slate-300 mb-2">
-              Event Description
-            </label>
-            <RichTextEditor
-              value={data.description || ""}
-              onChange={(value) => onChange("description", value)}
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-slate-300">
+                Event Description
+              </label>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewMode((p) => ({
+                    ...p,
+                    description: !p.description,
+                  }))
+                }
+                className="text-xs px-3 py-1 rounded bg-slate-700 text-white hover:bg-slate-600"
+              >
+                {previewMode.description ? "Edit" : "Preview"}
+              </button>
+            </div>
+
+            {previewMode.description ? (
+              <div
+                className="prose prose-invert max-w-none bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm"
+                dangerouslySetInnerHTML={{
+                  __html: (data.description || "")
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">"),
+                }}
+              />
+            ) : (
+              <RichTextEditor
+                value={data.description || ""}
+                onChange={(value) => onChange("description", value)}
+              />
+            )}
           </div>
 
           {/* Refund Policy */}
           <div className="flex flex-col">
             <label className="text-sm text-slate-300 mb-2">Refund Policy</label>
-            <textarea
+            <RichTextEditor
               value={data.refundPolicy || ""}
-              onChange={(e) => onChange("refundPolicy", e.target.value)}
-              rows={5}
-              placeholder="State refund eligibility and rules..."
-              className="w-full px-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition resize-none"
+              onChange={(value) => onChange("refundPolicy", value)}
             />
           </div>
 
@@ -166,12 +196,9 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
             <label className="text-sm text-slate-300 mb-2">
               Terms & Conditions
             </label>
-            <textarea
+            <RichTextEditor
               value={data.terms || ""}
-              onChange={(e) => onChange("terms", e.target.value)}
-              rows={5}
-              placeholder="Participant agreement terms..."
-              className="w-full px-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none"
+              onChange={(value) => onChange("terms", value)}
             />
           </div>
 
@@ -180,12 +207,9 @@ export default function RegistrationSection({ data, errors, onChange }: Props) {
             <label className="text-sm text-slate-300 mb-2">
               Medical Note (Optional)
             </label>
-            <textarea
+            <RichTextEditor
               value={data.medicalNote || ""}
-              onChange={(e) => onChange("medicalNote", e.target.value)}
-              rows={5}
-              placeholder="Health advisory or disclaimer..."
-              className="w-full px-4 py-3 bg-slate-800/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition resize-none"
+              onChange={(value) => onChange("medicalNote", value)}
             />
           </div>
         </div>

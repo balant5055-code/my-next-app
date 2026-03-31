@@ -23,6 +23,11 @@ export interface Inclusions {
 }
 
 export interface EventData {
+  routeLabel: string;
+  routeStops?: {
+    name: string;
+    description: string;
+  }[];
   id: string;
   name: string;
   slug: string;

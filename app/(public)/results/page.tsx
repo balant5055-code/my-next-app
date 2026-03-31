@@ -32,7 +32,6 @@ export default function ResultsPage() {
 
   return (
     <PageContainer>
-
       <Breadcrumb />
 
       <PageHeader
@@ -43,7 +42,6 @@ export default function ResultsPage() {
 
       {/* 🔥 CONTENT WRAPPER */}
       <div className="mt-6 md:mt-8">
-
         {/* ✅ LOADING STATE (SKELETON, NOT TEXT) */}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -59,7 +57,6 @@ export default function ResultsPage() {
         {/* ✅ EMPTY STATE (PREMIUM) */}
         {!loading && events.length === 0 && (
           <div className="text-center py-16">
-
             <TrophyIcon className="w-10 h-10 text-gray-300 mx-auto mb-4" />
 
             <h3 className="text-lg font-semibold text-gray-800">
@@ -69,27 +66,18 @@ export default function ResultsPage() {
             <p className="text-sm text-gray-500 mt-2">
               Race results will appear here once events are completed.
             </p>
-
           </div>
         )}
 
         {/* ✅ RESULTS GRID */}
         {!loading && events.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-
             {events.map((event, index) => (
-              <ResultCard
-                key={event.id}
-                event={event}
-                index={index}
-              />
+              <ResultCard key={event.id} event={event} index={index} />
             ))}
-
           </div>
         )}
-
       </div>
-
     </PageContainer>
   );
 }

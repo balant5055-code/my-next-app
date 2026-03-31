@@ -1,9 +1,13 @@
 export type EventCategory = {
-  distance?: string;
+  id: string;
+  distance: string;
+  title?: string;
   price?: number;
 };
 
 export type EventType = {
+  tagline: string;
+  routeLabel: string;
   id: string;
   name?: string;
   city?: string;

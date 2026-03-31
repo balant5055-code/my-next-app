@@ -51,10 +51,7 @@ export default function Breadcrumb() {
 
       const isEventSlug = index === 1 && segments[0] === "results";
 
-      const label =
-        isEventSlug && eventName
-          ? eventName
-          : formatLabel(segment);
+      const label = isEventSlug && eventName ? eventName : formatLabel(segment);
 
       return { label, href };
     });
