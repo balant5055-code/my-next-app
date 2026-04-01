@@ -13,9 +13,10 @@ const SITE_URL =
 
 async function getEvent(slug: string) {
   try {
-    const res = await fetch(`${SITE_URL}/api/events/${slug}`, {
-      next: { revalidate: 60 },
-    });
+const res = await fetch(
+  `${process.env.NEXT_PUBLIC_SITE_URL}/api/events/${slug}`,
+  { cache: "no-store" }
+);
 
     if (!res.ok) return null;
 
