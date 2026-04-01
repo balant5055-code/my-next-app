@@ -12,6 +12,9 @@ interface AnimatedSelectProps {
   onChange: (e: any) => void;
   children: ReactNode;
   className?: string;
+
+  // ✅ ADD THIS
+  disabled?: boolean;
 }
 
 export default function AnimatedSelect({
@@ -22,6 +25,7 @@ export default function AnimatedSelect({
   icon,
   children,
   className = "",
+  disabled
 }: AnimatedSelectProps) {
   return (
     <motion.div
@@ -34,22 +38,24 @@ export default function AnimatedSelect({
         </span>
       )}
 
-      <select
-        name={name}
-        value={value ?? ""}
-        required={required}
-        onChange={onChange}
-        className="w-full appearance-none
-        bg-gray-50 hover:bg-gray-100
-        py-3 pl-12 pr-10
-        text-sm text-gray-700 font-medium
-        rounded-xl
-        transition
-        outline-none
-        focus:ring-2 focus:ring-orange-400"
-      >
-        {children}
-      </select>
+   <select
+  name={name}
+  value={value || ""}
+  required={required}
+  onChange={onChange}
+  disabled={disabled}
+  style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+  className={`w-full border border-gray-300 py-3
+  ${icon ? "pl-12" : "pl-4"} pr-10 text-sm transition
+  focus:border-orange-500 focus:outline-none
+  focus:ring-2 focus:ring-orange-200
+  appearance-none
+  [&::-ms-expand]:hidden
+  ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}
+  ${className}`}
+>
+  {children}
+</select>
 
       {/* Dropdown arrow */}
 

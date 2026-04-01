@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { formatDate, toDate } from "@/lib/utils";
 import {
   CalendarDaysIcon,
   MapPinIcon,
@@ -37,25 +38,22 @@ export default function EventHero({ event }: Props) {
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarRef = useRef<HTMLDivElement | null>(null);
 
-  const eventDate =
-    event?.date && !isNaN(new Date(event.date).getTime())
-      ? new Date(event.date)
-      : null;
+
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const background = event.bannerURL || "/ONLINE_POSTER.jpg";
-  const registrationEnd =
-    event?.registration?.end &&
-    !isNaN(new Date(event.registration.end).getTime())
-      ? new Date(event.registration.end)
-      : null;
+  const eventDate = toDate(event.date);
+  const registrationEnd = toDate(event.registration?.end);
   useEffect(() => {
     if (!registrationEnd) return;
 
     const interval = setInterval(() => {
       const diff = registrationEnd.getTime() - Date.now();
 
-      if (diff <= 0) return;
+      if (diff <= 0) {
+  setTime({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  return;
+}
 
       setTime({
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
@@ -194,7 +192,7 @@ END:VCALENDAR`;
 
   return (
     <section className="bg-white pt-8 pb-10">
-      <div className="max-w-6xl mx-auto px-5">
+      <div className="max-w-7xl mx-auto px-6">
         <Breadcrumb />
         <motion.div
           initial={{ opacity: 0, y: -12 }}
@@ -270,7 +268,7 @@ END:VCALENDAR`;
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="w-4 h-4 text-orange-500 shrink-0" />
 
-                  <span className="font-medium truncate">{event.city}</span>
+                  <span className="font-medium truncate">{event.city || "Location TBA"}</span>
                 </div>
 
                 {/* divider (desktop only) */}
@@ -283,11 +281,7 @@ END:VCALENDAR`;
                   <CalendarDaysIcon className="w-4 h-4 text-orange-500 shrink-0" />
 
                   <span className="font-medium">
-                    {eventDate?.toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {formatDate(eventDate)}
                   </span>
                 </div>
               </div>
@@ -296,7 +290,7 @@ END:VCALENDAR`;
               {/* RACE CATEGORIES */}
 
               <div className="pt-3">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <div className="text-xs  text-gray-500 uppercase tracking-wide mb-2">
                   Race Categories
                 </div>
 
@@ -324,10 +318,7 @@ END:VCALENDAR`;
 
                 <div className="text-[11px] font-medium text-orange-600 flex items-center gap-1">
                   ⏳ Registration closes on{" "}
-                  {registrationEnd?.toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                  })}
+                  {formatDate(registrationEnd)}
                 </div>
 
                 {/* timer */}
@@ -378,6 +369,8 @@ transition whitespace-nowrap"
                         transition={{ duration: 0.2 }}
                         className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-30"
                       >
+                        
+                      
                         <a
                           href={calendar.google}
                           target="_blank"

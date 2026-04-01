@@ -1,4 +1,5 @@
 "use client";
+import { parseDOB } from "@/lib/utils/dob";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { MapPinIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
@@ -23,6 +24,7 @@ import Breadcrumb from "@/components/ui/Breadcrumb";
 import { BreadcrumbItem } from "@/types/breadcrumb";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import { Bird, Clock } from "lucide-react";
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -48,11 +50,17 @@ interface Category {
   id: string;
   title: string;
   price: number;
+
+  earlyBirdPrice?: number;
+
+  // ✅ SUPPORT BOTH (safe)
+  earlyBirdEnd?: any; // Firestore timestamp
+  earlyBirdEndDate?: string; // optional normalized
+
   minAge: number;
   maxAge: number;
   distance: string;
   maxSeats: number;
-  bookedSeats?: number;
 }
 
 interface EventData {
@@ -76,7 +84,6 @@ interface RunnerForm {
   categoryTitle: string;
   categoryDistance: string;
   categoryPrice: number;
-
   firstName: string;
   lastName: string;
   dob: string;
@@ -128,6 +135,8 @@ const emptyRunner: RunnerForm = {
 export default function RegisterPage() {
   const params = useParams();
   const router = useRouter();
+  const [useSameEmergency, setUseSameEmergency] = useState(true);
+
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [emailOptional, setEmailOptional] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
@@ -219,6 +228,54 @@ export default function RegisterPage() {
       const newErrors: Record<string, string> = {};
 
       if (!runner.firstName) newErrors.firstName = "First name is required";
+      // DOB required
+      if (!runner.dob) {
+        newErrors.dob = "Date of birth is required";
+      }
+
+      // re-validate DOB for THIS runner
+      if (runner.dob && cat && event?.date) {
+        const normalize = (d: Date) =>
+          new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+        const birthRaw = parseDOB(runner.dob);
+
+        if (!birthRaw) {
+          newErrors.dob = "Invalid date of birth";
+        } else {
+          const birthDate = normalize(birthRaw);
+          const today = normalize(new Date());
+
+          // ❌ future date
+          if (birthDate > today) {
+            newErrors.dob = "Date of birth cannot be in the future";
+          }
+
+          if (cat && event?.date) {
+            const eventDate = normalize(event.date);
+
+            const minDOB = new Date(
+              eventDate.getFullYear() - cat.minAge,
+              eventDate.getMonth(),
+              eventDate.getDate(),
+            );
+
+            const maxDOB = new Date(
+              eventDate.getFullYear() - cat.maxAge,
+              eventDate.getMonth(),
+              eventDate.getDate(),
+            );
+
+            if (birthDate > minDOB) {
+              newErrors.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
+            }
+
+            if (birthDate < maxDOB) {
+              newErrors.dob = `Maximum age for ${cat.title} is ${cat.maxAge} years as on the event date.`;
+            }
+          }
+        }
+      }
       if (!runner.lastName) newErrors.lastName = "Last name is required";
       if (!runner.gender) newErrors.gender = "Please select gender";
       if (!runner.bloodGroup)
@@ -240,6 +297,19 @@ export default function RegisterPage() {
         newErrors.phone = "WhatsApp number is required";
       } else if (!/^[6-9]\d{9}$/.test(runner.phone)) {
         newErrors.phone = "Enter valid 10 digit mobile number";
+      }
+
+      // ✅ EMERGENCY VALIDATION
+      if (!skipEmergency) {
+        if (!runner.emergencyName) {
+          newErrors.emergencyName = "Emergency contact name is required";
+        }
+
+        if (!runner.emergencyNumber) {
+          newErrors.emergencyNumber = "Emergency contact number is required";
+        } else if (!/^[6-9]\d{9}$/.test(runner.emergencyNumber)) {
+          newErrors.emergencyNumber = "Enter valid 10 digit mobile number";
+        }
       }
 
       if (!runner.medicallyFit)
@@ -288,6 +358,7 @@ export default function RegisterPage() {
   const [hydrated, setHydrated] = useState(false);
   const [participants, setParticipants] = useState<RunnerForm[]>([]);
   const [currentRunner, setCurrentRunner] = useState(0);
+
   const updateRunner = (index: number, data: Partial<RunnerForm>) => {
     setParticipants((prev) => {
       const updated = [...prev];
@@ -319,11 +390,12 @@ export default function RegisterPage() {
           categoryId: defaultCategory.id,
           categoryTitle: defaultCategory.title,
           categoryDistance: defaultCategory.distance,
-          categoryPrice: defaultCategory.price,
+          categoryPrice: getFinalPrice(defaultCategory),
         };
       }),
     );
   }, [event, selectedCat]);
+
   // SAFE fallback
   const form = participants[currentRunner] ?? emptyRunner;
   const fields = [
@@ -354,51 +426,7 @@ export default function RegisterPage() {
       updateRunner(currentRunner, data);
     }
   };
-  useEffect(() => {
-    if (!form.dob || !cat || !event?.date) return;
 
-    const normalize = (d: Date) =>
-      new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-    const birthDate = normalize(new Date(form.dob));
-    const eventDate = normalize(event.date);
-
-    const minAge = Number(cat.minAge);
-    const maxAge = Number(cat.maxAge);
-
-    const minDOB = normalize(
-      new Date(
-        eventDate.getFullYear() - minAge,
-        eventDate.getMonth(),
-        eventDate.getDate(),
-      ),
-    );
-
-    const maxDOB = normalize(
-      new Date(
-        eventDate.getFullYear() - maxAge,
-        eventDate.getMonth(),
-        eventDate.getDate(),
-      ),
-    );
-
-    setErrors((prev) => {
-      const updated = { ...prev };
-
-      if (birthDate > minDOB) {
-        updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
-        return updated;
-      }
-
-      if (birthDate < maxDOB) {
-        updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on event date.`;
-        return updated;
-      }
-
-      delete updated.dob;
-      return updated;
-    });
-  }, [form.dob, cat, event?.date]);
   useEffect(() => {
     const saved = localStorage.getItem("race_registration_form");
 
@@ -433,17 +461,21 @@ export default function RegisterPage() {
 
       // ✅ CREATE FIRST RUNNER IF EMPTY
       setParticipants((prev) => {
-        if (prev.length > 0) return prev;
+        return prev.map((runner) => {
+          const selected = event.categories.find(
+            (c) => c.title === categoryFromURL,
+          );
 
-        return [
-          {
-            ...emptyRunner,
+          if (!selected) return runner;
+
+          return {
+            ...runner,
             categoryId: selected.id,
             categoryTitle: selected.title,
             categoryDistance: selected.distance,
-            categoryPrice: selected.price,
-          },
-        ];
+            categoryPrice: getFinalPrice(selected), // ✅ NOW WORKS
+          };
+        });
       });
     } else {
       setSelectedCat(null);
@@ -473,10 +505,33 @@ export default function RegisterPage() {
           venue: raw.venue ?? "",
           city: raw.city ?? "",
           bannerURL: raw.bannerURL ?? "",
-          categories: raw.categories ?? [],
+          categories: (raw.categories ?? []).map((c: any) => ({
+            ...c,
+            earlyBirdPrice: c.earlyBirdPrice ?? null,
+            earlyBirdEndDate: c.earlyBirdEndDate ?? null,
+          })),
           rules: raw.rules ?? {},
 
-          date: raw.date?._seconds ? new Date(raw.date._seconds * 1000) : null,
+          date: (() => {
+            if (!raw.date) return null;
+
+            // Firestore Timestamp
+            if (raw.date._seconds) {
+              return new Date(raw.date._seconds * 1000);
+            }
+
+            // JS Date
+            if (raw.date instanceof Date) {
+              return raw.date;
+            }
+
+            // ISO string
+            if (typeof raw.date === "string") {
+              return new Date(raw.date);
+            }
+
+            return null;
+          })(),
         };
 
         setEvent(formattedEvent);
@@ -525,7 +580,7 @@ export default function RegisterPage() {
             categoryId: selected.id,
             categoryTitle: selected.title,
             categoryDistance: selected.distance,
-            categoryPrice: selected.price,
+            categoryPrice: getFinalPrice(selected),
           },
         ];
       }
@@ -535,7 +590,7 @@ export default function RegisterPage() {
         categoryId: selected.id,
         categoryTitle: selected.title,
         categoryDistance: selected.distance,
-        categoryPrice: selected.price,
+        categoryPrice: getFinalPrice(selected),
       }));
     });
 
@@ -570,11 +625,13 @@ export default function RegisterPage() {
       behavior: "smooth",
     });
   }, [selectedCat]);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
+    console.log("dsa");
     const fieldErrorMessages: Record<string, string> = {
       firstName: "First name is required",
       lastName: "Last name is required",
@@ -588,7 +645,15 @@ export default function RegisterPage() {
       emergencyName: "Emergency contact name is required",
       emergencyNumber: "Emergency contact number is required",
     };
+
     const { name, value, type, checked } = e.target as any;
+    // 🚨 HARD STOP when skip is enabled
+    if (
+      skipEmergency &&
+      (name === "emergencyName" || name === "emergencyNumber")
+    ) {
+      return;
+    }
     if (name === "categoryId") {
       const selectedCategory = event?.categories.find((c) => c.id === value);
 
@@ -598,13 +663,78 @@ export default function RegisterPage() {
         categoryId: selectedCategory.id,
         categoryTitle: selectedCategory.title,
         categoryDistance: selectedCategory.distance,
-        categoryPrice: selectedCategory.price,
+        categoryPrice: getFinalPrice(selectedCategory),
       });
 
       return;
     }
     let fieldValue = type === "checkbox" ? checked : value;
+    // ✅ PRIMARY EMERGENCY CONTROL
+    if (
+      useSameEmergency &&
+      !skipEmergency &&
+      !skipEmergency && // extra safety
+      participants.length > 0 &&
+      (name === "emergencyName" || name === "emergencyNumber")
+    ) {
+      setParticipants((prev) =>
+        prev.map((runner) => ({
+          ...runner,
+          [name]: fieldValue,
+        })),
+      );
+      return;
+    }
 
+    // ✅ ONLY ONE DOB VALIDATION
+    if (name === "dob") {
+      const birth = parseDOB(fieldValue);
+      if (!birth) return;
+
+      const today = new Date();
+
+      setErrors((prev) => {
+        const updated = { ...prev };
+
+        // ❌ future date
+        if (birth > today) {
+          updated.dob = "Date of birth cannot be in the future";
+          return updated;
+        }
+
+        // ❌ age validation
+        if (cat && event?.date) {
+          const eventDate = new Date(event.date);
+
+          const minDOB = new Date(
+            eventDate.getFullYear() - cat.minAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          );
+
+          const maxDOB = new Date(
+            eventDate.getFullYear() - cat.maxAge,
+            eventDate.getMonth(),
+            eventDate.getDate(),
+          );
+
+          if (birth > minDOB) {
+            updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
+            return updated;
+          }
+
+          if (birth < maxDOB) {
+            updated.dob = `Maximum age for ${cat.title} is ${cat.maxAge} years as on the event date.`;
+            return updated;
+          }
+        }
+
+        delete updated.dob;
+        return updated;
+      });
+
+      return; // 🚨 VERY IMPORTANT
+    }
     /* ================= NUMERIC INPUT RESTRICTION ================= */
 
     if (name === "phone" || name === "emergencyNumber" || name === "pincode") {
@@ -639,8 +769,6 @@ export default function RegisterPage() {
       "address",
       "state",
       "pincode",
-      "emergencyName",
-      "emergencyNumber",
       "runnerClub",
       "runnerClubOther",
     ];
@@ -662,50 +790,6 @@ export default function RegisterPage() {
       );
     }
 
-    // 🔥 DOB LIVE VALIDATION
-    if (name === "dob" && cat && event?.date) {
-      const normalize = (d: Date) =>
-        new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-      const birthDate = normalize(new Date(fieldValue));
-      const eventDate = normalize(event.date);
-
-      const minAge = Number(cat.minAge);
-      const maxAge = Number(cat.maxAge);
-
-      const minDOB = normalize(
-        new Date(
-          eventDate.getFullYear() - minAge,
-          eventDate.getMonth(),
-          eventDate.getDate(),
-        ),
-      );
-
-      const maxDOB = normalize(
-        new Date(
-          eventDate.getFullYear() - maxAge,
-          eventDate.getMonth(),
-          eventDate.getDate(),
-        ),
-      );
-
-      setErrors((prev) => {
-        const updated = { ...prev };
-
-        if (birthDate > minDOB) {
-          updated.dob = `To register for ${cat.title}, your Date of Birth must be on or before ${minDOB.toLocaleDateString("en-GB")}`;
-          return updated;
-        }
-
-        if (birthDate < maxDOB) {
-          updated.dob = `Maximum age for ${cat.title} is ${maxAge} years as on the event date.`;
-          return updated;
-        }
-
-        delete updated.dob;
-        return updated;
-      });
-    }
     // ✅ CLEAR CHECKBOX ERRORS
     if (type === "checkbox") {
       setErrors((prev) => {
@@ -733,7 +817,9 @@ export default function RegisterPage() {
           "emergencyName",
           "emergencyNumber",
         ];
-
+        if (!skipEmergency) {
+          requiredFields.push("emergencyName", "emergencyNumber");
+        }
         if (requiredFields.includes(name)) {
           if (!fieldValue || fieldValue.toString().trim() === "") {
             updated[name] =
@@ -768,7 +854,7 @@ export default function RegisterPage() {
         categoryId: defaultCategory?.id || "",
         categoryTitle: defaultCategory?.title || "",
         categoryDistance: defaultCategory?.distance || "",
-        categoryPrice: defaultCategory?.price || 0,
+        categoryPrice: getFinalPrice(defaultCategory),
 
         address: prev[0]?.address ?? "",
         state: prev[0]?.state ?? "",
@@ -1087,20 +1173,22 @@ export default function RegisterPage() {
     }
   };
   useEffect(() => {
-    if (skipEmergency) {
-      setForm((prev: any) => ({
-        ...prev,
+    if (!skipEmergency) return;
+
+    setParticipants((prev) =>
+      prev.map((runner) => ({
+        ...runner,
         emergencyName: "",
         emergencyNumber: "",
-      }));
+      })),
+    );
 
-      setErrors((prev) => {
-        const updated = { ...prev };
-        delete updated.emergencyName;
-        delete updated.emergencyNumber;
-        return updated;
-      });
-    }
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated.emergencyName;
+      delete updated.emergencyNumber;
+      return updated;
+    });
   }, [skipEmergency]);
   useEffect(() => {
     let step = 0;
@@ -1206,7 +1294,7 @@ export default function RegisterPage() {
     }, 0);
 
     const discount = couponApplied ? discountAmount : 0;
-
+    console.log(discount);
     return {
       finalTotal: Math.max(total - discount, 0),
     };
@@ -1217,6 +1305,49 @@ export default function RegisterPage() {
   }
   if (!hydrated) {
     return null;
+  }
+
+  function getFinalPrice(category: any) {
+    if (!category) return 0;
+
+    let price = category.price;
+
+    if (category.earlyBirdPrice) {
+      const now = new Date();
+
+      let end: Date | null = null;
+
+      // ✅ case 1: Firestore timestamp
+      if (category.earlyBirdEnd?._seconds) {
+        end = new Date(category.earlyBirdEnd._seconds * 1000);
+      }
+
+      // ✅ case 2: normal string date
+      else if (category.earlyBirdEndDate) {
+        end = new Date(category.earlyBirdEndDate);
+      }
+
+      if (end && now <= end) {
+        price = category.earlyBirdPrice;
+      }
+    }
+
+    return price;
+  }
+  function getEarlyBirdTimeLeft(category: any) {
+    if (!category?.earlyBirdEnd?._seconds) return null;
+
+    const now = new Date();
+    const end = new Date(category.earlyBirdEnd._seconds * 1000);
+
+    const diff = end.getTime() - now.getTime();
+
+    if (diff <= 0) return null;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+
+    return { days, hours };
   }
   if (!event) {
     return (
@@ -1555,6 +1686,9 @@ export default function RegisterPage() {
                       handleChange={handleChange}
                       skipEmergency={skipEmergency}
                       setSkipEmergency={setSkipEmergency}
+                      useSameEmergency={useSameEmergency}
+                      setUseSameEmergency={setUseSameEmergency}
+                      runnerIndex={currentRunner}
                     />
                   </div>
 
@@ -1622,9 +1756,46 @@ export default function RegisterPage() {
                   {/* RIGHT SIDE */}
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <span className="text-base font-bold text-gray-900">
-                        ₹{pricing.finalTotal}
-                      </span>
+                      {(() => {
+                        const category = event?.categories?.[0]; // or selected category logic
+                        const timeLeft = getEarlyBirdTimeLeft(category);
+
+                        const isEarly =
+                          category?.earlyBirdPrice &&
+                          category?.earlyBirdEnd &&
+                          timeLeft;
+
+                        return (
+                          <div className="flex flex-col items-end">
+                            {/* MAIN PRICE */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-gray-900">
+                                ₹{pricing.finalTotal}
+                              </span>
+
+                              {isEarly && (
+                                <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                  <Bird className="w-3 h-3" /> Early Bird
+                                </span>
+                              )}
+                            </div>
+
+                            {/* STRIKE PRICE */}
+                            {isEarly && (
+                              <span className="text-xs text-gray-400 line-through">
+                                ₹{category.price * participants.length}
+                              </span>
+                            )}
+
+                            {/* COUNTDOWN */}
+                            {isEarly && timeLeft && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                ⏳ Ends in {timeLeft.days}d {timeLeft.hours}h
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {participants.length > 1 && (
                         <div className="text-xs text-gray-500">
@@ -1671,9 +1842,46 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="text-right">
-                      <span className="text-base font-bold text-gray-900">
-                        ₹{pricing.finalTotal}
-                      </span>
+                      {(() => {
+                        const category = event?.categories?.[0]; // or selected category logic
+                        const timeLeft = getEarlyBirdTimeLeft(category);
+
+                        const isEarly =
+                          category?.earlyBirdPrice &&
+                          category?.earlyBirdEnd &&
+                          timeLeft;
+
+                        return (
+                          <div className="flex flex-col items-end">
+                            {/* MAIN PRICE */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-gray-900">
+                                ₹{pricing.finalTotal}
+                              </span>
+
+                              {isEarly && (
+                                <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                  🔥 Early Bird
+                                </span>
+                              )}
+                            </div>
+
+                            {/* STRIKE PRICE */}
+                            {isEarly && (
+                              <span className="text-xs text-gray-400 line-through">
+                                ₹{category.price * participants.length}
+                              </span>
+                            )}
+
+                            {/* COUNTDOWN */}
+                            {isEarly && timeLeft && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                ⏳ Ends in {timeLeft.days}d {timeLeft.hours}h
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {participants.length > 1 && (
                         <div className="text-xs text-gray-500">

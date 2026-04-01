@@ -23,6 +23,21 @@ export interface Inclusions {
 }
 
 export interface EventData {
+ organizer?: {
+  name?: string;
+  phone?: string;
+  email?: string;
+  supportEmail?: string;
+};
+
+socialLinks?: {
+  facebook?: string;
+  instagram?: string;
+  youtube?: string;
+  whatsapp?: string;
+};
+  refundPolicy: string;
+  terms: string;
   routeLabel: string;
   routeStops?: {
     name: string;

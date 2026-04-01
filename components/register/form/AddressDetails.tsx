@@ -5,7 +5,9 @@ import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { MapPinIcon, BuildingOfficeIcon } from "@heroicons/react/24/outline";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { FIELD_HELP } from "@/lib/formFieldHelp";
-
+import {
+  UserIcon,
+} from "@heroicons/react/24/outline";
 interface Props {
   form: any;
   errors: Record<string, string>;
@@ -21,19 +23,28 @@ export default function AddressDetails({ form, errors, handleChange }: Props) {
   return (
     <section className="space-y-6">
       {/* HEADER */}
-      <div className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-orange-500)]/10 text-[var(--color-orange-500)] text-sm font-semibold">
-          2
-        </div>
+         {/* LEFT SIDE */}
+        <div className="flex flex-col md:flex-row md:items-center bg-gray-50 rounded-lg px-5 py-4 gap-3">
+          {/* ICON BADGE */}
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl 
+  bg-red-50 text-[var(--color-orange-500)] ring-1 ring-red-100"
+          >
+            <UserIcon className="h-5 w-5" />
+          </div>
 
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">
-            Address Details
-          </h2>
-          <p className="text-xs text-gray-500">Where should we contact you?</p>
-        </div>
-      </div>
+          {/* TITLE */}
+          <div className="min-w-0">
+            <h2 className="text-[15px] text-gray-900">
+              Address{" "}
+              <span className="text-[var(--color-orange-500)]">Details</span>
+            </h2>
 
+            <p className="text-xs text-gray-500 mt-[2px]">
+              Where should we contact you?
+            </p>
+          </div>
+        </div>
       {/* CONTENT */}
       <div className="space-y-5">
         {/* ADDRESS */}

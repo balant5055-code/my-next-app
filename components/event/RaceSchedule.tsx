@@ -1,7 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ClockIcon, FlagIcon } from "@heroicons/react/24/outline";
+import {
+  ClockIcon,
+  FlagIcon,
+  CalendarDaysIcon,
+} from "@heroicons/react/24/outline";
 
 interface RaceScheduleProps {
   event: {
@@ -26,14 +30,21 @@ export default function RaceSchedule({ event }: RaceScheduleProps) {
 
   return (
     <section>
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        {/* Header */}
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">
-          Race Schedule
-        </h2>
+      <div className="rounded-xl bg-white p-6">
 
-        {/* Schedule Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* HEADER (aligned with all sections) */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
+            <CalendarDaysIcon className="h-5 w-5 text-orange-500" />
+          </div>
+
+          <h2 className="text-lg  text-gray-900">
+            Race Schedule
+          </h2>
+        </div>
+
+        {/* CONTENT */}
+        <div className="space-y-5">
           {items.map((item, i) => {
             const Icon = item.icon;
 
@@ -44,35 +55,20 @@ export default function RaceSchedule({ event }: RaceScheduleProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
-                className="
-                flex items-center justify-between
-                rounded-lg
-                border border-gray-200
-                px-4 py-3
-                hover:border-orange-300
-                hover:shadow-sm
-                transition
-                "
+                className="flex items-start gap-3"
               >
-                {/* Left */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className="
-                  flex h-9 w-9 items-center justify-center
-                  rounded-lg
-                  bg-orange-50
-                  "
-                  >
-                    <Icon className="h-5 w-5 text-orange-600" />
-                  </div>
-
-                  <p className="text-sm text-gray-600">{item.label}</p>
+                {/* Icon */}
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50">
+                  <Icon className="h-5 w-5 text-orange-500" />
                 </div>
 
-                {/* Time */}
-                <p className="text-sm font-semibold text-gray-900">
-                  {item.value}
-                </p>
+                {/* Text */}
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">{item.label}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.value}
+                  </p>
+                </div>
               </motion.div>
             );
           })}

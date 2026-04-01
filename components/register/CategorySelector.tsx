@@ -21,6 +21,8 @@ interface Category {
   bookedSeats?: number;
   popular?: boolean;
   status?: "open" | "closed";
+  earlyBirdPrice?: number;
+  earlyBirdEnd?: any;
 }
 
 interface Props {
@@ -49,7 +51,21 @@ export default function CategorySelector({
     if (a.status !== "closed" && b.status === "closed") return -1;
     return 0;
   });
+  function getEarlyBird(c: Category) {
+    if (!c.earlyBirdPrice || !c.earlyBirdEnd?._seconds) return null;
 
+    const now = new Date();
+    const end = new Date(c.earlyBirdEnd._seconds * 1000);
+
+    if (now > end) return null;
+
+    const diff = end.getTime() - now.getTime();
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+
+    return { days, hours };
+  }
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
       {/* HEADER */}
@@ -136,9 +152,53 @@ export default function CategorySelector({
               <div className="text-xs text-gray-500 mt-1">{c.title}</div>
 
               {/* PRICE */}
-              <div className="mt-3 text-sm font-semibold text-orange-600">
-                {isClosed ? "Closed" : `₹${c.price}`}
-              </div>
+              {(() => {
+                const early = getEarlyBird(c);
+
+                return (
+                  <div className="mt-3 flex flex-col gap-[6px]">
+                    {/* PRICE + BADGE */}
+                    <div className="flex items-center gap-2">
+                      {isClosed ? (
+                        <span className="text-sm font-semibold text-red-500">
+                          Closed
+                        </span>
+                      ) : (
+                        <>
+                          {/* MAIN PRICE */}
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-base font-bold text-orange-500">
+                              ₹{early ? c.earlyBirdPrice : c.price}
+                            </span>
+
+                            {early && (
+                              <span className="text-xs text-gray-400 line-through">
+                                ₹{c.price}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* EARLY BADGE */}
+                          {early && (
+                            <span className="flex items-center gap-1 text-[10px] text-green-700 bg-green-50 border border-green-200 px-2 py-[2px] rounded-full">
+                              <FireIcon className="w-3 h-3" />
+                              Early Bird
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* COUNTDOWN */}
+                    {early && !isClosed && (
+                      <div className="flex items-center gap-1 text-[11px] text-orange-600 font-medium">
+                        <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                        Ends in {early.days}d {early.hours}h
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* SEATS */}
               {!isClosed && (

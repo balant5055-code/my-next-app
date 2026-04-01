@@ -29,20 +29,20 @@ export default function DateOfBirthInput({
       <DatePicker
         wrapperClassName="w-full"
         selected={selectedDate}
-        onChange={(date: Date | null) => {
-          const formatted = date ? date.toISOString().split("T")[0] : "";
+       onChange={(date: Date | null) => {
+  const formatted = date ? date.toISOString().split("T")[0] : "";
 
-          const event = {
-            target: {
-              name: name,
-              value: formatted,
-              type: "text",
-              checked: false,
-            },
-          };
+  const event = {
+    target: {
+      name: name,
+      value: formatted,
+      type: "text",
+      checked: false,
+    },
+  };
 
-          onChange(event);
-        }}
+  onChange(event);
+}}
         dateFormat="dd/MM/yyyy"
         showYearDropdown
         scrollableYearDropdown

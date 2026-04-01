@@ -3,6 +3,11 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
+  formatDate,
+  formatCurrency,
+  formatLocation,
+} from "@/lib/utils";
+import {
   CalendarDaysIcon,
   MapPinIcon,
   TrophyIcon,
@@ -17,26 +22,11 @@ interface Category {
 interface StickyRegisterCardProps {
   event: {
     slug: string;
-    date?: string | Date | null; // ✅ FIXED TYPE
+    date?: string | Date | null;
     venue?: string;
     city?: string;
     categories?: Category[];
   };
-}
-
-/* ✅ DATE FORMATTER (SAFE) */
-function formatDate(date: string | Date | null | undefined) {
-  if (!date) return "-";
-
-  const d = typeof date === "string" ? new Date(date) : date;
-
-  if (!(d instanceof Date) || isNaN(d.getTime())) return "-";
-
-  return d.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export default function StickyRegisterCard({
@@ -61,7 +51,9 @@ export default function StickyRegisterCard({
         "
       >
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900">Race Entry</h3>
+         <h2 className="text-lg  text-gray-900">
+            Race Entry
+          </h2>
 
         {/* Info */}
         <div className="mt-6 space-y-4">
@@ -69,14 +61,14 @@ export default function StickyRegisterCard({
           <InfoRow
             icon={CalendarDaysIcon}
             label="Event Date"
-            value={formatDate(event.date)} // ✅ FIX HERE
+            value={formatDate(event.date)}
           />
 
           {/* Location */}
           <InfoRow
             icon={MapPinIcon}
             label="Location"
-            value={`${event.venue ?? ""} ${event.city ?? ""}`}
+            value={formatLocation(event.venue, event.city)}
           />
 
           {/* Categories */}
@@ -87,11 +79,11 @@ export default function StickyRegisterCard({
           />
 
           {/* Price */}
-          {startingPrice && (
+          {startingPrice !== null && (
             <InfoRow
               icon={CurrencyRupeeIcon}
               label="Starting From"
-              value={`₹${startingPrice}`}
+              value={formatCurrency(startingPrice)}
             />
           )}
         </div>
@@ -114,7 +106,7 @@ export default function StickyRegisterCard({
           to-red-500
           py-3
           text-sm
-          font-semibold
+          
           text-white
           "
         >
@@ -126,7 +118,7 @@ export default function StickyRegisterCard({
   );
 }
 
-/* ---------- Info Row ---------- */
+/* ================= INFO ROW ================= */
 
 function InfoRow({
   icon: Icon,
@@ -139,6 +131,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-center gap-3">
+      {/* Icon Box */}
       <div
         className="
         flex
@@ -150,12 +143,15 @@ function InfoRow({
         bg-orange-50
         "
       >
-        <Icon className="h-5 w-5 text-orange-600" />
+        <Icon className="h-5 w-5 text-orange-500" />
       </div>
 
+      {/* Text */}
       <div>
         <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-900">{value}</p>
+        <p className="text-sm font-medium text-gray-900">
+          {value}
+        </p>
       </div>
     </div>
   );
