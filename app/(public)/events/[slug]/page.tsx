@@ -12,17 +12,17 @@ const SITE_URL =
 /* ================= FETCH EVENT ================= */
 async function getEvent(slug: string) {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
+    const res = await fetch(
+      `${process.env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : `https://${process.env.VERCEL_URL}`}/api/events/${slug}`,
+      { cache: "no-store" }
+    );
 
-    const res = await fetch(`${baseUrl}/api/events/${slug}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("Fetch failed:", res.status);
+      return null;
+    }
 
     return await res.json();
   } catch (err) {
