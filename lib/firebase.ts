@@ -1,9 +1,8 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// YOUR Firebase config (kept exactly as you sent)
 const firebaseConfig = {
   apiKey: "AIzaSyDKcYB_T9Tf_gMJ1b4ldaxIaPDVcbv5kBI",
   authDomain: "event-platform-d496c.firebaseapp.com",
@@ -14,10 +13,10 @@ const firebaseConfig = {
   measurementId: "G-S98HT3C21X",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+/* ✅ FIX: prevent multiple initialization */
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// 🔐 VERY IMPORTANT — this line enables Authentication
+/* EXPORTS */
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

@@ -1,4 +1,10 @@
-export const EVENT_INCLUSIONS = [
+export interface EventInclusion {
+  key: string;
+  title: string;
+  items: string[];
+}
+
+export const EVENT_INCLUSIONS: EventInclusion[] = [
   {
     key: "apparel",
     title: "Apparel & Kit",

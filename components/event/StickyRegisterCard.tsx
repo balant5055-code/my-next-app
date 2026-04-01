@@ -17,14 +17,31 @@ interface Category {
 interface StickyRegisterCardProps {
   event: {
     slug: string;
-    date?: Date | null;
+    date?: string | Date | null; // ✅ FIXED TYPE
     venue?: string;
     city?: string;
     categories?: Category[];
   };
 }
 
-export default function StickyRegisterCard({ event }: StickyRegisterCardProps) {
+/* ✅ DATE FORMATTER (SAFE) */
+function formatDate(date: string | Date | null | undefined) {
+  if (!date) return "-";
+
+  const d = typeof date === "string" ? new Date(date) : date;
+
+  if (!(d instanceof Date) || isNaN(d.getTime())) return "-";
+
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export default function StickyRegisterCard({
+  event,
+}: StickyRegisterCardProps) {
   const router = useRouter();
 
   const startingPrice =
@@ -52,15 +69,7 @@ export default function StickyRegisterCard({ event }: StickyRegisterCardProps) {
           <InfoRow
             icon={CalendarDaysIcon}
             label="Event Date"
-            value={
-              event.date
-                ? event.date.toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "-"
-            }
+            value={formatDate(event.date)} // ✅ FIX HERE
           />
 
           {/* Location */}
@@ -146,7 +155,6 @@ function InfoRow({
 
       <div>
         <p className="text-xs text-gray-500">{label}</p>
-
         <p className="text-sm font-medium text-gray-900">{value}</p>
       </div>
     </div>

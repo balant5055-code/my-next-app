@@ -18,7 +18,7 @@ async function verifyAdminSafe(req: NextRequest) {
     }
 
     return { uid: decoded.uid };
-  } catch (err) {
+  } catch {
     return { error: "Auth failed" };
   }
 }
@@ -68,21 +68,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
     }
 
-    const doc = await adminDb.collection("events").doc(id).get();
+    const docSnap = await adminDb.collection("events").doc(id).get();
 
-    if (!doc.exists) {
+    if (!docSnap.exists) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({
-      id: doc.id,
-      ...doc.data(),
+      id: docSnap.id,
+      ...docSnap.data(),
     });
   } catch (err: any) {
     console.error("GET ERROR:", err);
     return NextResponse.json(
       { error: err.message || "Server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Missing ID" }, { status: 400 });
     }
 
-    /* 🔐 AUTH SAFE */
+    /* 🔐 AUTH */
     const admin = await verifyAdminSafe(req);
     if ("error" in admin) {
       return NextResponse.json({ error: admin.error }, { status: 401 });
@@ -112,14 +112,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const existing: Record<string, any> = snap.data() || {};
+    const existing = snap.data() || {};
 
-    /* 🔒 CLEAN SYSTEM */
+    /* CLEAN SYSTEM FIELDS */
     delete body.createdAt;
     delete body.metrics;
     delete body.categoryBreakdown;
 
-    /* 🔥 MERGE + DIFF */
+    /* MERGE + DIFF */
     const merged = deepMerge(existing, body);
     const changes = getDiff(existing, merged);
 
@@ -134,7 +134,7 @@ export async function PATCH(req: NextRequest) {
       changes,
     };
 
-    /* 🔥 SAFE SAVE */
+    /* SAVE */
     await ref.set(
       {
         ...merged,
@@ -142,7 +142,7 @@ export async function PATCH(req: NextRequest) {
         updatedBy: admin.uid,
         auditLogs: [...(existing.auditLogs || []), audit],
       },
-      { merge: true },
+      { merge: true }
     );
 
     return NextResponse.json({
@@ -153,7 +153,7 @@ export async function PATCH(req: NextRequest) {
     console.error("PATCH ERROR:", err);
     return NextResponse.json(
       { error: err.message || "Update failed" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
