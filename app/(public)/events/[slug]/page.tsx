@@ -10,13 +10,17 @@ const SITE_URL =
     : "http://localhost:3000");
 
 /* ================= FETCH EVENT ================= */
-
 async function getEvent(slug: string) {
   try {
-const res = await fetch(
-  `${process.env.NEXT_PUBLIC_SITE_URL}/api/events/${slug}`,
-  { cache: "no-store" }
-);
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
+
+    const res = await fetch(`${baseUrl}/api/events/${slug}`, {
+      cache: "no-store",
+    });
 
     if (!res.ok) return null;
 
@@ -26,7 +30,6 @@ const res = await fetch(
     return null;
   }
 }
-
 /* ================= DATE NORMALIZER ================= */
 
 function normalizeEventDates(event: any) {
